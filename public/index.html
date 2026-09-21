@@ -601,7 +601,97 @@ function escapeHtml(value){
 
 loadTeams();
 loadPlayers();
+async function loadMatches(){
 
+  try{
+    const response = await fetch("/api/matches");
+
+    if(!response.ok){
+      throw new Error("Matches request failed");
+    }
+
+    const matches = await response.json();
+
+    document.getElementById("homeMatches").textContent = matches.length;
+
+    const container = document.getElementById("matchesList");
+
+    if(!matches.length){
+      container.innerHTML = `
+        <div class="empty">
+          Hələ matç əlavə edilməyib.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = matches.map(match => {
+
+      const date = match.match_date
+        ? new Date(match.match_date).toLocaleString("az-AZ")
+        : "Tarix yoxdur";
+
+      let status = "Planlaşdırılıb";
+
+      if(match.status === "live") status = "🔴 Canlı";
+      if(match.status === "finished") status = "✅ Bitib";
+
+      return `
+        <div class="card">
+
+          <div style="text-align:center;color:#8da0b5;font-size:13px">
+            ${date}
+          </div>
+
+          <div style="
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            margin-top:15px;
+          ">
+
+            <strong>${escapeHtml(match.home_team_name || "Ev sahibi")}</strong>
+
+            <div style="
+              font-size:24px;
+              font-weight:800;
+              white-space:nowrap;
+            ">
+              ${match.home_score} : ${match.away_score}
+            </div>
+
+            <strong>${escapeHtml(match.away_team_name || "Qonaq")}</strong>
+
+          </div>
+
+          <div style="
+            text-align:center;
+            margin-top:12px;
+            color:#36e27b;
+            font-weight:700;
+          ">
+            ${status}
+          </div>
+
+        </div>
+      `;
+
+    }).join("");
+
+  }catch(error){
+
+    console.error(error);
+
+    document.getElementById("matchesList").innerHTML = `
+      <div class="empty">
+        Matçları yükləmək mümkün olmadı.
+      </div>
+    `;
+  }
+}
+
+loadMatches();
 </script>
 
 </body>
