@@ -79,7 +79,53 @@ app.get("/api/health", async (req, res) => {
     });
   }
 });
+// Получить все команды
+app.get("/api/teams", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM teams
+      ORDER BY points DESC,
+               (goals_for - goals_against) DESC,
+               goals_for DESC,
+               name ASC
+    `);
 
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Teams error:", error.message);
+    res.status(500).json({
+      error: "Komandaları yükləmək mümkün olmadı"
+    });
+  }
+});
+
+// Добавить команду
+app.post("/api/teams", async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        error: "Komanda adı tələb olunur"
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO teams (name)
+       VALUES ($1)
+       RETURNING *`,
+      [name.trim()]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Add team error:", error.message);
+    res.status(500).json({
+      error: "Komanda əlavə etmək mümkün olmadı"
+    });
+  }
+});
 app.get("/", (req, res) => {
   res.send(`
     <!DOCTYPE html>
