@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AliScore</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#07111f;
+  color:#fff;
+}
+
+header{
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:#0b1a2d;
+  border-bottom:1px solid #20344d;
+  padding:16px;
+}
+
+.logo{
+  font-size:25px;
+  font-weight:800;
+  text-align:center;
+}
+
+.logo span{color:#36e27b}
+
+nav{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  margin-top:15px;
+  padding-bottom:3px;
+}
+
+nav button{
+  flex:0 0 auto;
+  border:0;
+  border-radius:10px;
+  padding:10px 14px;
+  background:#142840;
+  color:#fff;
+  font-weight:700;
+}
+
+nav button.active{
+  background:#36e27b;
+  color:#06110c;
+}
+
+main{
+  max-width:900px;
+  margin:auto;
+  padding:20px 15px 40px;
+}
+
+.page{display:none}
+.page.active{display:block}
+
+.hero{
+  background:linear-gradient(135deg,#102b48,#0d1d31);
+  border:1px solid #203c59;
+  border-radius:20px;
+  padding:25px;
+  margin-bottom:20px;
+}
+
+.hero h1{
+  margin:0 0 8px;
+  font-size:30px;
+}
+
+.hero p{
+  color:#9fb1c5;
+  margin:0;
+}
+
+.section-title{
+  margin:25px 0 12px;
+  font-size:21px;
+}
+
+.card{
+  background:#0d1b2d;
+  border:1px solid #20344d;
+  border-radius:15px;
+  padding:16px;
+  margin-bottom:10px;
+}
+
+.table-wrap{
+  overflow-x:auto;
+  background:#0d1b2d;
+  border:1px solid #20344d;
+  border-radius:15px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:650px;
+}
+
+th,td{
+  padding:13px 10px;
+  text-align:center;
+  border-bottom:1px solid #1d3046;
+}
+
+th{
+  background:#13263d;
+  color:#9fb1c5;
+  font-size:13px;
+}
+
+td:first-child,th:first-child{
+  text-align:left;
+}
+
+.team-name{
+  font-weight:800;
+}
+
+.points{
+  color:#36e27b;
+  font-weight:800;
+}
+
+.player{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.avatar{
+  width:45px;
+  height:45px;
+  border-radius:50%;
+  background:#162b43;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+}
+
+.player-name{
+  font-weight:800;
+}
+
+.player-team{
+  color:#8295ab;
+  font-size:13px;
+  margin-top:4px;
+}
+
+.empty{
+  text-align:center;
+  color:#8da0b5;
+  padding:30px;
+}
+
+.loading{
+  text-align:center;
+  color:#8da0b5;
+  padding:25px;
+}
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:18px;
+}
+
+.stat{
+  background:#0b1727;
+  border:1px solid #20344d;
+  border-radius:14px;
+  padding:15px;
+  text-align:center;
+}
+
+.stat strong{
+  display:block;
+  font-size:25px;
+  color:#36e27b;
+}
+
+.stat span{
+  color:#8da0b5;
+  font-size:12px;
+}
+
+@media(max-width:600px){
+  .stat-grid{
+    grid-template-columns:1fr;
+  }
+
+  .hero h1{
+    font-size:25px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">⚽ Ali<span>Score</span></div>
+
+  <nav>
+    <button class="active" onclick="showPage('home',this)">Ana səhifə</button>
+    <button onclick="showPage('matches',this)">Matçlar</button>
+    <button onclick="showPage('table',this)">Turnir cədvəli</button>
+    <button onclick="showPage('teams',this)">Komandalar</button>
+    <button onclick="showPage('players',this)">Oyunçular</button>
+    <button onclick="showPage('lineups',this)">Heyətlər</button>
+    <button onclick="showPage('cards',this)">Kartlar</button>
+    <button onclick="showPage('admin',this)">İdarəetmə</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ANA SƏHİFƏ -->
+  <section id="home" class="page active">
+
+    <div class="hero">
+      <h1>⚽ AliScore</h1>
+      <p>Turnirinizi, komandalarınızı və oyunçularınızı bir yerdən izləyin.</p>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <strong id="homeTeams">-</strong>
+          <span>Komanda</span>
+        </div>
+
+        <div class="stat">
+          <strong id="homePlayers">-</strong>
+          <span>Oyunçu</span>
+        </div>
+
+        <div class="stat">
+          <strong id="homeMatches">0</strong>
+          <span>Matç</span>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="section-title">🏆 Turnir cədvəli</h2>
+
+    <div id="homeTable" class="loading">
+      Yüklənir...
+    </div>
+
+  </section>
+
+
+  <!-- MATÇLAR -->
+  <section id="matches" class="page">
+
+    <h2 class="section-title">⚽ Matçlar</h2>
+
+    <div id="matchesList" class="empty">
+      Hələ matç əlavə edilməyib.
+    </div>
+
+  </section>
+
+
+  <!-- TURNİR CƏDVƏLİ -->
+  <section id="table" class="page">
+
+    <h2 class="section-title">🏆 Turnir cədvəli</h2>
+
+    <div id="fullTable" class="loading">
+      Yüklənir...
+    </div>
+
+  </section>
+
+
+  <!-- KOMANDALAR -->
+  <section id="teams" class="page">
+
+    <h2 class="section-title">👥 Komandalar</h2>
+
+    <div id="teamsList" class="loading">
+      Yüklənir...
+    </div>
+
+  </section>
+
+
+  <!-- OYUNÇULAR -->
+  <section id="players" class="page">
+
+    <h2 class="section-title">👤 Oyunçular</h2>
+
+    <div id="playersList" class="loading">
+      Yüklənir...
+    </div>
+
+  </section>
+
+
+  <!-- HEYƏTLƏR -->
+  <section id="lineups" class="page">
+
+    <h2 class="section-title">📋 Heyətlər</h2>
+
+    <div class="card">
+      <h3>Başlanğıc heyətləri</h3>
+      <p style="color:#8da0b5">
+        Komandaların başlanğıc heyətləri burada görünəcək.
+      </p>
+    </div>
+
+  </section>
+
+
+  <!-- KARTLAR -->
+  <section id="cards" class="page">
+
+    <h2 class="section-title">🟨🟥 Kartlar</h2>
+
+    <div class="card">
+      <p style="color:#8da0b5">
+        Sarı və qırmızı kartlar burada görünəcək.
+      </p>
+    </div>
+
+  </section>
+
+
+  <!-- ADMİN -->
+  <section id="admin" class="page">
+
+    <h2 class="section-title">⚙️ İdarəetmə</h2>
+
+    <div class="card">
+      <h3>Admin paneli</h3>
+      <p style="color:#8da0b5">
+        Komandalar, oyunçular, matçlar və digər məlumatlar burada idarə olunacaq.
+      </p>
+    </div>
+
+  </section>
+
+</main>
+
+<script>
+
+let teams=[];
+let players=[];
+
+function showPage(pageId,button){
+
+  document.querySelectorAll(".page").forEach(page=>{
+    page.classList.remove("active");
+  });
+
+  const page=document.getElementById(pageId);
+
+  if(page){
+    page.classList.add("active");
+  }
+
+  document.querySelectorAll("nav button").forEach(btn=>{
+    btn.classList.remove("active");
+  });
+
+  if(button){
+    button.classList.add("active");
+  }
+}
+
+
+async function loadTeams(){
+
+  try{
+
+    const response=await fetch("/api/teams");
+
+    if(!response.ok){
+      throw new Error("Teams request failed");
+    }
+
+    teams=await response.json();
+
+    document.getElementById("homeTeams").textContent=teams.length;
+
+    renderTeams();
+    renderTable();
+
+  }catch(error){
+
+    console.error(error);
+
+    document.getElementById("teamsList").innerHTML=
+      '<div class="empty">Komandaları yükləmək mümkün olmadı.</div>';
+
+    document.getElementById("fullTable").innerHTML=
+      '<div class="empty">Turnir cədvəlini yükləmək mümkün olmadı.</div>';
+
+    document.getElementById("homeTable").innerHTML=
+      '<div class="empty">Məlumat yüklənmədi.</div>';
+  }
+}
+
+
+async function loadPlayers(){
+
+  try{
+
+    const response=await fetch("/api/players");
+
+    if(!response.ok){
+      throw new Error("Players request failed");
+    }
+
+    players=await response.json();
+
+    document.getElementById("homePlayers").textContent=players.length;
+
+    renderPlayers();
+
+  }catch(error){
+
+    console.error(error);
+
+    document.getElementById("playersList").innerHTML=
+      '<div class="empty">Oyunçuları yükləmək mümkün olmadı.</div>';
+  }
+}
+
+
+function renderTeams(){
+
+  const container=document.getElementById("teamsList");
+
+  if(!teams.length){
+    container.innerHTML='<div class="empty">Komanda yoxdur.</div>';
+    return;
+  }
+
+  container.innerHTML=teams.map(team=>{
+
+    return `
+      <div class="card">
+        <div class="team-name">⚽ ${escapeHtml(team.name)}</div>
+
+        <div style="color:#8da0b5;margin-top:8px">
+          Oyun: ${team.played || 0}
+          &nbsp; • &nbsp;
+          Xal: <b style="color:#36e27b">${team.points || 0}</b>
+        </div>
+      </div>
+    `;
+
+  }).join("");
+}
+
+
+function tableHTML(){
+
+  if(!teams.length){
+    return '<div class="empty">Komanda yoxdur.</div>';
+  }
+
+  return `
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Komanda</th>
+            <th>O</th>
+            <th>Q</th>
+            <th>H</th>
+            <th>M</th>
+            <th>GF</th>
+            <th>GA</th>
+            <th>GD</th>
+            <th>Xal</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${teams.map((team,index)=>{
+
+            const gf=team.goals_for || 0;
+            const ga=team.goals_against || 0;
+            const gd=gf-ga;
+
+            return `
+              <tr>
+                <td>${index+1}</td>
+                <td class="team-name">${escapeHtml(team.name)}</td>
+                <td>${team.played || 0}</td>
+                <td>${team.wins || 0}</td>
+                <td>${team.draws || 0}</td>
+                <td>${team.losses || 0}</td>
+                <td>${gf}</td>
+                <td>${ga}</td>
+                <td>${gd}</td>
+                <td class="points">${team.points || 0}</td>
+              </tr>
+            `;
+
+          }).join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+}
+
+
+function renderTable(){
+
+  document.getElementById("fullTable").innerHTML=tableHTML();
+
+  document.getElementById("homeTable").innerHTML=tableHTML();
+}
+
+
+function renderPlayers(){
+
+  const container=document.getElementById("playersList");
+
+  if(!players.length){
+    container.innerHTML='<div class="empty">Oyunçu yoxdur.</div>';
+    return;
+  }
+
+  container.innerHTML=players.map(player=>{
+
+    const initials=(player.name || "?").substring(0,1).toUpperCase();
+
+    return `
+      <div class="card">
+
+        <div class="player">
+
+          <div class="avatar">
+            ${player.photo
+              ? `<img src="${escapeHtml(player.photo)}"
+                   style="width:45px;height:45px;border-radius:50%;object-fit:cover">`
+              : initials
+            }
+          </div>
+
+          <div>
+            <div class="player-name">
+              ${escapeHtml(player.name)}
+            </div>
+
+            <div class="player-team">
+              ${escapeHtml(player.team_name || "Komandasız")}
+            </div>
+
+            <div style="color:#8da0b5;font-size:13px;margin-top:4px">
+              ${escapeHtml(player.position || "Yarımmüdafiəçi")}
+              &nbsp; • &nbsp;
+              #${player.number || 0}
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    `;
+
+  }).join("");
+}
+
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+
+loadTeams();
+loadPlayers();
+
+</script>
+
+</body>
+</html>
