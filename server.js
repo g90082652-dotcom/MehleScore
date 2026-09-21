@@ -132,7 +132,64 @@ app.post("/api/teams", async (req, res) => {
        RETURNING *`,
       [name.trim()]
     );
+// Получить всех игроков
+app.get("/api/players", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        players.*,
+        teams.name AS team_name
+      FROM players
+      LEFT JOIN teams ON teams.id = players.team_id
+      ORDER BY teams.name ASC, players.name ASC
+    `);
 
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Players error:", error.message);
+    res.status(500).json({
+      error: "Oyunçuları yükləmək mümkün olmadı"
+    });
+  }
+});
+
+// Добавить игрока
+app.post("/api/players", async (req, res) => {
+  try {
+    const {
+      name,
+      team_id,
+      number,
+      position
+    } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        error: "Oyunçu adı tələb olunur"
+      });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO players
+        (name, team_id, number, position)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [
+        name.trim(),
+        team_id || null,
+        number || 0,
+        position || "Yarımmüdafiəçi"
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Add player error:", error.message);
+    res.status(500).json({
+      error: "Oyunçu əlavə etmək mümkün olmadı"
+    });
+  }
+});
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("Add team error:", error.message);
