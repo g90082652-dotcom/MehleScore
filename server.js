@@ -74,7 +74,71 @@ async function initDatabase() {
     }
   console.log("Database tables ready");
 }
+const players = [
+  // Xirdalan Wolves — 4
+  ["Ali", "Xirdalan Wolves"],
+  ["Emin", "Xirdalan Wolves"],
+  ["Huseyin", "Xirdalan Wolves"],
+  ["Raul", "Xirdalan Wolves"],
 
+  // Xirdalan United — 5
+  ["Amil", "Xirdalan United"],
+  ["Elmir", "Xirdalan United"],
+  ["İsa", "Xirdalan United"],
+  ["Ümüd", "Xirdalan United"],
+  ["Huseyin", "Xirdalan United"],
+
+  // MSN FK — 4
+  ["Fuad", "MSN FK"],
+  ["Murad", "MSN FK"],
+  ["Ayxan", "MSN FK"],
+  ["Şahin", "MSN FK"],
+
+  // Neweli FK — 4
+  ["Tofik", "Neweli FK"],
+  ["Arda", "Neweli FK"],
+  ["Veli", "Neweli FK"],
+  ["Emil", "Neweli FK"],
+
+  // Lotu pişiklər — 3
+  ["Kamran", "Lotu pişiklər"],
+  ["Ayxan", "Lotu pişiklər"],
+  ["Ramil", "Lotu pişiklər"]
+];
+
+for (const [playerName, teamName] of players) {
+  const teamResult = await pool.query(
+    `SELECT id FROM teams WHERE name = $1`,
+    [teamName]
+  );
+
+  if (teamResult.rows.length === 0) {
+    console.log(`Team not found: ${teamName}`);
+    continue;
+  }
+
+  const teamId = teamResult.rows[0].id;
+
+  const existingPlayer = await pool.query(
+    `SELECT id FROM players
+     WHERE name = $1 AND team_id = $2`,
+    [playerName, teamId]
+  );
+
+  if (existingPlayer.rows.length === 0) {
+    await pool.query(
+      `INSERT INTO players
+        (name, team_id, number, position)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        playerName,
+        teamId,
+        0,
+        "Yarımmüdafiəçi"
+      ]
+    );
+  }
+}
 app.get("/api/health", async (req, res) => {
   try {
     await pool.query("SELECT NOW()");
