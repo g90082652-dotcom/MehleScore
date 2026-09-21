@@ -320,7 +320,146 @@ app.use(express.static("public"));
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
+// =========================
+// MATCHES API
+// =========================
 
+app.get("/api/matches", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        matches.id,
+        matches.home_team_id,
+        matches.away_team_id,
+        matches.home_score,
+        matches.away_score,
+        matches.match_date,
+        matches.status,
+        home.name AS home_team_name,
+        away.name AS away_team_name
+      FROM matches
+      LEFT JOIN teams home
+        ON home.id = matches.home_team_id
+      LEFT JOIN teams away
+        ON away.id = matches.away_team_id
+      ORDER BY matches.match_date ASC NULLS LAST, matches.id ASC
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Matches error:", error.message);
+
+    res.status(500).json({
+      error: "Matçları yükləmək mümkün olmadı"
+    });
+  }
+});
+
+
+app.post("/api/matches", async (req, res) => {
+  try {
+    const {
+      home_team_id,
+      away_team_id,
+      home_score = 0,
+      away_score = 0,
+      match_date,
+      status = "scheduled"
+    } = req.body;
+
+    if (!home_team_id || !away_team_id) {
+      return res.status(400).json({
+        error: "İki komanda seçilməlidir"
+      });
+    }
+
+    if (String(home_team_id) === String(away_team_id)) {
+      return res.status(400).json({
+        error: "Eyni komanda özü ilə oynaya bilməz"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO matches
+      (
+        home_team_id,
+        away_team_id,
+        home_score,
+        away_score,
+        match_date,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+      `,
+      [
+        home_team_id,
+        away_team_id,
+        home_score,
+        away_score,
+        match_date || null,
+        status
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error("Add match error:", error.message);
+
+    res.status(500).json({
+      error: "Matç əlavə etmək mümkün olmadı"
+    });
+  }
+});
+
+
+app.patch("/api/matches/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      home_score,
+      away_score,
+      match_date,
+      status
+    } = req.body;
+
+    const result = await pool.query(
+      `
+      UPDATE matches
+      SET
+        home_score = COALESCE($1, home_score),
+        away_score = COALESCE($2, away_score),
+        match_date = COALESCE($3, match_date),
+        status = COALESCE($4, status)
+      WHERE id = $5
+      RETURNING *
+      `,
+      [
+        home_score,
+        away_score,
+        match_date,
+        status,
+        id
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "Matç tapılmadı"
+      });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error("Update match error:", error.message);
+
+    res.status(500).json({
+      error: "Matçı dəyişmək mümkün olmadı"
+    });
+  }
+});
 
 // =========================
 // START
