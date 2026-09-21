@@ -5,26 +5,66 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 
 const app = express();
+const PORT = process.env.PORT || 10000;
 
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 
-const PORT = process.env.PORT || 10000;
-const DATABASE_URL = process.env.DATABASE_URL;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!DATABASE_URL || !ADMIN_PASSWORD || !JWT_SECRET) {
-  console.error("Missing DATABASE_URL, ADMIN_PASSWORD or JWT_SECRET");
+if (!process.env.DATABASE_URL) {
+  console.error("DATABASE_URL is missing");
   process.exit(1);
 }
 
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
+if (!ADMIN_PASSWORD) {
+  console.error("ADMIN_PASSWORD is missing");
+  process.exit(1);
+}
+
+if (!JWT_SECRET) {
+  console.error("JWT_SECRET is missing");
+  process.exit(1);
+}
+
+/* =========================
+   AUTH
+========================= */
+
+function requireAdmin(req, res, next) {
+  try {
+    const token = req.cookies.aliscore_admin;
+
+    if (!token) {
+      return res.status(401).json({
+        ok: false,
+        error: "Admin login required"
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    if (!decoded.admin) {
+      return res.status(401).json({
+        ok: false,
+        error: "Unauthorized"
+      });
+    }
+
+    next();
+  } catch {
+    res.status(401).json({
+      ok: false,
+      error: "Unauthorized"
+    });
   }
-});
+}
 
 /* =========================
    DATABASE
@@ -42,7 +82,7 @@ async function initDatabase() {
       losses INTEGER DEFAULT 0,
       goals_for INTEGER DEFAULT 0,
       goals_against INTEGER DEFAULT 0
-    );
+    )
   `);
 
   await pool.query(`
@@ -52,13 +92,13 @@ async function initDatabase() {
       team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
       number INTEGER DEFAULT 0,
       position TEXT DEFAULT 'Yarımmüdafiəçi',
+      photo TEXT,
       goals INTEGER DEFAULT 0,
       assists INTEGER DEFAULT 0,
       saves INTEGER DEFAULT 0,
       yellow_cards INTEGER DEFAULT 0,
-      red_cards INTEGER DEFAULT 0,
-      photo TEXT
-    );
+      red_cards INTEGER DEFAULT 0
+    )
   `);
 
   await pool.query(`
@@ -70,19 +110,19 @@ async function initDatabase() {
       away_score INTEGER DEFAULT 0,
       match_date TIMESTAMP DEFAULT NOW(),
       status TEXT DEFAULT 'scheduled'
-    );
+    )
   `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS match_events (
       id SERIAL PRIMARY KEY,
-      match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+      match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
       player_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
       team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
       type TEXT NOT NULL,
       minute INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT NOW()
-    );
+    )
   `);
 
   await pool.query(`
@@ -91,27 +131,27 @@ async function initDatabase() {
       title TEXT NOT NULL,
       message TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
-    );
+    )
   `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS team_of_week (
       id SERIAL PRIMARY KEY,
       week TEXT NOT NULL,
-      player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
       position TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
-    );
+    )
   `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS lineups (
       id SERIAL PRIMARY KEY,
-      match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
-      player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+      match_id INTEGER REFERENCES matches(id) ON DELETE CASCADE,
+      player_id INTEGER REFERENCES players(id) ON DELETE CASCADE,
       position TEXT NOT NULL,
       UNIQUE(match_id, player_id)
-    );
+    )
   `);
 
   await pool.query(`
@@ -121,12 +161,8 @@ async function initDatabase() {
       from_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
       to_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
       created_at TIMESTAMP DEFAULT NOW()
-    );
+    )
   `);
-
-  /* =========================
-     SEED TEAMS
-  ========================= */
 
   const teams = [
     "Xirdalan United",
@@ -138,20 +174,14 @@ async function initDatabase() {
 
   for (const name of teams) {
     await pool.query(
-      `
-      INSERT INTO teams (name)
-      VALUES ($1)
-      ON CONFLICT (name) DO NOTHING
-      `,
+      `INSERT INTO teams (name)
+       VALUES ($1)
+       ON CONFLICT (name) DO NOTHING`,
       [name]
     );
   }
 
-  /* =========================
-     SEED PLAYERS
-  ========================= */
-
-  const seedPlayers = [
+  const players = [
     ["Ali", "Xirdalan Wolves"],
     ["Emin", "Xirdalan Wolves"],
     ["Huseyin", "Xirdalan Wolves"],
@@ -178,70 +208,26 @@ async function initDatabase() {
     ["Ramil", "Lotu pişiklər"]
   ];
 
-  for (const [playerName, teamName] of seedPlayers) {
+  for (const [name, teamName] of players) {
     const team = await pool.query(
-      `SELECT id FROM teams WHERE name = $1`,
+      `SELECT id FROM teams WHERE name=$1`,
       [teamName]
     );
 
-    if (!team.rows.length) continue;
+    if (!team.rows[0]) continue;
 
-    const exists = await pool.query(
-      `
-      SELECT id
-      FROM players
-      WHERE name = $1
-        AND team_id = $2
-      LIMIT 1
-      `,
-      [playerName, team.rows[0].id]
+    await pool.query(
+      `INSERT INTO players (name, team_id)
+       SELECT $1,$2
+       WHERE NOT EXISTS (
+         SELECT 1 FROM players
+         WHERE name=$1 AND team_id=$2
+       )`,
+      [name, team.rows[0].id]
     );
-
-    if (!exists.rows.length) {
-      await pool.query(
-        `
-        INSERT INTO players (name, team_id)
-        VALUES ($1, $2)
-        `,
-        [playerName, team.rows[0].id]
-      );
-    }
   }
 
-  console.log("Database initialized");
-}
-
-/* =========================
-   ADMIN
-========================= */
-
-function adminRequired(req, res, next) {
-  try {
-    const token = req.cookies.aliscore_admin;
-
-    if (!token) {
-      return res.status(401).json({
-        ok: false,
-        error: "Admin login required"
-      });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    if (!decoded || decoded.admin !== true) {
-      return res.status(401).json({
-        ok: false,
-        error: "Unauthorized"
-      });
-    }
-
-    next();
-  } catch (err) {
-    return res.status(401).json({
-      ok: false,
-      error: "Unauthorized"
-    });
-  }
+  console.log("AliScore database ready");
 }
 
 /* =========================
@@ -256,8 +242,8 @@ app.get("/api/health", async (req, res) => {
       ok: true,
       database: "connected"
     });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
 
     res.status(500).json({
       ok: false,
@@ -271,9 +257,7 @@ app.get("/api/health", async (req, res) => {
 ========================= */
 
 app.post("/api/admin/login", (req, res) => {
-  const { password } = req.body;
-
-  if (password !== ADMIN_PASSWORD) {
+  if (req.body.password !== ADMIN_PASSWORD) {
     return res.status(401).json({
       ok: false,
       error: "Wrong password"
@@ -281,13 +265,9 @@ app.post("/api/admin/login", (req, res) => {
   }
 
   const token = jwt.sign(
-    {
-      admin: true
-    },
+    { admin: true },
     JWT_SECRET,
-    {
-      expiresIn: "7d"
-    }
+    { expiresIn: "7d" }
   );
 
   res.cookie("aliscore_admin", token, {
@@ -328,11 +308,7 @@ app.get("/api/admin/me", (req, res) => {
 });
 
 app.post("/api/admin/logout", (req, res) => {
-  res.clearCookie("aliscore_admin", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax"
-  });
+  res.clearCookie("aliscore_admin");
 
   res.json({
     ok: true
@@ -356,134 +332,78 @@ app.get("/api/teams", async (req, res) => {
         losses,
         goals_for AS gf,
         goals_against AS ga,
-        (goals_for - goals_against) AS gd
+        goals_for - goals_against AS gd
       FROM teams
-      ORDER BY points DESC,
-               (goals_for - goals_against) DESC,
-               goals_for DESC,
-               name ASC
+      ORDER BY
+        points DESC,
+        goals_for - goals_against DESC,
+        goals_for DESC,
+        name ASC
     `);
 
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      error: "Failed to load teams"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/teams", adminRequired, async (req, res) => {
+app.post("/api/teams", requireAdmin, async (req, res) => {
   try {
-    const {
-      name,
-      points = 0,
-      played = 0,
-      wins = 0,
-      draws = 0,
-      losses = 0,
-      gf = 0,
-      ga = 0
-    } = req.body;
-
-    if (!name || !String(name).trim()) {
-      return res.status(400).json({
-        error: "Team name required"
-      });
-    }
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       INSERT INTO teams
-      (name, points, played, wins, draws, losses, goals_for, goals_against)
+      (name,points,played,wins,draws,losses,goals_for,goals_against)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       RETURNING *
-      `,
-      [
-        String(name).trim(),
-        Number(points) || 0,
-        Number(played) || 0,
-        Number(wins) || 0,
-        Number(draws) || 0,
-        Number(losses) || 0,
-        Number(gf) || 0,
-        Number(ga) || 0
-      ]
-    );
+    `, [
+      req.body.name,
+      Number(req.body.points) || 0,
+      Number(req.body.played) || 0,
+      Number(req.body.wins) || 0,
+      Number(req.body.draws) || 0,
+      Number(req.body.losses) || 0,
+      Number(req.body.gf) || 0,
+      Number(req.body.ga) || 0
+    ]);
 
     res.json({
       ok: true,
       team: result.rows[0]
     });
-  } catch (err) {
-    console.error(err);
-
-    if (err.code === "23505") {
-      return res.status(400).json({
-        error: "Team already exists"
-      });
-    }
-
-    res.status(500).json({
-      error: "Failed to create team"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 async function updateTeam(req, res) {
   try {
-    const id = Number(req.params.id);
-
-    const {
-      name,
-      points,
-      played,
-      wins,
-      draws,
-      losses,
-      gf,
-      ga,
-      goals_for,
-      goals_against
-    } = req.body;
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       UPDATE teams
       SET
-        name = COALESCE($1, name),
-        points = COALESCE($2, points),
-        played = COALESCE($3, played),
-        wins = COALESCE($4, wins),
-        draws = COALESCE($5, draws),
-        losses = COALESCE($6, losses),
-        goals_for = COALESCE($7, goals_for),
-        goals_against = COALESCE($8, goals_against)
-      WHERE id = $9
+        name = COALESCE($1,name),
+        points = COALESCE($2,points),
+        played = COALESCE($3,played),
+        wins = COALESCE($4,wins),
+        draws = COALESCE($5,draws),
+        losses = COALESCE($6,losses),
+        goals_for = COALESCE($7,goals_for),
+        goals_against = COALESCE($8,goals_against)
+      WHERE id=$9
       RETURNING *
-      `,
-      [
-        name ?? null,
-        points === undefined ? null : Number(points),
-        played === undefined ? null : Number(played),
-        wins === undefined ? null : Number(wins),
-        draws === undefined ? null : Number(draws),
-        losses === undefined ? null : Number(losses),
-        gf !== undefined
-          ? Number(gf)
-          : goals_for !== undefined
-          ? Number(goals_for)
-          : null,
-        ga !== undefined
-          ? Number(ga)
-          : goals_against !== undefined
-          ? Number(goals_against)
-          : null,
-        id
-      ]
-    );
+    `, [
+      req.body.name ?? null,
+      req.body.points === undefined ? null : Number(req.body.points),
+      req.body.played === undefined ? null : Number(req.body.played),
+      req.body.wins === undefined ? null : Number(req.body.wins),
+      req.body.draws === undefined ? null : Number(req.body.draws),
+      req.body.losses === undefined ? null : Number(req.body.losses),
+      req.body.gf === undefined ? null : Number(req.body.gf),
+      req.body.ga === undefined ? null : Number(req.body.ga),
+      Number(req.params.id)
+    ]);
 
-    if (!result.rows.length) {
+    if (!result.rows[0]) {
       return res.status(404).json({
         error: "Team not found"
       });
@@ -493,42 +413,26 @@ async function updateTeam(req, res) {
       ok: true,
       team: result.rows[0]
     });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to update team"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 }
 
-app.patch("/api/teams/:id", adminRequired, updateTeam);
-app.put("/api/teams/:id", adminRequired, updateTeam);
+app.put("/api/teams/:id", requireAdmin, updateTeam);
+app.patch("/api/teams/:id", requireAdmin, updateTeam);
 
-app.delete("/api/teams/:id", adminRequired, async (req, res) => {
+app.delete("/api/teams/:id", requireAdmin, async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const result = await pool.query(
-      `DELETE FROM teams WHERE id = $1 RETURNING id`,
-      [id]
+    await pool.query(
+      `DELETE FROM teams WHERE id=$1`,
+      [Number(req.params.id)]
     );
 
-    if (!result.rows.length) {
-      return res.status(404).json({
-        error: "Team not found"
-      });
-    }
-
-    res.json({
-      ok: true
-    });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to delete team"
-    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -546,107 +450,71 @@ app.get("/api/players", async (req, res) => {
         t.name AS team_name,
         p.number,
         p.position,
+        p.photo,
         p.goals,
         p.assists,
         p.saves,
         p.yellow_cards,
-        p.red_cards,
-        p.photo
+        p.red_cards
       FROM players p
-      LEFT JOIN teams t ON t.id = p.team_id
-      ORDER BY p.name ASC
+      LEFT JOIN teams t ON t.id=p.team_id
+      ORDER BY p.name
     `);
 
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to load players"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/players", adminRequired, async (req, res) => {
+app.post("/api/players", requireAdmin, async (req, res) => {
   try {
-    const {
-      name,
-      number = 0,
-      position = "Yarımmüdafiəçi",
-      team_id = null,
-      photo = null
-    } = req.body;
-
-    if (!name || !String(name).trim()) {
-      return res.status(400).json({
-        error: "Player name required"
-      });
-    }
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       INSERT INTO players
-      (name, number, position, team_id, photo)
+      (name,number,position,team_id,photo)
       VALUES ($1,$2,$3,$4,$5)
       RETURNING *
-      `,
-      [
-        String(name).trim(),
-        Number(number) || 0,
-        position || "Yarımmüdafiəçi",
-        team_id ? Number(team_id) : null,
-        photo || null
-      ]
-    );
+    `, [
+      req.body.name,
+      Number(req.body.number) || 0,
+      req.body.position || "Yarımmüdafiəçi",
+      req.body.team_id ? Number(req.body.team_id) : null,
+      req.body.photo || null
+    ]);
 
     res.json({
       ok: true,
       player: result.rows[0]
     });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to create player"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 async function updatePlayer(req, res) {
   try {
-    const id = Number(req.params.id);
-
-    const {
-      name,
-      number,
-      position,
-      team_id,
-      photo
-    } = req.body;
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       UPDATE players
       SET
-        name = COALESCE($1, name),
-        number = COALESCE($2, number),
-        position = COALESCE($3, position),
-        team_id = $4,
-        photo = COALESCE($5, photo)
-      WHERE id = $6
+        name=COALESCE($1,name),
+        number=COALESCE($2,number),
+        position=COALESCE($3,position),
+        team_id=$4,
+        photo=COALESCE($5,photo)
+      WHERE id=$6
       RETURNING *
-      `,
-      [
-        name ?? null,
-        number === undefined ? null : Number(number),
-        position ?? null,
-        team_id === undefined ? null : (team_id ? Number(team_id) : null),
-        photo ?? null,
-        id
-      ]
-    );
+    `, [
+      req.body.name ?? null,
+      req.body.number === undefined ? null : Number(req.body.number),
+      req.body.position ?? null,
+      req.body.team_id ? Number(req.body.team_id) : null,
+      req.body.photo ?? null,
+      Number(req.params.id)
+    ]);
 
-    if (!result.rows.length) {
+    if (!result.rows[0]) {
       return res.status(404).json({
         error: "Player not found"
       });
@@ -656,42 +524,26 @@ async function updatePlayer(req, res) {
       ok: true,
       player: result.rows[0]
     });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to update player"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 }
 
-app.patch("/api/players/:id", adminRequired, updatePlayer);
-app.put("/api/players/:id", adminRequired, updatePlayer);
+app.put("/api/players/:id", requireAdmin, updatePlayer);
+app.patch("/api/players/:id", requireAdmin, updatePlayer);
 
-app.delete("/api/players/:id", adminRequired, async (req, res) => {
+app.delete("/api/players/:id", requireAdmin, async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const result = await pool.query(
-      `DELETE FROM players WHERE id = $1 RETURNING id`,
-      [id]
+    await pool.query(
+      `DELETE FROM players WHERE id=$1`,
+      [Number(req.params.id)]
     );
 
-    if (!result.rows.length) {
-      return res.status(404).json({
-        error: "Player not found"
-      });
-    }
-
-    res.json({
-      ok: true
-    });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to delete player"
-    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -706,122 +558,73 @@ app.get("/api/matches", async (req, res) => {
         m.id,
         m.home_team_id,
         m.away_team_id,
-        home.name AS home_name,
-        away.name AS away_name,
-        home.name AS home_team_name,
-        away.name AS away_team_name,
+        h.name AS home_name,
+        a.name AS away_name,
+        h.name AS home_team_name,
+        a.name AS away_team_name,
         m.home_score,
         m.away_score,
         m.match_date,
         m.status
       FROM matches m
-      LEFT JOIN teams home ON home.id = m.home_team_id
-      LEFT JOIN teams away ON away.id = m.away_team_id
-      ORDER BY m.match_date DESC, m.id DESC
+      LEFT JOIN teams h ON h.id=m.home_team_id
+      LEFT JOIN teams a ON a.id=m.away_team_id
+      ORDER BY m.match_date DESC,m.id DESC
     `);
 
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to load matches"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/matches", adminRequired, async (req, res) => {
+app.post("/api/matches", requireAdmin, async (req, res) => {
   try {
-    const {
-      home_team_id,
-      away_team_id,
-      match_date,
-      status = "scheduled",
-      home_score = 0,
-      away_score = 0
-    } = req.body;
-
-    if (!home_team_id || !away_team_id) {
-      return res.status(400).json({
-        error: "Both teams are required"
-      });
-    }
-
-    if (Number(home_team_id) === Number(away_team_id)) {
-      return res.status(400).json({
-        error: "Teams must be different"
-      });
-    }
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       INSERT INTO matches
-      (
-        home_team_id,
-        away_team_id,
-        match_date,
-        status,
-        home_score,
-        away_score
-      )
+      (home_team_id,away_team_id,match_date,status,home_score,away_score)
       VALUES ($1,$2,$3,$4,$5,$6)
       RETURNING *
-      `,
-      [
-        Number(home_team_id),
-        Number(away_team_id),
-        match_date || new Date(),
-        status || "scheduled",
-        Number(home_score) || 0,
-        Number(away_score) || 0
-      ]
-    );
+    `, [
+      Number(req.body.home_team_id),
+      Number(req.body.away_team_id),
+      req.body.match_date || new Date(),
+      req.body.status || "scheduled",
+      Number(req.body.home_score) || 0,
+      Number(req.body.away_score) || 0
+    ]);
 
     res.json({
       ok: true,
       match: result.rows[0]
     });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to create match"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 async function updateMatch(req, res) {
   try {
-    const id = Number(req.params.id);
-
-    const {
-      home_score,
-      away_score,
-      status,
-      match_date
-    } = req.body;
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       UPDATE matches
       SET
-        home_score = COALESCE($1, home_score),
-        away_score = COALESCE($2, away_score),
-        status = COALESCE($3, status),
-        match_date = COALESCE($4, match_date)
-      WHERE id = $5
+        home_score=COALESCE($1,home_score),
+        away_score=COALESCE($2,away_score),
+        status=COALESCE($3,status),
+        match_date=COALESCE($4,match_date)
+      WHERE id=$5
       RETURNING *
-      `,
-      [
-        home_score === undefined ? null : Number(home_score),
-        away_score === undefined ? null : Number(away_score),
-        status ?? null,
-        match_date ?? null,
-        id
-      ]
-    );
+    `, [
+      req.body.home_score === undefined ? null : Number(req.body.home_score),
+      req.body.away_score === undefined ? null : Number(req.body.away_score),
+      req.body.status ?? null,
+      req.body.match_date ?? null,
+      Number(req.params.id)
+    ]);
 
-    if (!result.rows.length) {
+    if (!result.rows[0]) {
       return res.status(404).json({
         error: "Match not found"
       });
@@ -831,42 +634,26 @@ async function updateMatch(req, res) {
       ok: true,
       match: result.rows[0]
     });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to update match"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 }
 
-app.patch("/api/matches/:id", adminRequired, updateMatch);
-app.put("/api/matches/:id", adminRequired, updateMatch);
+app.put("/api/matches/:id", requireAdmin, updateMatch);
+app.patch("/api/matches/:id", requireAdmin, updateMatch);
 
-app.delete("/api/matches/:id", adminRequired, async (req, res) => {
+app.delete("/api/matches/:id", requireAdmin, async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const result = await pool.query(
-      `DELETE FROM matches WHERE id = $1 RETURNING id`,
-      [id]
+    await pool.query(
+      `DELETE FROM matches WHERE id=$1`,
+      [Number(req.params.id)]
     );
 
-    if (!result.rows.length) {
-      return res.status(404).json({
-        error: "Match not found"
-      });
-    }
-
-    res.json({
-      ok: true
-    });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to delete match"
-    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -874,186 +661,112 @@ app.delete("/api/matches/:id", adminRequired, async (req, res) => {
    MATCH EVENTS
 ========================= */
 
-app.post(
-  "/api/matches/:id/events",
-  adminRequired,
-  async (req, res) => {
-    const client = await pool.connect();
+app.post("/api/matches/:id/events", requireAdmin, async (req, res) => {
+  try {
+    const type = req.body.type;
 
-    try {
-      const matchId = Number(req.params.id);
-
-      const {
-        player_id,
-        team_id,
-        type,
-        minute = 0
-      } = req.body;
-
-      const allowed = [
-        "goal",
-        "assist",
-        "save",
-        "yellow",
-        "red"
-      ];
-
-      if (!allowed.includes(type)) {
-        return res.status(400).json({
-          error: "Invalid event type"
-        });
-      }
-
-      await client.query("BEGIN");
-
-      const match = await client.query(
-        `SELECT * FROM matches WHERE id = $1`,
-        [matchId]
-      );
-
-      if (!match.rows.length) {
-        throw new Error("Match not found");
-      }
-
-      const player = player_id
-        ? await client.query(
-            `
-            SELECT p.*, t.name AS team_name
-            FROM players p
-            LEFT JOIN teams t ON t.id = p.team_id
-            WHERE p.id = $1
-            `,
-            [Number(player_id)]
-          )
-        : { rows: [] };
-
-      const playerRow = player.rows[0];
-
-      await client.query(
-        `
-        INSERT INTO match_events
-        (match_id, player_id, team_id, type, minute)
-        VALUES ($1,$2,$3,$4,$5)
-        `,
-        [
-          matchId,
-          player_id ? Number(player_id) : null,
-          team_id ? Number(team_id) : null,
-          type,
-          Number(minute) || 0
-        ]
-      );
-
-      if (playerRow) {
-        if (type === "goal") {
-          await client.query(
-            `
-            UPDATE players
-            SET goals = goals + 1
-            WHERE id = $1
-            `,
-            [playerRow.id]
-          );
-        }
-
-        if (type === "assist") {
-          await client.query(
-            `
-            UPDATE players
-            SET assists = assists + 1
-            WHERE id = $1
-            `,
-            [playerRow.id]
-          );
-        }
-
-        if (type === "save") {
-          await client.query(
-            `
-            UPDATE players
-            SET saves = saves + 1
-            WHERE id = $1
-            `,
-            [playerRow.id]
-          );
-        }
-
-        if (type === "yellow") {
-          await client.query(
-            `
-            UPDATE players
-            SET yellow_cards = yellow_cards + 1
-            WHERE id = $1
-            `,
-            [playerRow.id]
-          );
-        }
-
-        if (type === "red") {
-          await client.query(
-            `
-            UPDATE players
-            SET red_cards = red_cards + 1
-            WHERE id = $1
-            `,
-            [playerRow.id]
-          );
-        }
-      }
-
-      let notification = null;
-
-      if (playerRow) {
-        if (type === "goal") {
-          notification = [
-            "⚽ Qol",
-            `${playerRow.name} qol vurdu!`
-          ];
-        }
-
-        if (type === "yellow") {
-          notification = [
-            "🟨 Sarı kart",
-            `${playerRow.name} sarı kart aldı.`
-          ];
-        }
-
-        if (type === "red") {
-          notification = [
-            "🟥 Qırmızı kart",
-            `${playerRow.name} qırmızı kart aldı.`
-          ];
-        }
-
-        if (notification) {
-          await client.query(
-            `
-            INSERT INTO notifications (title, message)
-            VALUES ($1,$2)
-            `,
-            notification
-          );
-        }
-      }
-
-      await client.query("COMMIT");
-
-      res.json({
-        ok: true
+    if (!["goal","assist","save","yellow","red"].includes(type)) {
+      return res.status(400).json({
+        error: "Invalid event type"
       });
-    } catch (err) {
-      await client.query("ROLLBACK");
-
-      console.error(err);
-
-      res.status(500).json({
-        error: err.message || "Failed to add event"
-      });
-    } finally {
-      client.release();
     }
+
+    const playerId = req.body.player_id
+      ? Number(req.body.player_id)
+      : null;
+
+    const teamId = req.body.team_id
+      ? Number(req.body.team_id)
+      : null;
+
+    await pool.query(`
+      INSERT INTO match_events
+      (match_id,player_id,team_id,type,minute)
+      VALUES ($1,$2,$3,$4,$5)
+    `, [
+      Number(req.params.id),
+      playerId,
+      teamId,
+      type,
+      Number(req.body.minute) || 0
+    ]);
+
+    if (playerId) {
+      if (type === "goal") {
+        await pool.query(
+          `UPDATE players SET goals=goals+1 WHERE id=$1`,
+          [playerId]
+        );
+      }
+
+      if (type === "assist") {
+        await pool.query(
+          `UPDATE players SET assists=assists+1 WHERE id=$1`,
+          [playerId]
+        );
+      }
+
+      if (type === "save") {
+        await pool.query(
+          `UPDATE players SET saves=saves+1 WHERE id=$1`,
+          [playerId]
+        );
+      }
+
+      if (type === "yellow") {
+        await pool.query(
+          `UPDATE players SET yellow_cards=yellow_cards+1 WHERE id=$1`,
+          [playerId]
+        );
+      }
+
+      if (type === "red") {
+        await pool.query(
+          `UPDATE players SET red_cards=red_cards+1 WHERE id=$1`,
+          [playerId]
+        );
+      }
+
+      if (["goal","yellow","red"].includes(type)) {
+        const player = await pool.query(
+          `SELECT name FROM players WHERE id=$1`,
+          [playerId]
+        );
+
+        if (player.rows[0]) {
+          let title;
+          let message;
+
+          if (type === "goal") {
+            title = "⚽ Qol";
+            message = `${player.rows[0].name} qol vurdu!`;
+          }
+
+          if (type === "yellow") {
+            title = "🟨 Sarı kart";
+            message = `${player.rows[0].name} sarı kart aldı.`;
+          }
+
+          if (type === "red") {
+            title = "🟥 Qırmızı kart";
+            message = `${player.rows[0].name} qırmızı kart aldı.`;
+          }
+
+          await pool.query(`
+            INSERT INTO notifications
+            (title,message)
+            VALUES ($1,$2)
+          `, [title,message]);
+        }
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
-);
+});
 
 /* =========================
    CARDS
@@ -1071,111 +784,61 @@ app.get("/api/cards", async (req, res) => {
         p.yellow_cards,
         p.red_cards
       FROM players p
-      LEFT JOIN teams t ON t.id = p.team_id
-      ORDER BY p.red_cards DESC,
-               p.yellow_cards DESC,
-               p.name ASC
+      LEFT JOIN teams t ON t.id=p.team_id
+      ORDER BY p.name
     `);
 
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to load cards"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/cards/change", adminRequired, async (req, res) => {
+app.post("/api/cards/change", requireAdmin, async (req, res) => {
   try {
-    const {
-      player_id,
-      type,
-      amount
-    } = req.body;
+    const id = Number(req.body.player_id);
+    const amount = Number(req.body.amount);
 
-    const value = Number(amount);
-
-    if (!player_id || !["yellow", "red"].includes(type)) {
+    if (!["yellow","red"].includes(req.body.type)) {
       return res.status(400).json({
-        error: "Invalid card data"
-      });
-    }
-
-    if (!Number.isFinite(value) || value === 0) {
-      return res.status(400).json({
-        error: "Invalid amount"
+        error: "Invalid card type"
       });
     }
 
     const column =
-      type === "yellow"
+      req.body.type === "yellow"
         ? "yellow_cards"
         : "red_cards";
 
-    const player = await pool.query(
-      `
-      SELECT
-        p.id,
-        p.name,
-        p.${column} AS cards,
-        t.name AS team_name
-      FROM players p
-      LEFT JOIN teams t ON t.id = p.team_id
-      WHERE p.id = $1
-      `,
-      [Number(player_id)]
+    const result = await pool.query(
+      `SELECT ${column} AS value FROM players WHERE id=$1`,
+      [id]
     );
 
-    if (!player.rows.length) {
+    if (!result.rows[0]) {
       return res.status(404).json({
         error: "Player not found"
       });
     }
 
-    const oldValue = Number(player.rows[0].cards) || 0;
-    const newValue = Math.max(0, oldValue + value);
-
-    await pool.query(
-      `
-      UPDATE players
-      SET ${column} = $1
-      WHERE id = $2
-      `,
-      [newValue, Number(player_id)]
+    const value = Math.max(
+      0,
+      Number(result.rows[0].value || 0) + amount
     );
 
-    if (value > 0) {
-      const title =
-        type === "yellow"
-          ? "🟨 Sarı kart"
-          : "🟥 Qırmızı kart";
-
-      const message =
-        type === "yellow"
-          ? `${player.rows[0].name} sarı kart aldı.`
-          : `${player.rows[0].name} qırmızı kart aldı.`;
-
-      await pool.query(
-        `
-        INSERT INTO notifications (title, message)
-        VALUES ($1,$2)
-        `,
-        [title, message]
-      );
-    }
+    await pool.query(
+      `UPDATE players SET ${column}=$1 WHERE id=$2`,
+      [value,id]
+    );
 
     res.json({
       ok: true,
-      value: newValue
+      value
     });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to change card"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1192,35 +855,21 @@ app.get("/api/statistics", async (req, res) => {
         t.name AS team_name,
         p.goals,
         p.assists,
-        p.saves,
-        p.yellow_cards,
-        p.red_cards
+        p.saves
       FROM players p
-      LEFT JOIN teams t ON t.id = p.team_id
-      ORDER BY p.goals DESC,
-               p.assists DESC,
-               p.saves DESC,
-               p.name ASC
+      LEFT JOIN teams t ON t.id=p.team_id
+      ORDER BY p.goals DESC,p.assists DESC,p.saves DESC
     `);
 
     res.json({
       players: result.rows,
-      goals: result.rows
-        .filter(p => Number(p.goals) > 0)
-        .sort((a, b) => Number(b.goals) - Number(a.goals)),
-      assists: result.rows
-        .filter(p => Number(p.assists) > 0)
-        .sort((a, b) => Number(b.assists) - Number(a.assists)),
-      saves: result.rows
-        .filter(p => Number(p.saves) > 0)
-        .sort((a, b) => Number(b.saves) - Number(a.saves))
+      goals: [...result.rows].sort((a,b) => b.goals-a.goals),
+      assists: [...result.rows].sort((a,b) => b.assists-a.assists),
+      saves: [...result.rows].sort((a,b) => b.saves-a.saves)
     });
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to load statistics"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1231,23 +880,16 @@ app.get("/api/statistics", async (req, res) => {
 app.get("/api/notifications", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT
-        id,
-        title,
-        message,
-        created_at
+      SELECT id,title,message,created_at
       FROM notifications
       ORDER BY created_at DESC
       LIMIT 100
     `);
 
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to load notifications"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1255,114 +897,65 @@ app.get("/api/notifications", async (req, res) => {
    TRANSFERS
 ========================= */
 
-app.post("/api/transfers", adminRequired, async (req, res) => {
-  const client = await pool.connect();
-
+app.post("/api/transfers", requireAdmin, async (req, res) => {
   try {
-    const {
-      player_id,
-      to_team_id
-    } = req.body;
+    const playerId = Number(req.body.player_id);
+    const newTeamId = Number(req.body.to_team_id);
 
-    if (!player_id || !to_team_id) {
-      return res.status(400).json({
-        error: "Player and destination team required"
-      });
-    }
-
-    await client.query("BEGIN");
-
-    const player = await client.query(
-      `
+    const player = await pool.query(`
       SELECT
         p.id,
         p.name,
         p.team_id,
-        t.name AS old_team_name
+        t.name AS old_team
       FROM players p
-      LEFT JOIN teams t ON t.id = p.team_id
-      WHERE p.id = $1
-      `,
-      [Number(player_id)]
+      LEFT JOIN teams t ON t.id=p.team_id
+      WHERE p.id=$1
+    `, [playerId]);
+
+    const team = await pool.query(
+      `SELECT id,name FROM teams WHERE id=$1`,
+      [newTeamId]
     );
 
-    if (!player.rows.length) {
-      throw new Error("Player not found");
+    if (!player.rows[0] || !team.rows[0]) {
+      return res.status(404).json({
+        error: "Player or team not found"
+      });
     }
 
-    const newTeam = await client.query(
-      `
-      SELECT id, name
-      FROM teams
-      WHERE id = $1
-      `,
-      [Number(to_team_id)]
+    await pool.query(
+      `UPDATE players SET team_id=$1 WHERE id=$2`,
+      [newTeamId,playerId]
     );
 
-    if (!newTeam.rows.length) {
-      throw new Error("Destination team not found");
-    }
-
-    const oldTeamId = player.rows[0].team_id;
-    const oldTeamName = player.rows[0].old_team_name;
-    const newTeamName = newTeam.rows[0].name;
-
-    if (oldTeamId === Number(to_team_id)) {
-      throw new Error("Player is already in this team");
-    }
-
-    await client.query(
-      `
-      UPDATE players
-      SET team_id = $1
-      WHERE id = $2
-      `,
-      [
-        Number(to_team_id),
-        Number(player_id)
-      ]
-    );
-
-    await client.query(
-      `
+    await pool.query(`
       INSERT INTO transfers
-      (player_id, from_team_id, to_team_id)
+      (player_id,from_team_id,to_team_id)
       VALUES ($1,$2,$3)
-      `,
-      [
-        Number(player_id),
-        oldTeamId,
-        Number(to_team_id)
-      ]
-    );
+    `, [
+      playerId,
+      player.rows[0].team_id,
+      newTeamId
+    ]);
 
-    await client.query(
-      `
-      INSERT INTO notifications (title, message)
+    await pool.query(`
+      INSERT INTO notifications
+      (title,message)
       VALUES ($1,$2)
-      `,
-      [
-        "🔄 Transfer",
-        `${player.rows[0].name} ${oldTeamName || "komandadan"} → ${newTeamName}`
-      ]
-    );
-
-    await client.query("COMMIT");
+    `, [
+      "🔄 Transfer",
+      `${player.rows[0].name} → ${team.rows[0].name}`
+    ]);
 
     res.json({
       ok: true,
-      message: `${player.rows[0].name} ${newTeamName} komandasına keçirildi.`
+      message:
+        `${player.rows[0].name} ${team.rows[0].name} komandasına keçirildi.`
     });
-  } catch (err) {
-    await client.query("ROLLBACK");
-
-    console.error(err);
-
-    res.status(400).json({
-      error: err.message || "Transfer failed"
-    });
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1377,162 +970,104 @@ app.get("/api/team-of-week", async (req, res) => {
         tow.id,
         tow.week,
         tow.position,
-        tow.created_at,
         p.id AS player_id,
         p.name,
         p.number,
         p.photo,
         p.team_id,
-        t.name AS team_name,
-        p.goals,
-        p.assists,
-        p.saves
+        t.name AS team_name
       FROM team_of_week tow
-      JOIN players p ON p.id = tow.player_id
-      LEFT JOIN teams t ON t.id = p.team_id
-      ORDER BY
-        CASE tow.position
-          WHEN 'Qapıçı' THEN 1
-          WHEN 'Müdafiəçi' THEN 2
-          WHEN 'Yarımmüdafiəçi' THEN 3
-          WHEN 'Hücumçu' THEN 4
-          ELSE 5
-        END,
-        tow.id ASC
+      JOIN players p ON p.id=tow.player_id
+      LEFT JOIN teams t ON t.id=p.team_id
+      ORDER BY tow.id
     `);
 
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to load team of week"
-    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post("/api/team-of-week", adminRequired, async (req, res) => {
-  const client = await pool.connect();
-
+app.post("/api/team-of-week", requireAdmin, async (req, res) => {
   try {
-    const {
-      week = "Bu həftə",
-      players
-    } = req.body;
+    const players = req.body.players;
 
-    if (!Array.isArray(players)) {
+    if (!Array.isArray(players) || players.length !== 11) {
       return res.status(400).json({
-        error: "Players must be an array"
+        error: "Exactly 11 players required"
       });
     }
 
-    if (players.length !== 11) {
-      return res.status(400).json({
-        error: "Team of the Week must contain exactly 11 players"
-      });
-    }
+    const ids = players.map(
+      p => Number(p.player_id)
+    );
 
-    const ids = players.map(p => Number(p.player_id));
-
-    if (
-      ids.some(id => !Number.isInteger(id)) ||
-      new Set(ids).size !== 11
-    ) {
+    if (new Set(ids).size !== 11) {
       return res.status(400).json({
         error: "Players must be unique"
       });
     }
 
-    const counts = {
+    const count = {
       "Qapıçı": 0,
       "Müdafiəçi": 0,
       "Yarımmüdafiəçi": 0,
       "Hücumçu": 0
     };
 
-    for (const item of players) {
-      if (!counts.hasOwnProperty(item.position)) {
+    for (const player of players) {
+      if (!(player.position in count)) {
         return res.status(400).json({
           error: "Invalid position"
         });
       }
 
-      counts[item.position]++;
+      count[player.position]++;
     }
 
     if (
-      counts["Qapıçı"] !== 1 ||
-      counts["Müdafiəçi"] !== 4 ||
-      counts["Yarımmüdafiəçi"] !== 3 ||
-      counts["Hücumçu"] !== 3
+      count["Qapıçı"] !== 1 ||
+      count["Müdafiəçi"] !== 4 ||
+      count["Yarımmüdafiəçi"] !== 3 ||
+      count["Hücumçu"] !== 3
     ) {
       return res.status(400).json({
-        error:
-          "Formation must be 1 goalkeeper, 4 defenders, 3 midfielders and 3 attackers"
+        error: "Formation must be 1-4-3-3"
       });
     }
 
-    await client.query("BEGIN");
-
-    const existingPlayers = await client.query(
-      `
-      SELECT id
-      FROM players
-      WHERE id = ANY($1::int[])
-      `,
-      [ids]
-    );
-
-    if (existingPlayers.rows.length !== 11) {
-      throw new Error("One or more players were not found");
-    }
-
-    await client.query(
+    await pool.query(
       `DELETE FROM team_of_week`
     );
 
-    for (const item of players) {
-      await client.query(
-        `
+    for (const player of players) {
+      await pool.query(`
         INSERT INTO team_of_week
-        (week, player_id, position)
+        (week,player_id,position)
         VALUES ($1,$2,$3)
-        `,
-        [
-          week,
-          Number(item.player_id),
-          item.position
-        ]
-      );
+      `, [
+        req.body.week || "Bu həftə",
+        Number(player.player_id),
+        player.position
+      ]);
     }
 
-    await client.query(
-      `
-      INSERT INTO notifications (title, message)
+    await pool.query(`
+      INSERT INTO notifications
+      (title,message)
       VALUES ($1,$2)
-      `,
-      [
-        "⭐ Komanda həftəsi",
-        "Yeni Komanda həftəsi seçildi!"
-      ]
-    );
-
-    await client.query("COMMIT");
+    `, [
+      "⭐ Komanda həftəsi",
+      "Yeni Komanda həftəsi seçildi!"
+    ]);
 
     res.json({
-      ok: true,
-      message: "Team of the Week saved"
+      ok: true
     });
-  } catch (err) {
-    await client.query("ROLLBACK");
-
-    console.error(err);
-
-    res.status(400).json({
-      error: err.message || "Failed to save Team of the Week"
-    });
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1540,12 +1075,9 @@ app.post("/api/team-of-week", adminRequired, async (req, res) => {
    LINEUPS
 ========================= */
 
-app.get("/api/lineups/:matchId", async (req, res) => {
+app.get("/api/lineups/:id", async (req, res) => {
   try {
-    const matchId = Number(req.params.matchId);
-
-    const result = await pool.query(
-      `
+    const result = await pool.query(`
       SELECT
         l.id,
         l.match_id,
@@ -1557,109 +1089,37 @@ app.get("/api/lineups/:matchId", async (req, res) => {
         p.team_id,
         t.name AS team_name
       FROM lineups l
-      JOIN players p ON p.id = l.player_id
-      LEFT JOIN teams t ON t.id = p.team_id
-      WHERE l.match_id = $1
-      ORDER BY
-        CASE l.position
-          WHEN 'Qapıçı' THEN 1
-          WHEN 'Müdafiəçi' THEN 2
-          WHEN 'Yarımmüdafiəçi' THEN 3
-          WHEN 'Hücumçu' THEN 4
-          ELSE 5
-        END,
-        p.number ASC,
-        p.name ASC
-      `,
-      [matchId]
-    );
+      JOIN players p ON p.id=l.player_id
+      LEFT JOIN teams t ON t.id=p.team_id
+      WHERE l.match_id=$1
+      ORDER BY l.id
+    `, [Number(req.params.id)]);
 
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to load lineup"
-    });
-  }
-});
-
-app.post("/api/lineups/:matchId", adminRequired, async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    const matchId = Number(req.params.matchId);
-    const { players } = req.body;
-
-    if (!Array.isArray(players)) {
-      return res.status(400).json({
-        error: "Players must be an array"
-      });
-    }
-
-    await client.query("BEGIN");
-
-    await client.query(
-      `DELETE FROM lineups WHERE match_id = $1`,
-      [matchId]
-    );
-
-    for (const item of players) {
-      if (!item.player_id || !item.position) continue;
-
-      await client.query(
-        `
-        INSERT INTO lineups
-        (match_id, player_id, position)
-        VALUES ($1,$2,$3)
-        ON CONFLICT (match_id, player_id)
-        DO UPDATE SET position = EXCLUDED.position
-        `,
-        [
-          matchId,
-          Number(item.player_id),
-          item.position
-        ]
-      );
-    }
-
-    await client.query("COMMIT");
-
-    res.json({
-      ok: true
-    });
-  } catch (err) {
-    await client.query("ROLLBACK");
-
-    console.error(err);
-
-    res.status(500).json({
-      error: "Failed to save lineup"
-    });
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
   }
 });
 
 /* =========================
-   STATIC FILES
+   STATIC
 ========================= */
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(
+  path.join(__dirname, "public")
+));
 
-/* =========================
-   SPA FALLBACK
-========================= */
-
-app.get("*", (req, res) => {
+app.use((req,res) => {
   if (req.path.startsWith("/api/")) {
     return res.status(404).json({
-      error: "API route not found"
+      ok:false,
+      error:"API route not found"
     });
   }
 
   res.sendFile(
-    path.join(__dirname, "public", "index.html")
+    path.join(__dirname,"public","index.html")
   );
 });
 
@@ -1669,12 +1129,13 @@ app.get("*", (req, res) => {
 
 initDatabase()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`AliScore running on port ${PORT}`);
+    app.listen(PORT,"0.0.0.0",() => {
+      console.log("AliScore started");
+      console.log("PORT:",PORT);
     });
   })
-  .catch(err => {
-    console.error("Database initialization failed:");
-    console.error(err);
+  .catch(error => {
+    console.error("START ERROR:");
+    console.error(error);
     process.exit(1);
   });
