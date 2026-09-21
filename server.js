@@ -188,7 +188,39 @@ app.get("/api/health", async (req, res) => {
     });
   }
 });
+// =========================
+// ADMIN LOGIN
+// =========================
 
+app.post("/api/admin/login", async (req, res) => {
+  try {
+    const { password } = req.body;
+
+    if (!process.env.ADMIN_PASSWORD) {
+      return res.status(500).json({
+        error: "ADMIN_PASSWORD is not configured"
+      });
+    }
+
+    if (password !== process.env.ADMIN_PASSWORD) {
+      return res.status(401).json({
+        error: "Şifrə yanlışdır"
+      });
+    }
+
+    res.json({
+      ok: true,
+      message: "Admin giriş uğurludur"
+    });
+
+  } catch (error) {
+    console.error("Admin login error:", error.message);
+
+    res.status(500).json({
+      error: "Server xətası"
+    });
+  }
+});
 // =========================
 // TEAMS API
 // =========================
