@@ -735,7 +735,52 @@ async function loadMatches(){
 }
 
 loadMatches();
+  async function adminLogin(){
+
+  const password = document.getElementById("adminPassword").value;
+  const message = document.getElementById("adminMessage");
+
+  if(!password){
+    message.textContent = "Şifrəni daxil edin.";
+    return;
+  }
+
+  message.style.color = "#8da0b5";
+  message.textContent = "Yoxlanılır...";
+
+  try{
+
+    const response = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        password: password
+      })
+    });
+
+    const data = await response.json();
+
+    if(!response.ok){
+      message.style.color = "#ff8b8b";
+      message.textContent = data.error || "Şifrə yanlışdır.";
+      return;
+    }
+
+    message.style.color = "#36e27b";
+    message.textContent = "✅ Uğurla daxil oldunuz.";
+
+  }catch(error){
+
+    console.error(error);
+
+    message.style.color = "#ff8b8b";
+    message.textContent = "Server xətası.";
+  }
+}
 </script>
+  
 
 </body>
 </html>
