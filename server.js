@@ -1,15 +1,37 @@
 const express = require("express");
 const { Pool } = require("pg");
+const cookieParser = require("cookie-parser");
+const jwt = require("jsonwebtoken");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(cookieParser());
+
+/* =========================
+   ENVIRONMENT
+========================= */
 
 if (!process.env.DATABASE_URL) {
   console.error("DATABASE_URL is missing");
   process.exit(1);
 }
+
+if (!process.env.ADMIN_PASSWORD) {
+  console.error("ADMIN_PASSWORD is missing");
+  process.exit(1);
+}
+
+if (!process.env.JWT_SECRET) {
+  console.error("JWT_SECRET is missing");
+  process.exit(1);
+}
+
+/* =========================
+   DATABASE
+========================= */
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -18,10 +40,11 @@ const pool = new Pool({
   }
 });
 
+/* =========================
+   DATABASE INIT
+========================= */
+
 async function initDatabase() {
-  // =========================
-  // TABLES
-  // =========================
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS teams (
@@ -61,9 +84,9 @@ async function initDatabase() {
     );
   `);
 
-  // =========================
-  // TEAMS
-  // =========================
+  /* =========================
+     TEAMS
+  ========================= */
 
   const teams = [
     "Xirdalan United",
@@ -73,77 +96,71 @@ async function initDatabase() {
     "Lotu pişiklər"
   ];
 
-  for (const teamName of teams) {
+  for (const name of teams) {
     await pool.query(
       `
       INSERT INTO teams (name)
       VALUES ($1)
       ON CONFLICT (name) DO NOTHING
       `,
-      [teamName]
+      [name]
     );
   }
 
-  // =========================
-  // PLAYERS — 20
-  // =========================
+  /* =========================
+     PLAYERS
+  ========================= */
 
   const players = [
-    // Xirdalan Wolves — 4
     ["Ali", "Xirdalan Wolves"],
     ["Emin", "Xirdalan Wolves"],
     ["Huseyin", "Xirdalan Wolves"],
     ["Raul", "Xirdalan Wolves"],
 
-    // Xirdalan United — 5
     ["Amil", "Xirdalan United"],
     ["Elmir", "Xirdalan United"],
     ["İsa", "Xirdalan United"],
     ["Ümüd", "Xirdalan United"],
     ["Huseyin", "Xirdalan United"],
 
-    // MSN FK — 4
     ["Fuad", "MSN FK"],
     ["Murad", "MSN FK"],
     ["Ayxan", "MSN FK"],
     ["Şahin", "MSN FK"],
 
-    // Neweli FK — 4
     ["Tofik", "Neweli FK"],
     ["Arda", "Neweli FK"],
     ["Veli", "Neweli FK"],
     ["Emil", "Neweli FK"],
 
-    // Lotu pişiklər — 3
     ["Kamran", "Lotu pişiklər"],
     ["Ayxan", "Lotu pişiklər"],
     ["Ramil", "Lotu pişiklər"]
   ];
 
   for (const [playerName, teamName] of players) {
-    const teamResult = await pool.query(
+
+    const team = await pool.query(
       `SELECT id FROM teams WHERE name = $1`,
       [teamName]
     );
 
-    if (teamResult.rows.length === 0) {
-      console.log(`Team not found: ${teamName}`);
-      continue;
-    }
+    if (!team.rows.length) continue;
 
-    const teamId = teamResult.rows[0].id;
+    const teamId = team.rows[0].id;
 
-    const existingPlayer = await pool.query(
+    const existing = await pool.query(
       `
       SELECT id
       FROM players
       WHERE name = $1
-        AND team_id = $2
+      AND team_id = $2
       `,
       [playerName, teamId]
     );
 
-    if (existingPlayer.rows.length === 0) {
+    if (!existing.rows.length) {
+
       await pool.query(
         `
         INSERT INTO players
@@ -165,12 +182,147 @@ async function initDatabase() {
   console.log("Players ready:", players.length);
 }
 
-// =========================
-// HEALTH
-// =========================
+/* =========================
+   AUTH HELPERS
+========================= */
+
+function createAdminToken() {
+
+  return jwt.sign(
+    {
+      role: "admin"
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "7d"
+    }
+  );
+}
+
+
+function requireAdmin(req, res, next) {
+
+  try {
+
+    const token = req.cookies.aliscore_admin;
+
+    if (!token) {
+      return res.status(401).json({
+        error: "Admin girişi tələb olunur"
+      });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    if (decoded.role !== "admin") {
+      return res.status(403).json({
+        error: "İcazə yoxdur"
+      });
+    }
+
+    req.admin = decoded;
+
+    next();
+
+  } catch (error) {
+
+    return res.status(401).json({
+      error: "Admin sessiyası etibarsızdır"
+    });
+  }
+}
+
+/* =========================
+   ADMIN LOGIN
+========================= */
+
+app.post("/api/admin/login", (req, res) => {
+
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({
+      error: "Şifrə daxil edin"
+    });
+  }
+
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({
+      error: "Şifrə yanlışdır"
+    });
+  }
+
+  const token = createAdminToken();
+
+  res.cookie(
+    "aliscore_admin",
+    token,
+    {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    }
+  );
+
+  res.json({
+    ok: true,
+    message: "Admin giriş uğurludur"
+  });
+});
+
+
+app.get("/api/admin/me", (req, res) => {
+
+  try {
+
+    const token = req.cookies.aliscore_admin;
+
+    if (!token) {
+      return res.json({
+        loggedIn: false
+      });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    res.json({
+      loggedIn: true,
+      role: decoded.role
+    });
+
+  } catch (error) {
+
+    res.json({
+      loggedIn: false
+    });
+  }
+});
+
+
+app.post("/api/admin/logout", (req, res) => {
+
+  res.clearCookie("aliscore_admin");
+
+  res.json({
+    ok: true
+  });
+});
+
+/* =========================
+   HEALTH
+========================= */
 
 app.get("/api/health", async (req, res) => {
+
   try {
+
     await pool.query("SELECT NOW()");
 
     res.json({
@@ -178,8 +330,13 @@ app.get("/api/health", async (req, res) => {
       app: "AliScore",
       database: "connected"
     });
+
   } catch (error) {
-    console.error("Health database error:", error.message);
+
+    console.error(
+      "Health error:",
+      error.message
+    );
 
     res.status(500).json({
       ok: false,
@@ -188,45 +345,15 @@ app.get("/api/health", async (req, res) => {
     });
   }
 });
-// =========================
-// ADMIN LOGIN
-// =========================
 
-app.post("/api/admin/login", async (req, res) => {
-  try {
-    const { password } = req.body;
-
-    if (!process.env.ADMIN_PASSWORD) {
-      return res.status(500).json({
-        error: "ADMIN_PASSWORD is not configured"
-      });
-    }
-
-    if (password !== process.env.ADMIN_PASSWORD) {
-      return res.status(401).json({
-        error: "Şifrə yanlışdır"
-      });
-    }
-
-    res.json({
-      ok: true,
-      message: "Admin giriş uğurludur"
-    });
-
-  } catch (error) {
-    console.error("Admin login error:", error.message);
-
-    res.status(500).json({
-      error: "Server xətası"
-    });
-  }
-});
-// =========================
-// TEAMS API
-// =========================
+/* =========================
+   TEAMS
+========================= */
 
 app.get("/api/teams", async (req, res) => {
+
   try {
+
     const result = await pool.query(`
       SELECT *
       FROM teams
@@ -238,8 +365,13 @@ app.get("/api/teams", async (req, res) => {
     `);
 
     res.json(result.rows);
+
   } catch (error) {
-    console.error("Teams error:", error.message);
+
+    console.error(
+      "Teams error:",
+      error.message
+    );
 
     res.status(500).json({
       error: "Komandaları yükləmək mümkün olmadı"
@@ -247,11 +379,24 @@ app.get("/api/teams", async (req, res) => {
   }
 });
 
-app.post("/api/teams", async (req, res) => {
+
+app.post("/api/teams", requireAdmin, async (req, res) => {
+
   try {
-    const { name } = req.body;
+
+    const {
+      name,
+      points = 0,
+      played = 0,
+      wins = 0,
+      draws = 0,
+      losses = 0,
+      goals_for = 0,
+      goals_against = 0
+    } = req.body;
 
     if (!name || !name.trim()) {
+
       return res.status(400).json({
         error: "Komanda adı tələb olunur"
       });
@@ -259,16 +404,42 @@ app.post("/api/teams", async (req, res) => {
 
     const result = await pool.query(
       `
-      INSERT INTO teams (name)
-      VALUES ($1)
+      INSERT INTO teams
+      (
+        name,
+        points,
+        played,
+        wins,
+        draws,
+        losses,
+        goals_for,
+        goals_against
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       RETURNING *
       `,
-      [name.trim()]
+      [
+        name.trim(),
+        points,
+        played,
+        wins,
+        draws,
+        losses,
+        goals_for,
+        goals_against
+      ]
     );
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(
+      result.rows[0]
+    );
+
   } catch (error) {
-    console.error("Add team error:", error.message);
+
+    console.error(
+      "Add team error:",
+      error.message
+    );
 
     res.status(500).json({
       error: "Komanda əlavə etmək mümkün olmadı"
@@ -276,12 +447,82 @@ app.post("/api/teams", async (req, res) => {
   }
 });
 
-// =========================
-// PLAYERS API
-// =========================
+
+app.patch("/api/teams/:id", requireAdmin, async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const {
+      name,
+      points,
+      played,
+      wins,
+      draws,
+      losses,
+      goals_for,
+      goals_against
+    } = req.body;
+
+    const result = await pool.query(
+      `
+      UPDATE teams
+      SET
+        name = COALESCE($1, name),
+        points = COALESCE($2, points),
+        played = COALESCE($3, played),
+        wins = COALESCE($4, wins),
+        draws = COALESCE($5, draws),
+        losses = COALESCE($6, losses),
+        goals_for = COALESCE($7, goals_for),
+        goals_against = COALESCE($8, goals_against)
+      WHERE id = $9
+      RETURNING *
+      `,
+      [
+        name,
+        points,
+        played,
+        wins,
+        draws,
+        losses,
+        goals_for,
+        goals_against,
+        id
+      ]
+    );
+
+    if (!result.rows.length) {
+
+      return res.status(404).json({
+        error: "Komanda tapılmadı"
+      });
+    }
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+
+    console.error(
+      "Update team error:",
+      error.message
+    );
+
+    res.status(500).json({
+      error: "Komandanı dəyişmək mümkün olmadı"
+    });
+  }
+});
+
+/* =========================
+   PLAYERS
+========================= */
 
 app.get("/api/players", async (req, res) => {
+
   try {
+
     const result = await pool.query(`
       SELECT
         players.*,
@@ -295,8 +536,13 @@ app.get("/api/players", async (req, res) => {
     `);
 
     res.json(result.rows);
+
   } catch (error) {
-    console.error("Players error:", error.message);
+
+    console.error(
+      "Players error:",
+      error.message
+    );
 
     res.status(500).json({
       error: "Oyunçuları yükləmək mümkün olmadı"
@@ -304,16 +550,20 @@ app.get("/api/players", async (req, res) => {
   }
 });
 
-app.post("/api/players", async (req, res) => {
+
+app.post("/api/players", requireAdmin, async (req, res) => {
+
   try {
+
     const {
       name,
       team_id,
-      number,
-      position
+      number = 0,
+      position = "Yarımmüdafiəçi"
     } = req.body;
 
     if (!name || !name.trim()) {
+
       return res.status(400).json({
         error: "Oyunçu adı tələb olunur"
       });
@@ -322,21 +572,33 @@ app.post("/api/players", async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO players
-      (name, team_id, number, position)
-      VALUES ($1, $2, $3, $4)
+      (
+        name,
+        team_id,
+        number,
+        position
+      )
+      VALUES ($1,$2,$3,$4)
       RETURNING *
       `,
       [
         name.trim(),
         team_id || null,
-        number || 0,
-        position || "Yarımmüdafiəçi"
+        number,
+        position
       ]
     );
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(
+      result.rows[0]
+    );
+
   } catch (error) {
-    console.error("Add player error:", error.message);
+
+    console.error(
+      "Add player error:",
+      error.message
+    );
 
     res.status(500).json({
       error: "Oyunçu əlavə etmək mümkün olmadı"
@@ -344,20 +606,88 @@ app.post("/api/players", async (req, res) => {
   }
 });
 
-// =========================
-// HOME
-// =========================
-app.use(express.static("public"));
 
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/index.html");
+app.patch("/api/players/:id", requireAdmin, async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const {
+      name,
+      team_id,
+      number,
+      position,
+      goals,
+      assists,
+      saves,
+      yellow_cards,
+      red_cards,
+      photo
+    } = req.body;
+
+    const result = await pool.query(
+      `
+      UPDATE players
+      SET
+        name = COALESCE($1,name),
+        team_id = COALESCE($2,team_id),
+        number = COALESCE($3,number),
+        position = COALESCE($4,position),
+        goals = COALESCE($5,goals),
+        assists = COALESCE($6,assists),
+        saves = COALESCE($7,saves),
+        yellow_cards = COALESCE($8,yellow_cards),
+        red_cards = COALESCE($9,red_cards),
+        photo = COALESCE($10,photo)
+      WHERE id = $11
+      RETURNING *
+      `,
+      [
+        name,
+        team_id,
+        number,
+        position,
+        goals,
+        assists,
+        saves,
+        yellow_cards,
+        red_cards,
+        photo,
+        id
+      ]
+    );
+
+    if (!result.rows.length) {
+
+      return res.status(404).json({
+        error: "Oyunçu tapılmadı"
+      });
+    }
+
+    res.json(result.rows[0]);
+
+  } catch (error) {
+
+    console.error(
+      "Update player error:",
+      error.message
+    );
+
+    res.status(500).json({
+      error: "Oyunçunu dəyişmək mümkün olmadı"
+    });
+  }
 });
-// =========================
-// MATCHES API
-// =========================
+
+/* =========================
+   MATCHES
+========================= */
 
 app.get("/api/matches", async (req, res) => {
+
   try {
+
     const result = await pool.query(`
       SELECT
         matches.id,
@@ -374,12 +704,19 @@ app.get("/api/matches", async (req, res) => {
         ON home.id = matches.home_team_id
       LEFT JOIN teams away
         ON away.id = matches.away_team_id
-      ORDER BY matches.match_date ASC NULLS LAST, matches.id ASC
+      ORDER BY
+        matches.match_date ASC NULLS LAST,
+        matches.id ASC
     `);
 
     res.json(result.rows);
+
   } catch (error) {
-    console.error("Matches error:", error.message);
+
+    console.error(
+      "Matches error:",
+      error.message
+    );
 
     res.status(500).json({
       error: "Matçları yükləmək mümkün olmadı"
@@ -388,8 +725,10 @@ app.get("/api/matches", async (req, res) => {
 });
 
 
-app.post("/api/matches", async (req, res) => {
+app.post("/api/matches", requireAdmin, async (req, res) => {
+
   try {
+
     const {
       home_team_id,
       away_team_id,
@@ -400,12 +739,17 @@ app.post("/api/matches", async (req, res) => {
     } = req.body;
 
     if (!home_team_id || !away_team_id) {
+
       return res.status(400).json({
         error: "İki komanda seçilməlidir"
       });
     }
 
-    if (String(home_team_id) === String(away_team_id)) {
+    if (
+      String(home_team_id) ===
+      String(away_team_id)
+    ) {
+
       return res.status(400).json({
         error: "Eyni komanda özü ilə oynaya bilməz"
       });
@@ -422,7 +766,7 @@ app.post("/api/matches", async (req, res) => {
         match_date,
         status
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1,$2,$3,$4,$5,$6)
       RETURNING *
       `,
       [
@@ -435,9 +779,16 @@ app.post("/api/matches", async (req, res) => {
       ]
     );
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(
+      result.rows[0]
+    );
+
   } catch (error) {
-    console.error("Add match error:", error.message);
+
+    console.error(
+      "Add match error:",
+      error.message
+    );
 
     res.status(500).json({
       error: "Matç əlavə etmək mümkün olmadı"
@@ -446,8 +797,10 @@ app.post("/api/matches", async (req, res) => {
 });
 
 
-app.patch("/api/matches/:id", async (req, res) => {
+app.patch("/api/matches/:id", requireAdmin, async (req, res) => {
+
   try {
+
     const { id } = req.params;
 
     const {
@@ -461,10 +814,10 @@ app.patch("/api/matches/:id", async (req, res) => {
       `
       UPDATE matches
       SET
-        home_score = COALESCE($1, home_score),
-        away_score = COALESCE($2, away_score),
-        match_date = COALESCE($3, match_date),
-        status = COALESCE($4, status)
+        home_score = COALESCE($1,home_score),
+        away_score = COALESCE($2,away_score),
+        match_date = COALESCE($3,match_date),
+        status = COALESCE($4,status)
       WHERE id = $5
       RETURNING *
       `,
@@ -477,15 +830,21 @@ app.patch("/api/matches/:id", async (req, res) => {
       ]
     );
 
-    if (result.rows.length === 0) {
+    if (!result.rows.length) {
+
       return res.status(404).json({
         error: "Matç tapılmadı"
       });
     }
 
     res.json(result.rows[0]);
+
   } catch (error) {
-    console.error("Update match error:", error.message);
+
+    console.error(
+      "Update match error:",
+      error.message
+    );
 
     res.status(500).json({
       error: "Matçı dəyişmək mümkün olmadı"
@@ -493,17 +852,85 @@ app.patch("/api/matches/:id", async (req, res) => {
   }
 });
 
-// =========================
-// START
-// =========================
+
+app.delete("/api/matches/:id", requireAdmin, async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `
+      DELETE FROM matches
+      WHERE id = $1
+      RETURNING id
+      `,
+      [id]
+    );
+
+    if (!result.rows.length) {
+
+      return res.status(404).json({
+        error: "Matç tapılmadı"
+      });
+    }
+
+    res.json({
+      ok: true
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Delete match error:",
+      error.message
+    );
+
+    res.status(500).json({
+      error: "Matçı silmək mümkün olmadı"
+    });
+  }
+});
+
+/* =========================
+   STATIC WEBSITE
+========================= */
+
+app.use(
+  express.static(
+    path.join(__dirname, "public")
+  )
+);
+
+app.get("/", (req, res) => {
+
+  res.sendFile(
+    path.join(
+      __dirname,
+      "public",
+      "index.html"
+    )
+  );
+});
+
+/* =========================
+   START SERVER
+========================= */
 
 initDatabase()
   .then(() => {
+
     app.listen(PORT, () => {
-      console.log(`AliScore server running on port ${PORT}`);
+
+      console.log(
+        `AliScore server running on port ${PORT}`
+      );
+
     });
+
   })
   .catch((error) => {
+
     console.error(
       "Database initialization failed:",
       error.message
