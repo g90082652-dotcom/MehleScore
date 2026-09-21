@@ -14,22 +14,31 @@ body{
   margin:0;
   font-family:Arial,sans-serif;
   background:#07111f;
-  color:white;
+  color:#fff;
+}
+
+button,
+input,
+select{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
 }
 
 header{
   position:sticky;
   top:0;
   z-index:100;
-  background:#0b1b31;
-  border-bottom:1px solid #203553;
+  background:#0b1b30;
+  border-bottom:1px solid #203a59;
   padding:14px;
 }
 
 .logo{
   font-size:25px;
-  font-weight:bold;
-  color:#48a8ff;
+  font-weight:900;
   margin-bottom:12px;
 }
 
@@ -37,26 +46,27 @@ nav{
   display:flex;
   gap:7px;
   overflow-x:auto;
+  padding-bottom:2px;
 }
 
 nav button{
-  border:0;
-  background:#132844;
-  color:white;
-  padding:10px 13px;
-  border-radius:10px;
   white-space:nowrap;
-  cursor:pointer;
+  background:#132943;
+  color:#fff;
+  border:1px solid #294768;
+  border-radius:10px;
+  padding:9px 12px;
 }
 
 nav button.active{
-  background:#1687e8;
+  background:#1769aa;
+  border-color:#2989d0;
 }
 
 main{
-  padding:15px;
   max-width:1100px;
   margin:auto;
+  padding:18px;
 }
 
 .page{
@@ -67,218 +77,360 @@ main{
   display:block;
 }
 
-.card{
-  background:#0d1d32;
-  border:1px solid #203653;
-  border-radius:15px;
-  padding:15px;
-  margin-bottom:14px;
+h1{
+  margin-top:0;
 }
 
-h1,h2,h3{
-  margin-top:0;
+.card{
+  background:#0c1d32;
+  border:1px solid #203b59;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:15px;
 }
 
 .grid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
   gap:12px;
 }
 
 .stat{
-  background:#10243d;
+  background:#102640;
+  border:1px solid #244565;
   border-radius:14px;
   padding:18px;
 }
 
 .stat b{
   display:block;
-  font-size:30px;
-  color:#49a8ff;
+  font-size:28px;
+  margin-bottom:5px;
 }
 
-button{
-  cursor:pointer;
+input,
+select{
+  width:100%;
+  background:#071522;
+  color:#fff;
+  border:1px solid #31516f;
+  border-radius:10px;
+  padding:11px;
+  margin:5px 0;
+  outline:none;
+}
+
+input:focus,
+select:focus{
+  border-color:#39a0e8;
 }
 
 .btn{
+  background:#1671b8;
+  color:#fff;
   border:0;
+  border-radius:10px;
   padding:10px 14px;
-  border-radius:9px;
-  background:#1687e8;
-  color:white;
-  margin:3px;
+  margin:4px 2px;
+}
+
+.btn:hover{
+  opacity:.9;
 }
 
 .btn.red{
-  background:#d9364f;
+  background:#b83232;
 }
 
 .btn.green{
-  background:#159b68;
+  background:#16834a;
 }
 
 .btn.gray{
-  background:#34465d;
+  background:#33485f;
 }
 
-input,select{
-  width:100%;
-  background:#081525;
-  color:white;
-  border:1px solid #304866;
-  padding:11px;
-  border-radius:9px;
-  margin:5px 0 10px;
+.btn.yellow{
+  background:#a87900;
 }
 
-label{
-  display:block;
-  font-size:13px;
-  color:#a9bad0;
+.row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.row > *{
+  flex:1;
+  min-width:130px;
+}
+
+.table-wrap{
+  overflow-x:auto;
 }
 
 table{
   width:100%;
   border-collapse:collapse;
+  min-width:700px;
 }
 
-th,td{
-  padding:10px 7px;
-  border-bottom:1px solid #253b57;
-  text-align:left;
+th,
+td{
+  padding:11px 8px;
+  border-bottom:1px solid #243b55;
+  text-align:center;
 }
 
 th{
-  color:#74baff;
+  background:#102640;
+}
+
+td:first-child,
+th:first-child{
+  text-align:center;
 }
 
 .team-name{
   font-weight:bold;
+  text-align:left;
 }
 
 .match{
-  background:#10243d;
-  border-radius:13px;
+  background:#10243b;
+  border:1px solid #27445f;
+  border-radius:15px;
   padding:15px;
   margin-bottom:10px;
 }
 
-.match-teams{
+.match-head{
   display:flex;
   justify-content:space-between;
-  align-items:center;
   gap:10px;
+  color:#9fb5ca;
+  font-size:13px;
+  margin-bottom:10px;
 }
 
-.score{
-  font-size:26px;
+.match-teams{
+  display:grid;
+  grid-template-columns:1fr auto 1fr;
+  align-items:center;
+  gap:12px;
+}
+
+.match-team{
+  font-size:17px;
   font-weight:bold;
 }
 
-.badge{
+.match-team.away{
+  text-align:right;
+}
+
+.score{
+  font-size:27px;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.status{
   display:inline-block;
-  padding:5px 8px;
-  border-radius:7px;
+  border-radius:20px;
+  padding:5px 9px;
   font-size:12px;
-  background:#34465d;
+  background:#33485f;
 }
 
-.live{
-  background:#d9364f;
+.status.live{
+  background:#b52828;
 }
 
-.finished{
-  background:#159b68;
+.status.finished{
+  background:#26784c;
+}
+
+.status.scheduled{
+  background:#31577d;
 }
 
 .player{
   display:flex;
   align-items:center;
-  gap:10px;
-  background:#10243d;
-  padding:10px;
-  border-radius:12px;
+  gap:12px;
+  background:#10243b;
+  border:1px solid #27445f;
+  border-radius:14px;
+  padding:12px;
   margin-bottom:8px;
 }
 
 .avatar{
-  width:45px;
-  height:45px;
+  width:55px;
+  height:55px;
   border-radius:50%;
-  background:#203b5d;
+  object-fit:cover;
+  background:#1c3652;
   display:flex;
   align-items:center;
   justify-content:center;
-  overflow:hidden;
+  font-weight:bold;
+  font-size:19px;
+  flex:none;
+}
+
+.player-info{
+  flex:1;
+}
+
+.player-name{
+  font-size:17px;
   font-weight:bold;
 }
 
-.avatar img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.small{
-  color:#9db0c7;
+.muted{
+  color:#91a6ba;
   font-size:13px;
 }
 
-.admin-lock{
-  max-width:450px;
-  margin:40px auto;
+.notification{
+  border-left:4px solid #2e8fd0;
+  background:#10243b;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:8px;
+}
+
+.notification-title{
+  font-weight:bold;
+}
+
+.notification-date{
+  color:#71879d;
+  font-size:12px;
+  margin-top:5px;
+}
+
+.admin-box{
+  background:#0d2036;
+  border:1px solid #274766;
+  border-radius:15px;
+  padding:15px;
+  margin-bottom:15px;
+}
+
+.admin-box h3{
+  margin-top:0;
+}
+
+.hidden{
+  display:none!important;
 }
 
 .toast{
   position:fixed;
-  right:15px;
-  bottom:15px;
-  background:#173a5f;
-  padding:14px 18px;
-  border-radius:12px;
+  left:50%;
+  bottom:22px;
+  transform:translateX(-50%);
   z-index:9999;
-  display:none;
-  box-shadow:0 10px 30px #0008;
-}
-
-.form-grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
-  gap:8px;
-}
-
-.actions{
-  margin-top:10px;
-}
-
-.totw-player{
-  text-align:center;
-  background:#10243d;
+  background:#152b44;
+  border:1px solid #3c6183;
+  color:#fff;
+  padding:12px 17px;
   border-radius:12px;
-  padding:12px;
+  box-shadow:0 8px 30px rgba(0,0,0,.4);
+  display:none;
+  max-width:90%;
+  text-align:center;
 }
 
-.position-title{
-  color:#58b1ff;
-  font-weight:bold;
-  margin:15px 0 8px;
+.toast.show{
+  display:block;
 }
 
 .empty{
+  color:#8095a9;
   text-align:center;
-  padding:30px;
-  color:#8fa4bd;
+  padding:25px;
+}
+
+.position{
+  display:inline-block;
+  background:#183650;
+  padding:4px 8px;
+  border-radius:8px;
+  font-size:12px;
+}
+
+.stat-actions{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  margin-top:7px;
+}
+
+.small-btn{
+  border:0;
+  border-radius:8px;
+  padding:6px 10px;
+  color:#fff;
+}
+
+.plus{
+  background:#16834a;
+}
+
+.minus{
+  background:#a63333;
+}
+
+.cards-number{
+  font-size:20px;
+  font-weight:bold;
+}
+
+.lineup-group{
+  margin-bottom:15px;
+}
+
+.lineup-group h3{
+  color:#65baff;
+}
+
+.totw-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:10px;
+}
+
+.totw-player{
+  background:#10243b;
+  border:1px solid #31516f;
+  border-radius:14px;
+  padding:12px;
+}
+
+.search{
+  margin-bottom:12px;
 }
 
 @media(max-width:600px){
-  th,td{
-    font-size:12px;
-    padding:8px 4px;
+  main{
+    padding:12px;
   }
 
   .match-teams{
+    gap:5px;
+  }
+
+  .match-team{
     font-size:14px;
+  }
+
+  .score{
+    font-size:22px;
   }
 }
 </style>
@@ -290,72 +442,82 @@ th{
   <div class="logo">⚽ AliScore</div>
 
   <nav>
-    <button class="nav active" data-page="home">Ana səhifə</button>
-    <button class="nav" data-page="matches">Matçlar</button>
-    <button class="nav" data-page="table">Turnir cədvəli</button>
-    <button class="nav" data-page="teams">Komandalar</button>
-    <button class="nav" data-page="players">Oyunçular</button>
-    <button class="nav" data-page="lineups">Heyətlər</button>
-    <button class="nav" data-page="stats">Statistika</button>
-    <button class="nav" data-page="cards">Kartlar</button>
-    <button class="nav" data-page="totw">⭐ Komanda həftəsi</button>
-    <button class="nav" data-page="admin">İdarəetmə</button>
+    <button data-page="home" onclick="showPage('home')">Ana səhifə</button>
+    <button data-page="matches" onclick="showPage('matches')">Matçlar</button>
+    <button data-page="table" onclick="showPage('table')">Turnir cədvəli</button>
+    <button data-page="teams" onclick="showPage('teams')">Komandalar</button>
+    <button data-page="players" onclick="showPage('players')">Oyunçular</button>
+    <button data-page="lineups" onclick="showPage('lineups')">Heyətlər</button>
+    <button data-page="stats" onclick="showPage('stats')">Statistika</button>
+    <button data-page="cards" onclick="showPage('cards')">Kartlar</button>
+    <button data-page="totw" onclick="showPage('totw')">⭐ Komanda həftəsi</button>
+    <button data-page="admin" onclick="showPage('admin')">İdarəetmə</button>
   </nav>
 </header>
 
 <main>
 
-<section id="home" class="page active">
+<!-- HOME -->
+<section id="home" class="page">
+
   <h1>AliScore</h1>
 
   <div class="grid">
+
     <div class="stat">
-      <span>Komandalar</span>
       <b id="homeTeams">0</b>
+      Komandalar
     </div>
 
     <div class="stat">
-      <span>Oyunçular</span>
       <b id="homePlayers">0</b>
+      Oyunçular
     </div>
 
     <div class="stat">
-      <span>Matçlar</span>
       <b id="homeMatches">0</b>
+      Matçlar
     </div>
 
     <div class="stat">
-      <span>Bildirişlər</span>
       <b id="homeNotifications">0</b>
+      Bildirişlər
     </div>
+
   </div>
 
   <div class="card">
-    <h2>🔔 AliScore bildirişləri</h2>
-    <p class="small">
-      Qollar, kartlar, transferlər və Komanda həftəsi haqqında
-      bildirişləri burada görə bilərsən.
-    </p>
-    <button class="btn" onclick="loadNotifications()">Bildirişləri yenilə</button>
-    <div id="notificationList"></div>
+    <h2>🔔 Bildirişlər</h2>
+    <div id="homeNotificationsList"></div>
   </div>
 
   <div class="card">
-    <h2>📅 Son matçlar</h2>
-    <div id="homeMatchesList"></div>
+    <h2>⚽ Son matçlar</h2>
+    <div id="homeMatches"></div>
   </div>
+
 </section>
 
+
+<!-- MATCHES -->
 <section id="matches" class="page">
+
   <h1>Matçlar</h1>
+
   <div id="matchesList"></div>
+
 </section>
 
+
+<!-- TABLE -->
 <section id="table" class="page">
+
   <h1>Turnir cədvəli</h1>
 
-  <div class="card">
+  <div class="card table-wrap">
+
     <table>
+
       <thead>
         <tr>
           <th>#</th>
@@ -370,212 +532,527 @@ th{
           <th>Xal</th>
         </tr>
       </thead>
+
       <tbody id="tableBody"></tbody>
+
     </table>
+
   </div>
+
 </section>
 
+
+<!-- TEAMS -->
 <section id="teams" class="page">
+
   <h1>Komandalar</h1>
+
   <div id="teamsList"></div>
+
 </section>
 
+
+<!-- PLAYERS -->
 <section id="players" class="page">
+
   <h1>Oyunçular</h1>
 
-  <div class="card">
-    <input id="playerSearch" placeholder="Oyunçu axtar..." oninput="renderPlayers()">
-  </div>
+  <input
+    class="search"
+    id="playerSearch"
+    placeholder="Oyunçu axtar..."
+    oninput="renderPlayers()"
+  >
 
   <div id="playersList"></div>
+
 </section>
 
+
+<!-- LINEUPS -->
 <section id="lineups" class="page">
+
   <h1>Heyətlər</h1>
 
   <div class="card">
-    <label>Matç</label>
-    <select id="lineupMatch" onchange="loadLineup()"></select>
+
+    <label>Matç seç</label>
+
+    <select id="lineupMatch" onchange="loadLineup()">
+      <option value="">Matç seçin</option>
+    </select>
+
   </div>
 
   <div id="lineupList"></div>
+
 </section>
 
+
+<!-- STATS -->
 <section id="stats" class="page">
+
   <h1>Statistika</h1>
 
   <div class="card">
+
     <h2>⚽ Qollar</h2>
-    <div id="goalStats"></div>
+
+    <div id="goalsList"></div>
+
   </div>
 
   <div class="card">
-    <h2>🅰️ Assistlər</h2>
-    <div id="assistStats"></div>
+
+    <h2>🅰️ Assists</h2>
+
+    <div id="assistsList"></div>
+
   </div>
 
   <div class="card">
+
     <h2>🧤 Seyvlər</h2>
-    <div id="saveStats"></div>
+
+    <div id="savesList"></div>
+
   </div>
+
 </section>
 
+
+<!-- CARDS -->
 <section id="cards" class="page">
-  <h1>Kartlar</h1>
+
+  <h1>🟨🟥 Kartlar</h1>
+
   <div id="cardsList"></div>
+
 </section>
 
+
+<!-- TEAM OF WEEK -->
 <section id="totw" class="page">
+
   <h1>⭐ Komanda həftəsi</h1>
-  <div id="totwList"></div>
+
+  <div class="card">
+
+    <div id="totwList"></div>
+
+  </div>
+
 </section>
 
+
+<!-- ADMIN -->
 <section id="admin" class="page">
 
-  <div id="adminLogin" class="admin-lock card">
+  <h1>İdarəetmə</h1>
+
+  <!-- LOGIN -->
+
+  <div id="adminLoginBox" class="admin-box">
+
     <h2>🔐 Admin girişi</h2>
-    <input id="adminPassword" type="password" placeholder="Admin şifrəsi">
-    <button class="btn" onclick="adminLogin()">Daxil ol</button>
+
+    <input
+      id="adminPassword"
+      type="password"
+      placeholder="Admin şifrəsi"
+    >
+
+    <button class="btn" onclick="adminLogin()">
+      Daxil ol
+    </button>
+
   </div>
 
-  <div id="adminPanel" style="display:none">
 
-    <div class="card">
-      <h2>Admin paneli</h2>
-      <button class="btn red" onclick="adminLogout()">Çıxış</button>
-    </div>
+  <!-- ADMIN PANEL -->
 
-    <div class="card">
-      <h2>➕ Komanda əlavə et</h2>
+  <div id="adminPanel" class="hidden">
 
-      <div class="form-grid">
-        <div>
-          <label>Ad</label>
-          <input id="newTeamName">
-        </div>
+    <div class="admin-box">
+
+      <div class="row">
 
         <div>
-          <label>Xal</label>
-          <input id="newTeamPoints" type="number" value="0">
+          <b>Admin rejimi aktivdir</b>
         </div>
+
+        <button
+          class="btn red"
+          onclick="adminLogout()"
+        >
+          Çıxış
+        </button>
+
       </div>
 
-      <button class="btn green" onclick="addTeam()">Komanda əlavə et</button>
     </div>
 
-    <div class="card">
-      <h2>👤 Oyunçu əlavə et</h2>
 
-      <div class="form-grid">
-        <div>
-          <label>Ad</label>
-          <input id="newPlayerName">
-        </div>
+    <!-- ADD TEAM -->
 
-        <div>
-          <label>Nömrə</label>
-          <input id="newPlayerNumber" type="number">
-        </div>
+    <div class="admin-box">
 
-        <div>
-          <label>Mövqe</label>
-          <select id="newPlayerPosition">
-            <option>Qapıçı</option>
-            <option>Müdafiəçi</option>
-            <option>Yarımmüdafiəçi</option>
-            <option>Hücumçu</option>
-          </select>
-        </div>
+      <h3>➕ Komanda əlavə et</h3>
 
-        <div>
-          <label>Komanda</label>
-          <select id="newPlayerTeam"></select>
-        </div>
+      <input
+        id="newTeamName"
+        placeholder="Komanda adı"
+      >
+
+      <input
+        id="newTeamPoints"
+        type="number"
+        placeholder="Xal"
+        value="0"
+      >
+
+      <button
+        class="btn green"
+        onclick="addTeam()"
+      >
+        Komanda əlavə et
+      </button>
+
+    </div>
+
+
+    <!-- ADD PLAYER -->
+
+    <div class="admin-box">
+
+      <h3>👤 Oyunçu əlavə et</h3>
+
+      <input
+        id="newPlayerName"
+        placeholder="Oyunçu adı"
+      >
+
+      <input
+        id="newPlayerNumber"
+        type="number"
+        placeholder="Nömrə"
+        value="0"
+      >
+
+      <select id="newPlayerPosition">
+        <option value="Qapıçı">Qapıçı</option>
+        <option value="Müdafiəçi">Müdafiəçi</option>
+        <option value="Yarımmüdafiəçi">Yarımmüdafiəçi</option>
+        <option value="Hücumçu">Hücumçu</option>
+      </select>
+
+      <select id="newPlayerTeam">
+        <option value="">Komanda seç</option>
+      </select>
+
+      <input
+        id="newPlayerPhoto"
+        placeholder="Foto URL (istəyə görə)"
+      >
+
+      <button
+        class="btn green"
+        onclick="addPlayer()"
+      >
+        Oyunçu əlavə et
+      </button>
+
+    </div>
+
+
+    <!-- ADD MATCH -->
+
+    <div class="admin-box">
+
+      <h3>⚽ Matç əlavə et</h3>
+
+      <select id="newMatchHome">
+        <option value="">Ev sahibi</option>
+      </select>
+
+      <select id="newMatchAway">
+        <option value="">Qonaq</option>
+      </select>
+
+      <input
+        id="newMatchDate"
+        type="datetime-local"
+      >
+
+      <select id="newMatchStatus">
+
+        <option value="scheduled">
+          Planlaşdırılıb
+        </option>
+
+        <option value="live">
+          Canlı
+        </option>
+
+        <option value="finished">
+          Bitib
+        </option>
+
+      </select>
+
+      <div class="row">
+
+        <input
+          id="newHomeScore"
+          type="number"
+          min="0"
+          value="0"
+          placeholder="Ev qolu"
+        >
+
+        <input
+          id="newAwayScore"
+          type="number"
+          min="0"
+          value="0"
+          placeholder="Qonaq qolu"
+        >
+
       </div>
 
-      <button class="btn green" onclick="addPlayer()">Oyunçu əlavə et</button>
+      <button
+        class="btn green"
+        onclick="addMatch()"
+      >
+        Matç əlavə et
+      </button>
+
     </div>
 
-    <div class="card">
-      <h2>⚽ Yeni matç</h2>
 
-      <div class="form-grid">
-        <div>
-          <label>Ev sahibi</label>
-          <select id="newMatchHome"></select>
-        </div>
+    <!-- TRANSFER -->
 
-        <div>
-          <label>Qonaq</label>
-          <select id="newMatchAway"></select>
-        </div>
+    <div class="admin-box">
 
-        <div>
-          <label>Tarix</label>
-          <input id="newMatchDate" type="datetime-local">
-        </div>
+      <h3>🔄 Transfer</h3>
 
-        <div>
-          <label>Status</label>
-          <select id="newMatchStatus">
-            <option value="scheduled">Planlaşdırılıb</option>
-            <option value="live">Canlı</option>
-            <option value="finished">Bitib</option>
-          </select>
-        </div>
+      <select id="transferPlayer">
+        <option value="">Oyunçu seç</option>
+      </select>
+
+      <select id="transferTeam">
+        <option value="">Yeni komanda</option>
+      </select>
+
+      <button
+        class="btn"
+        onclick="transferPlayer()"
+      >
+        Transfer et
+      </button>
+
+    </div>
+
+
+    <!-- MATCH EDIT -->
+
+    <div class="admin-box">
+
+      <h3>📝 Matç redaktəsi</h3>
+
+      <select id="editMatchSelect">
+        <option value="">Matç seç</option>
+      </select>
+
+      <div class="row">
+
+        <input
+          id="editHomeScore"
+          type="number"
+          min="0"
+          value="0"
+          placeholder="Ev qolu"
+        >
+
+        <input
+          id="editAwayScore"
+          type="number"
+          min="0"
+          value="0"
+          placeholder="Qonaq qolu"
+        >
+
       </div>
 
-      <button class="btn green" onclick="addMatch()">Matç əlavə et</button>
+      <select id="editMatchStatus">
+
+        <option value="scheduled">
+          Planlaşdırılıb
+        </option>
+
+        <option value="live">
+          Canlı
+        </option>
+
+        <option value="finished">
+          Bitib
+        </option>
+
+      </select>
+
+      <button
+        class="btn"
+        onclick="loadSelectedMatchForEdit()"
+      >
+        Məlumatı gətir
+      </button>
+
+      <button
+        class="btn green"
+        onclick="saveMatchEdit()"
+      >
+        Yadda saxla
+      </button>
+
+      <button
+        class="btn red"
+        onclick="deleteSelectedMatch()"
+      >
+        Matçı sil
+      </button>
+
     </div>
 
-    <div class="card">
-      <h2>🔄 Transfer</h2>
 
-      <div class="form-grid">
-        <div>
-          <label>Oyunçu</label>
-          <select id="transferPlayer"></select>
-        </div>
+    <!-- EVENT -->
 
-        <div>
-          <label>Yeni komanda</label>
-          <select id="transferTeam"></select>
-        </div>
-      </div>
+    <div class="admin-box">
 
-      <button class="btn" onclick="makeTransfer()">Transfer et</button>
+      <h3>🎯 Matç hadisəsi</h3>
+
+      <select id="eventMatch">
+        <option value="">Matç seç</option>
+      </select>
+
+      <select id="eventPlayer">
+        <option value="">Oyunçu seç</option>
+      </select>
+
+      <select id="eventTeam">
+        <option value="">Komanda seç</option>
+      </select>
+
+      <select id="eventType">
+
+        <option value="goal">
+          ⚽ Qol
+        </option>
+
+        <option value="assist">
+          🅰️ Assist
+        </option>
+
+        <option value="save">
+          🧤 Seyv
+        </option>
+
+        <option value="yellow">
+          🟨 Sarı kart
+        </option>
+
+        <option value="red">
+          🟥 Qırmızı kart
+        </option>
+
+      </select>
+
+      <input
+        id="eventMinute"
+        type="number"
+        min="0"
+        placeholder="Dəqiqə"
+        value="0"
+      >
+
+      <button
+        class="btn green"
+        onclick="addMatchEvent()"
+      >
+        Hadisə əlavə et
+      </button>
+
     </div>
 
-    <div class="card">
-      <h2>⭐ Komanda həftəsi yarat</h2>
 
-      <p class="small">
-        11 fərqli oyunçu seç. 1 qapıçı olmalıdır.
+    <!-- TEAM EDIT -->
+
+    <div class="admin-box">
+
+      <h3>🏆 Komanda redaktəsi</h3>
+
+      <div id="adminTeams"></div>
+
+    </div>
+
+
+    <!-- PLAYER EDIT -->
+
+    <div class="admin-box">
+
+      <h3>👤 Oyunçu redaktəsi</h3>
+
+      <div id="adminPlayers"></div>
+
+    </div>
+
+
+    <!-- CARDS ADMIN -->
+
+    <div class="admin-box">
+
+      <h3>🟨🟥 Kartların idarəsi</h3>
+
+      <div id="adminCards"></div>
+
+    </div>
+
+
+    <!-- TEAM OF WEEK -->
+
+    <div class="admin-box">
+
+      <h3>⭐ Komanda həftəsi yarat</h3>
+
+      <p class="muted">
+        Formasiya: 1 Qapıçı + 4 Müdafiəçi + 3 Yarımmüdafiəçi + 3 Hücumçu
       </p>
 
-      <div id="totwAdmin"></div>
+      <select id="weekGoalkeeper"></select>
 
-      <button class="btn green" onclick="saveTeamOfWeek()">
-        Komanda həftəsini yadda saxla
+      <select id="weekDefender1"></select>
+      <select id="weekDefender2"></select>
+      <select id="weekDefender3"></select>
+      <select id="weekDefender4"></select>
+
+      <select id="weekMidfielder1"></select>
+      <select id="weekMidfielder2"></select>
+      <select id="weekMidfielder3"></select>
+
+      <select id="weekAttacker1"></select>
+      <select id="weekAttacker2"></select>
+      <select id="weekAttacker3"></select>
+
+      <button
+        class="btn green"
+        onclick="createTeamOfWeek()"
+      >
+        ⭐ Komanda həftəsini yarat
       </button>
-    </div>
 
-    <div class="card">
-      <h2>⚙️ Komandalar</h2>
-      <div id="adminTeams"></div>
-    </div>
-
-    <div class="card">
-      <h2>⚙️ Oyunçular</h2>
-      <div id="adminPlayers"></div>
-    </div>
-
-    <div class="card">
-      <h2>⚙️ Matçlar</h2>
-      <div id="adminMatches"></div>
     </div>
 
   </div>
+
 </section>
 
 </main>
@@ -583,51 +1060,67 @@ th{
 <div id="toast" class="toast"></div>
 
 <script>
+/* =====================================================
+   GLOBAL DATA
+===================================================== */
 
 let teams = [];
 let players = [];
 let matches = [];
+let cards = [];
+let statistics = null;
+
 let isAdmin = false;
 
-/* =========================
-   HELPERS
-========================= */
+
+/* =====================================================
+   API
+===================================================== */
 
 async function api(url, options = {}) {
-  const response = await fetch(url, {
-    credentials:"same-origin",
-    headers:{
-      "Content-Type":"application/json",
+
+  const config = {
+    credentials: "same-origin",
+    ...options,
+    headers: {
+      ...(options.body
+        ? {"Content-Type":"application/json"}
+        : {}),
       ...(options.headers || {})
-    },
-    ...options
-  });
+    }
+  };
+
+  const response = await fetch(
+    url,
+    config
+  );
 
   let data = {};
 
   try {
     data = await response.json();
-  } catch {}
+  } catch {
+    data = {};
+  }
 
   if (!response.ok) {
-    throw new Error(data.error || "Xəta baş verdi");
+    throw new Error(
+      data.error ||
+      `HTTP ${response.status}`
+    );
   }
 
   return data;
 }
 
-function toast(message) {
-  const el = document.getElementById("toast");
-  el.textContent = message;
-  el.style.display = "block";
 
-  setTimeout(() => {
-    el.style.display = "none";
-  }, 3000);
-}
+/* =====================================================
+   HELPERS
+===================================================== */
 
-function escapeHtml(text) {
-  return String(text ?? "")
+function escapeHtml(value) {
+
+  return String(value ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;")
@@ -635,272 +1128,300 @@ function escapeHtml(text) {
     .replaceAll("'","&#039;");
 }
 
+
+function toast(message) {
+
+  const box =
+    document.getElementById("toast");
+
+  box.textContent = message;
+  box.classList.add("show");
+
+  clearTimeout(window.toastTimer);
+
+  window.toastTimer =
+    setTimeout(() => {
+      box.classList.remove("show");
+    }, 3000);
+}
+
+
 function statusText(status) {
-  if (status === "live") return "CANLI";
-  if (status === "finished") return "BİTİB";
+
+  if (status === "live")
+    return "CANLI";
+
+  if (status === "finished")
+    return "BİTİB";
+
   return "PLANLAŞDIRILIB";
 }
 
+
 function statusClass(status) {
-  if (status === "live") return "live";
-  if (status === "finished") return "finished";
-  return "";
+
+  if (status === "live")
+    return "live";
+
+  if (status === "finished")
+    return "finished";
+
+  return "scheduled";
 }
 
-/* =========================
-   NAVIGATION
-========================= */
 
-document.querySelectorAll(".nav").forEach(btn => {
-  btn.addEventListener("click", () => {
+function formatDate(date) {
 
-    document.querySelectorAll(".nav")
-      .forEach(x => x.classList.remove("active"));
+  if (!date) return "";
 
-    document.querySelectorAll(".page")
-      .forEach(x => x.classList.remove("active"));
+  const d = new Date(date);
 
-    btn.classList.add("active");
+  if (Number.isNaN(d.getTime()))
+    return "";
 
-    const page = document.getElementById(btn.dataset.page);
-
-    if (page) {
-      page.classList.add("active");
+  return d.toLocaleString(
+    "az-AZ",
+    {
+      day:"2-digit",
+      month:"2-digit",
+      year:"numeric",
+      hour:"2-digit",
+      minute:"2-digit"
     }
+  );
+}
 
-    if (btn.dataset.page === "table") renderTable();
-    if (btn.dataset.page === "teams") renderTeams();
-    if (btn.dataset.page === "players") renderPlayers();
-    if (btn.dataset.page === "matches") renderMatches();
-    if (btn.dataset.page === "cards") loadCards();
-    if (btn.dataset.page === "stats") loadStats();
-    if (btn.dataset.page === "totw") loadTeamOfWeek();
-    if (btn.dataset.page === "lineups") prepareLineupMatches();
-    if (btn.dataset.page === "admin") checkAdmin();
-  });
-});
 
-/* =========================
-   LOAD ALL
-========================= */
+/* =====================================================
+   NAVIGATION
+===================================================== */
+
+function showPage(page) {
+
+  document
+    .querySelectorAll(".page")
+    .forEach(el => {
+      el.classList.remove("active");
+    });
+
+  const target =
+    document.getElementById(page);
+
+  if (target)
+    target.classList.add("active");
+
+  document
+    .querySelectorAll("nav button")
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.page === page
+      );
+    });
+
+  if (page === "stats")
+    loadStats();
+
+  if (page === "cards")
+    loadCards();
+
+  if (page === "totw")
+    loadTeamOfWeek();
+
+  if (page === "lineups")
+    prepareLineupMatches();
+
+  if (page === "admin")
+    renderAdmin();
+}
+
+
+/* =====================================================
+   LOAD EVERYTHING
+===================================================== */
 
 async function loadAll() {
-  try {
-    teams = await api("/api/teams");
-    players = await api("/api/players");
-    matches = await api("/api/matches");
 
+  try {
+
+    const [
+      teamData,
+      playerData,
+      matchData
+    ] = await Promise.all([
+      api("/api/teams"),
+      api("/api/players"),
+      api("/api/matches")
+    ]);
+
+    teams =
+      Array.isArray(teamData)
+        ? teamData
+        : [];
+
+    players =
+      Array.isArray(playerData)
+        ? playerData
+        : [];
+
+    matches =
+      Array.isArray(matchData)
+        ? matchData
+        : [];
+
+    renderHome();
     renderTable();
     renderTeams();
     renderPlayers();
     renderMatches();
-    updateHome();
+
     prepareAdminSelects();
 
-  } catch(e) {
-    toast(e.message);
+    prepareLineupMatches();
+
+    loadNotifications();
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast(
+      "Məlumatları yükləmək mümkün olmadı: " +
+      error.message
+    );
   }
 }
 
-/* =========================
+
+/* =====================================================
    HOME
-========================= */
+===================================================== */
 
-function updateHome() {
+function renderHome() {
 
-  document.getElementById("homeTeams").textContent =
-    teams.length;
+  document.getElementById(
+    "homeTeams"
+  ).textContent = teams.length;
 
-  document.getElementById("homePlayers").textContent =
-    players.length;
+  document.getElementById(
+    "homePlayers"
+  ).textContent = players.length;
 
-  document.getElementById("homeMatches").textContent =
-    matches.length;
+  document.getElementById(
+    "homeMatches"
+  ).textContent = matches.length;
 
-  const box = document.getElementById("homeMatchesList");
+  const box =
+    document.getElementById(
+      "homeMatches"
+    );
 
-  if (!matches.length) {
-    box.innerHTML = `<div class="empty">Hələ matç yoxdur.</div>`;
+  const latest =
+    matches.slice(0,5);
+
+  if (!latest.length) {
+
+    box.innerHTML =
+      `<div class="empty">
+        Hələ matç yoxdur.
+      </div>`;
+
     return;
   }
 
-  box.innerHTML = matches.slice(0,5).map(matchHtml).join("");
+  box.innerHTML =
+    latest.map(matchHtml).join("");
 }
 
-/* =========================
-   TABLE
-========================= */
 
-function renderTable() {
-
-  const body = document.getElementById("tableBody");
-
-  body.innerHTML = teams.map((t,i) => `
-    <tr>
-      <td>${i+1}</td>
-      <td class="team-name">${escapeHtml(t.name)}</td>
-      <td>${t.played || 0}</td>
-      <td>${t.wins || 0}</td>
-      <td>${t.draws || 0}</td>
-      <td>${t.losses || 0}</td>
-      <td>${t.gf || 0}</td>
-      <td>${t.ga || 0}</td>
-      <td>${t.gd || 0}</td>
-      <td><b>${t.points || 0}</b></td>
-    </tr>
-  `).join("");
-}
-
-/* =========================
-   TEAMS
-========================= */
-
-function renderTeams() {
-
-  const box = document.getElementById("teamsList");
-
-  if (!teams.length) {
-    box.innerHTML = `<div class="empty">Komanda yoxdur.</div>`;
-    return;
-  }
-
-  box.innerHTML = teams.map(t => {
-
-    const count =
-      players.filter(p => p.team_id === t.id).length;
-
-    return `
-      <div class="card">
-        <h2>⚽ ${escapeHtml(t.name)}</h2>
-        <p class="small">
-          Oyunçular: ${count}
-        </p>
-
-        <p>
-          Oyun: ${t.played || 0}
-          · Qələbə: ${t.wins || 0}
-          · Heç-heçə: ${t.draws || 0}
-          · Məğlubiyyət: ${t.losses || 0}
-        </p>
-
-        <p>
-          GF: ${t.gf || 0}
-          · GA: ${t.ga || 0}
-          · GD: ${t.gd || 0}
-          · Xal: <b>${t.points || 0}</b>
-        </p>
-      </div>
-    `;
-  }).join("");
-}
-
-/* =========================
-   PLAYERS
-========================= */
-
-function renderPlayers() {
-
-  const search =
-    document.getElementById("playerSearch")
-      ?.value.toLowerCase() || "";
-
-  const filtered = players.filter(p =>
-    p.name.toLowerCase().includes(search) ||
-    (p.team_name || "").toLowerCase().includes(search)
-  );
-
-  const box = document.getElementById("playersList");
-
-  if (!filtered.length) {
-    box.innerHTML = `<div class="empty">Oyunçu tapılmadı.</div>`;
-    return;
-  }
-
-  box.innerHTML = filtered.map(p => `
-    <div class="player">
-
-      <div class="avatar">
-        ${
-          p.photo
-          ? `<img src="${escapeHtml(p.photo)}">`
-          : escapeHtml(p.name[0] || "?")
-        }
-      </div>
-
-      <div style="flex:1">
-        <b>${escapeHtml(p.name)}</b>
-
-        <div class="small">
-          #${p.number || 0}
-          · ${escapeHtml(p.position || "")}
-          · ${escapeHtml(p.team_name || "Komandasız")}
-        </div>
-
-        <div class="small">
-          ⚽ ${p.goals || 0}
-          · 🅰️ ${p.assists || 0}
-          · 🧤 ${p.saves || 0}
-          · 🟨 ${p.yellow_cards || 0}
-          · 🟥 ${p.red_cards || 0}
-        </div>
-      </div>
-
-    </div>
-  `).join("");
-}
-
-/* =========================
+/* =====================================================
    MATCHES
-========================= */
+===================================================== */
 
 function matchHtml(m) {
 
-  const date = m.match_date
-    ? new Date(m.match_date).toLocaleString("az-AZ")
-    : "";
+  const home =
+    m.home_name ||
+    m.home_team_name ||
+    "—";
+
+  const away =
+    m.away_name ||
+    m.away_team_name ||
+    "—";
+
+  const homeScore =
+    Number.isFinite(Number(m.home_score))
+      ? Number(m.home_score)
+      : 0;
+
+  const awayScore =
+    Number.isFinite(Number(m.away_score))
+      ? Number(m.away_score)
+      : 0;
 
   return `
     <div class="match">
 
+      <div class="match-head">
+
+        <span>
+          ${escapeHtml(formatDate(m.match_date))}
+        </span>
+
+        <span class="status ${statusClass(m.status)}">
+          ${escapeHtml(statusText(m.status))}
+        </span>
+
+      </div>
+
       <div class="match-teams">
 
-        <div>
-          <b>${escapeHtml(m.home_name || "?")}</b>
+        <div class="match-team">
+          ${escapeHtml(home)}
         </div>
 
         <div class="score">
-          ${m.home_score ?? 0}
-          :
-          ${m.away_score ?? 0}
+          ${homeScore} : ${awayScore}
         </div>
 
-        <div>
-          <b>${escapeHtml(m.away_name || "?")}</b>
+        <div class="match-team away">
+          ${escapeHtml(away)}
         </div>
 
       </div>
 
-      <div style="margin-top:10px">
-        <span class="badge ${statusClass(m.status)}">
-          ${statusText(m.status)}
-        </span>
+      <div style="margin-top:10px;text-align:center">
 
-        <span class="small">
-          ${escapeHtml(date)}
-        </span>
+        <button
+          class="btn gray"
+          onclick="showMatchEvents(${Number(m.id)})"
+        >
+          Hadisələr
+        </button>
+
       </div>
 
     </div>
   `;
 }
 
+
 function renderMatches() {
 
-  const box = document.getElementById("matchesList");
+  const box =
+    document.getElementById(
+      "matchesList"
+    );
 
   if (!matches.length) {
+
     box.innerHTML =
-      `<div class="empty">Hələ matç yoxdur.</div>`;
+      `<div class="card empty">
+        Hələ matç yoxdur.
+      </div>`;
+
     return;
   }
 
@@ -908,339 +1429,1056 @@ function renderMatches() {
     matches.map(matchHtml).join("");
 }
 
-/* =========================
-   STATS
-========================= */
+
+/* =====================================================
+   MATCH EVENTS VIEW
+===================================================== */
+
+async function showMatchEvents(matchId) {
+
+  try {
+
+    const events =
+      await api(
+        `/api/matches/${matchId}/events`
+      );
+
+    if (!events.length) {
+      toast("Bu matçda hadisə yoxdur.");
+      return;
+    }
+
+    const text =
+      events.map(event => {
+
+        let icon = "•";
+
+        if (event.type === "goal")
+          icon = "⚽";
+
+        if (event.type === "assist")
+          icon = "🅰️";
+
+        if (event.type === "save")
+          icon = "🧤";
+
+        if (event.type === "yellow")
+          icon = "🟨";
+
+        if (event.type === "red")
+          icon = "🟥";
+
+        return `${icon} ${event.minute}' ${
+          event.player_name || ""
+        }`;
+
+      }).join(" | ");
+
+    toast(text);
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+function renderTable() {
+
+  const body =
+    document.getElementById(
+      "tableBody"
+    );
+
+  const sorted =
+    [...teams].sort((a,b) => {
+
+      const points =
+        Number(b.points || 0) -
+        Number(a.points || 0);
+
+      if (points !== 0)
+        return points;
+
+      const gd =
+        Number(b.gd || 0) -
+        Number(a.gd || 0);
+
+      if (gd !== 0)
+        return gd;
+
+      return (
+        Number(b.gf || 0) -
+        Number(a.gf || 0)
+      );
+    });
+
+  body.innerHTML =
+    sorted.map((team,index) => `
+
+      <tr>
+
+        <td>${index + 1}</td>
+
+        <td class="team-name">
+          ${escapeHtml(team.name)}
+        </td>
+
+        <td>${Number(team.played || 0)}</td>
+        <td>${Number(team.wins || 0)}</td>
+        <td>${Number(team.draws || 0)}</td>
+        <td>${Number(team.losses || 0)}</td>
+        <td>${Number(team.gf || 0)}</td>
+        <td>${Number(team.ga || 0)}</td>
+        <td>${Number(team.gd || 0)}</td>
+        <td><b>${Number(team.points || 0)}</b></td>
+
+      </tr>
+
+    `).join("");
+}
+
+
+/* =====================================================
+   TEAMS
+===================================================== */
+
+function renderTeams() {
+
+  const box =
+    document.getElementById(
+      "teamsList"
+    );
+
+  if (!teams.length) {
+
+    box.innerHTML =
+      `<div class="card empty">
+        Komanda yoxdur.
+      </div>`;
+
+    return;
+  }
+
+  box.innerHTML =
+    teams.map(team => {
+
+      const count =
+        players.filter(
+          p => Number(p.team_id) ===
+               Number(team.id)
+        ).length;
+
+      return `
+
+        <div class="card">
+
+          <h2>
+            ${escapeHtml(team.name)}
+          </h2>
+
+          <div class="muted">
+            Oyunçular: ${count}
+          </div>
+
+          <div class="grid" style="margin-top:10px">
+
+            <div class="stat">
+              <b>${Number(team.points || 0)}</b>
+              Xal
+            </div>
+
+            <div class="stat">
+              <b>${Number(team.played || 0)}</b>
+              Oyun
+            </div>
+
+            <div class="stat">
+              <b>${Number(team.gf || 0)}</b>
+              GF
+            </div>
+
+            <div class="stat">
+              <b>${Number(team.ga || 0)}</b>
+              GA
+            </div>
+
+          </div>
+
+        </div>
+      `;
+
+    }).join("");
+}
+
+
+/* =====================================================
+   PLAYERS
+===================================================== */
+
+function renderPlayers() {
+
+  const box =
+    document.getElementById(
+      "playersList"
+    );
+
+  const search =
+    (
+      document.getElementById(
+        "playerSearch"
+      ).value || ""
+    )
+      .toLowerCase()
+      .trim();
+
+  const filtered =
+    players.filter(p =>
+      String(p.name || "")
+        .toLowerCase()
+        .includes(search)
+    );
+
+  if (!filtered.length) {
+
+    box.innerHTML =
+      `<div class="card empty">
+        Oyunçu tapılmadı.
+      </div>`;
+
+    return;
+  }
+
+  box.innerHTML =
+    filtered.map(p => {
+
+      const initial =
+        String(p.name || "?")
+          .charAt(0)
+          .toUpperCase();
+
+      const avatar =
+        p.photo
+          ? `
+            <img
+              class="avatar"
+              src="${escapeHtml(p.photo)}"
+              alt=""
+            >
+          `
+          : `
+            <div class="avatar">
+              ${escapeHtml(initial)}
+            </div>
+          `;
+
+      return `
+
+        <div class="player">
+
+          ${avatar}
+
+          <div class="player-info">
+
+            <div class="player-name">
+              ${escapeHtml(p.name)}
+            </div>
+
+            <div class="muted">
+              ${escapeHtml(
+                p.team_name || "Komandasız"
+              )}
+            </div>
+
+            <div style="margin-top:5px">
+
+              <span class="position">
+                ${escapeHtml(
+                  p.position || "—"
+                )}
+              </span>
+
+              <span class="muted">
+                №${Number(p.number || 0)}
+              </span>
+
+            </div>
+
+            <div class="muted" style="margin-top:6px">
+
+              ⚽ ${Number(p.goals || 0)}
+              &nbsp; 🅰️ ${Number(p.assists || 0)}
+              &nbsp; 🧤 ${Number(p.saves || 0)}
+              &nbsp; 🟨 ${Number(p.yellow_cards || 0)}
+              &nbsp; 🟥 ${Number(p.red_cards || 0)}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      `;
+
+    }).join("");
+}
+
+
+/* =====================================================
+   STATISTICS
+===================================================== */
 
 async function loadStats() {
 
   try {
 
-    const data = await api("/api/statistics");
+    statistics =
+      await api("/api/statistics");
 
-    function list(rows, field) {
+    renderStatList(
+      "goalsList",
+      statistics.goals || [],
+      "goals"
+    );
 
-      if (!rows.length) {
-        return `<div class="empty">Məlumat yoxdur.</div>`;
-      }
+    renderStatList(
+      "assistsList",
+      statistics.assists || [],
+      "assists"
+    );
 
-      return rows.map((p,i) => `
+    renderStatList(
+      "savesList",
+      statistics.saves || [],
+      "saves"
+    );
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+function renderStatList(
+  elementId,
+  list,
+  type
+) {
+
+  const box =
+    document.getElementById(
+      elementId
+    );
+
+  if (!list.length) {
+
+    box.innerHTML =
+      `<div class="empty">
+        Məlumat yoxdur.
+      </div>`;
+
+    return;
+  }
+
+  box.innerHTML =
+    list.map((p,index) => {
+
+      let value = 0;
+
+      if (type === "goals")
+        value = Number(p.goals || 0);
+
+      if (type === "assists")
+        value = Number(p.assists || 0);
+
+      if (type === "saves")
+        value = Number(p.saves || 0);
+
+      let icon = "⚽";
+
+      if (type === "assists")
+        icon = "🅰️";
+
+      if (type === "saves")
+        icon = "🧤";
+
+      return `
+
         <div class="player">
-          <b>${i+1}.</b>
 
-          <div style="flex:1">
-            <b>${escapeHtml(p.name)}</b>
-            <div class="small">
-              ${escapeHtml(p.team_name || "")}
-            </div>
+          <div
+            style="
+              width:35px;
+              font-weight:bold;
+              text-align:center
+            "
+          >
+            ${index + 1}
           </div>
 
-          <strong>${p[field] || 0}</strong>
+          <div class="player-info">
+
+            <div class="player-name">
+              ${escapeHtml(p.name)}
+            </div>
+
+            <div class="muted">
+              ${escapeHtml(
+                p.team_name || "Komandasız"
+              )}
+            </div>
+
+          </div>
+
+          <div>
+
+            <b style="font-size:20px">
+              ${icon} ${value}
+            </b>
+
+            ${
+              isAdmin
+                ? `
+                  <div class="stat-actions">
+
+                    <button
+                      class="small-btn minus"
+                      onclick="
+                        changeStatistic(
+                          ${Number(p.id)},
+                          '${type}',
+                          -1
+                        )
+                      "
+                    >
+                      −
+                    </button>
+
+                    <button
+                      class="small-btn plus"
+                      onclick="
+                        changeStatistic(
+                          ${Number(p.id)},
+                          '${type}',
+                          1
+                        )
+                      "
+                    >
+                      +
+                    </button>
+
+                  </div>
+                `
+                : ""
+            }
+
+          </div>
+
         </div>
-      `).join("");
-    }
 
-    document.getElementById("goalStats").innerHTML =
-      list(data.goals,"goals");
+      `;
 
-    document.getElementById("assistStats").innerHTML =
-      list(data.assists,"assists");
-
-    document.getElementById("saveStats").innerHTML =
-      list(data.saves,"saves");
-
-  } catch(e) {
-    toast(e.message);
-  }
+    }).join("");
 }
 
-/* =========================
-   CARDS
-========================= */
 
-async function loadCards() {
-
-  try {
-
-    const rows = await api("/api/cards");
-
-    const box =
-      document.getElementById("cardsList");
-
-    if (!rows.length) {
-      box.innerHTML =
-        `<div class="empty">Kart alan oyunçu yoxdur.</div>`;
-      return;
-    }
-
-    box.innerHTML = rows.map(p => `
-      <div class="card">
-
-        <h3>${escapeHtml(p.name)}</h3>
-
-        <div class="small">
-          ${escapeHtml(p.team_name || "Komandasız")}
-        </div>
-
-        <p>
-          🟨 ${p.yellow_cards || 0}
-          &nbsp;&nbsp;
-          🟥 ${p.red_cards || 0}
-        </p>
-
-        ${
-          isAdmin
-          ? `
-          <button class="btn"
-            onclick="changeCard(${p.id},'yellow',1)">
-            + Sarı
-          </button>
-
-          <button class="btn red"
-            onclick="changeCard(${p.id},'red',1)">
-            + Qırmızı
-          </button>
-
-          <button class="btn gray"
-            onclick="changeCard(${p.id},'yellow',-1)">
-            − Sarı
-          </button>
-
-          <button class="btn gray"
-            onclick="changeCard(${p.id},'red',-1)">
-            − Qırmızı
-          </button>
-          `
-          : ""
-        }
-
-      </div>
-    `).join("");
-
-  } catch(e) {
-    toast(e.message);
-  }
-}
-
-async function changeCard(player_id,type,amount) {
+async function changeStatistic(
+  playerId,
+  type,
+  amount
+) {
 
   if (!isAdmin) {
-    toast("Əvvəl admin kimi daxil ol");
+    toast("Admin girişi tələb olunur.");
     return;
   }
 
   try {
 
-    await api("/api/cards/change",{
-      method:"POST",
-      body:JSON.stringify({
-        player_id,
-        type,
-        amount
-      })
-    });
+    await api(
+      "/api/statistics/change",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          player_id:playerId,
+          type,
+          amount
+        })
+      }
+    );
 
-    players = await api("/api/players");
+    toast("Statistika yeniləndi.");
 
-    await loadCards();
+    await loadAll();
 
-    renderPlayers();
+    if (
+      document.getElementById(
+        "stats"
+      ).classList.contains("active")
+    ) {
+      await loadStats();
+    }
 
-    toast("Kart yeniləndi");
+  } catch (error) {
 
-  } catch(e) {
-    toast(e.message);
+    toast(error.message);
   }
 }
 
-/* =========================
+
+/* =====================================================
+   CARDS
+===================================================== */
+
+async function loadCards() {
+
+  try {
+
+    cards =
+      await api("/api/cards");
+
+    const box =
+      document.getElementById(
+        "cardsList"
+      );
+
+    if (!cards.length) {
+
+      box.innerHTML =
+        `<div class="card empty">
+          Kart yoxdur.
+        </div>`;
+
+      return;
+    }
+
+    box.innerHTML =
+      cards.map(p => `
+
+        <div class="player">
+
+          <div class="player-info">
+
+            <div class="player-name">
+              ${escapeHtml(p.name)}
+            </div>
+
+            <div class="muted">
+              ${escapeHtml(
+                p.team_name || "Komandasız"
+              )}
+            </div>
+
+          </div>
+
+          <div>
+            🟨
+            <span class="cards-number">
+              ${Number(p.yellow_cards || 0)}
+            </span>
+
+            &nbsp;&nbsp;
+
+            🟥
+            <span class="cards-number">
+              ${Number(p.red_cards || 0)}
+            </span>
+          </div>
+
+        </div>
+
+      `).join("");
+
+    renderAdminCards();
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+async function changeCard(
+  playerId,
+  type,
+  amount
+) {
+
+  if (!isAdmin) {
+    toast("Admin girişi tələb olunur.");
+    return;
+  }
+
+  try {
+
+    await api(
+      "/api/cards/change",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          player_id:playerId,
+          type,
+          amount
+        })
+      }
+    );
+
+    toast("Kart statistikası yeniləndi.");
+
+    await loadAll();
+    await loadCards();
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+function renderAdminCards() {
+
+  const box =
+    document.getElementById(
+      "adminCards"
+    );
+
+  if (!box)
+    return;
+
+  if (!isAdmin) {
+
+    box.innerHTML =
+      `<div class="muted">
+        Admin kimi daxil olun.
+      </div>`;
+
+    return;
+  }
+
+  box.innerHTML =
+    cards.map(p => `
+
+      <div class="player">
+
+        <div class="player-info">
+
+          <div class="player-name">
+            ${escapeHtml(p.name)}
+          </div>
+
+          <div class="muted">
+            ${escapeHtml(
+              p.team_name || "Komandasız"
+            )}
+          </div>
+
+        </div>
+
+        <div>
+
+          <div>
+            🟨 ${Number(p.yellow_cards || 0)}
+          </div>
+
+          <button
+            class="small-btn minus"
+            onclick="
+              changeCard(
+                ${Number(p.id)},
+                'yellow',
+                -1
+              )
+            "
+          >
+            −
+          </button>
+
+          <button
+            class="small-btn plus"
+            onclick="
+              changeCard(
+                ${Number(p.id)},
+                'yellow',
+                1
+              )
+            "
+          >
+            +
+          </button>
+
+        </div>
+
+        <div>
+
+          <div>
+            🟥 ${Number(p.red_cards || 0)}
+          </div>
+
+          <button
+            class="small-btn minus"
+            onclick="
+              changeCard(
+                ${Number(p.id)},
+                'red',
+                -1
+              )
+            "
+          >
+            −
+          </button>
+
+          <button
+            class="small-btn plus"
+            onclick="
+              changeCard(
+                ${Number(p.id)},
+                'red',
+                1
+              )
+            "
+          >
+            +
+          </button>
+
+        </div>
+
+      </div>
+
+    `).join("");
+}
+
+
+/* =====================================================
    NOTIFICATIONS
-========================= */
+===================================================== */
 
 async function loadNotifications() {
 
   try {
 
-    const rows =
+    const data =
       await api("/api/notifications");
 
-    document.getElementById("homeNotifications")
-      .textContent = rows.length;
-
     const box =
-      document.getElementById("notificationList");
+      document.getElementById(
+        "homeNotificationsList"
+      );
 
-    if (!rows.length) {
+    document.getElementById(
+      "homeNotifications"
+    ).textContent =
+      data.length;
+
+    if (!data.length) {
+
       box.innerHTML =
-        `<div class="empty">Bildiriş yoxdur.</div>`;
+        `<div class="empty">
+          Hələ bildiriş yoxdur.
+        </div>`;
+
       return;
     }
 
-    box.innerHTML = rows.map(n => `
-      <div class="card">
-        <b>${escapeHtml(n.title)}</b>
-        <div>${escapeHtml(n.message)}</div>
-        <div class="small">
-          ${new Date(n.created_at).toLocaleString("az-AZ")}
-        </div>
-      </div>
-    `).join("");
+    box.innerHTML =
+      data.slice(0,10)
+        .map(n => `
 
-  } catch(e) {
-    toast(e.message);
+          <div class="notification">
+
+            <div class="notification-title">
+              ${escapeHtml(n.title)}
+            </div>
+
+            <div>
+              ${escapeHtml(n.message)}
+            </div>
+
+            <div class="notification-date">
+              ${escapeHtml(
+                formatDate(n.created_at)
+              )}
+            </div>
+
+          </div>
+
+        `)
+        .join("");
+
+  } catch (error) {
+
+    console.error(error);
   }
 }
 
-/* =========================
+
+/* =====================================================
    TEAM OF WEEK
-========================= */
+===================================================== */
 
 async function loadTeamOfWeek() {
 
   try {
 
-    const rows =
+    const list =
       await api("/api/team-of-week");
 
     const box =
-      document.getElementById("totwList");
+      document.getElementById(
+        "totwList"
+      );
 
-    if (!rows.length) {
+    if (!list.length) {
+
       box.innerHTML =
         `<div class="empty">
-          Hələ Komanda həftəsi seçilməyib.
+          Komanda həftəsi hələ seçilməyib.
         </div>`;
+
       return;
     }
 
-    const groups = {
-      "Qapıçı":[],
-      "Müdafiəçi":[],
-      "Yarımmüdafiəçi":[],
-      "Hücumçu":[]
+    const order = {
+      "Qapıçı":1,
+      "Müdafiəçi":2,
+      "Yarımmüdafiəçi":3,
+      "Hücumçu":4
     };
 
-    rows.forEach(p => {
-      if (!groups[p.position]) {
-        groups[p.position] = [];
-      }
-      groups[p.position].push(p);
-    });
+    list.sort(
+      (a,b) =>
+        (order[a.position] || 9) -
+        (order[b.position] || 9)
+    );
 
-    let html = "";
+    box.innerHTML = `
 
-    for (const position of Object.keys(groups)) {
+      <div class="totw-grid">
 
-      if (!groups[position].length) continue;
+        ${
+          list.map(p => `
 
-      html += `
-        <div class="position-title">
-          ${position}
-        </div>
-
-        <div class="grid">
-          ${groups[position].map(p => `
             <div class="totw-player">
 
-              <div class="avatar" style="margin:auto">
-                ${
-                  p.photo
-                  ? `<img src="${escapeHtml(p.photo)}">`
-                  : escapeHtml(p.name[0] || "?")
-                }
+              <b>
+                ${escapeHtml(p.position)}
+              </b>
+
+              <h3>
+                ${escapeHtml(p.name)}
+              </h3>
+
+              <div class="muted">
+                ${escapeHtml(
+                  p.team_name || ""
+                )}
               </div>
 
-              <h3>${escapeHtml(p.name)}</h3>
-
-              <div class="small">
-                ${escapeHtml(p.team_name || "")}
-                · #${p.number || 0}
+              <div style="margin-top:7px">
+                №${Number(p.number || 0)}
               </div>
 
             </div>
-          `).join("")}
-        </div>
-      `;
-    }
 
-    box.innerHTML = html;
+          `).join("")
+        }
 
-  } catch(e) {
-    toast(e.message);
+      </div>
+    `;
+
+  } catch (error) {
+
+    toast(error.message);
   }
 }
 
-/* =========================
+
+/* =====================================================
    LINEUPS
-========================= */
+===================================================== */
 
 function prepareLineupMatches() {
 
   const select =
-    document.getElementById("lineupMatch");
+    document.getElementById(
+      "lineupMatch"
+    );
 
-  select.innerHTML = matches.map(m => `
-    <option value="${m.id}">
-      ${escapeHtml(m.home_name)} -
-      ${escapeHtml(m.away_name)}
-    </option>
-  `).join("");
+  const adminSelect =
+    document.getElementById(
+      "eventMatch"
+    );
 
-  if (matches.length) {
-    loadLineup();
+  if (select) {
+
+    const current =
+      select.value;
+
+    select.innerHTML =
+      `<option value="">
+        Matç seçin
+      </option>` +
+      matches.map(m => `
+
+        <option value="${Number(m.id)}">
+          ${escapeHtml(
+            m.home_name ||
+            m.home_team_name ||
+            "?"
+          )}
+          ${Number(m.home_score || 0)}
+          :
+          ${Number(m.away_score || 0)}
+          ${escapeHtml(
+            m.away_name ||
+            m.away_team_name ||
+            "?"
+          )}
+        </option>
+
+      `).join("");
+
+    if (current)
+      select.value = current;
+  }
+
+  if (adminSelect) {
+
+    adminSelect.innerHTML =
+      `<option value="">
+        Matç seç
+      </option>` +
+      matches.map(m => `
+
+        <option value="${Number(m.id)}">
+          ${escapeHtml(
+            m.home_name ||
+            m.home_team_name ||
+            "?"
+          )}
+          ${Number(m.home_score || 0)}
+          :
+          ${Number(m.away_score || 0)}
+          ${escapeHtml(
+            m.away_name ||
+            m.away_team_name ||
+            "?"
+          )}
+        </option>
+
+      `).join("");
   }
 }
+
 
 async function loadLineup() {
 
   const id =
-    document.getElementById("lineupMatch").value;
+    document.getElementById(
+      "lineupMatch"
+    ).value;
 
-  if (!id) return;
+  const box =
+    document.getElementById(
+      "lineupList"
+    );
+
+  if (!id) {
+
+    box.innerHTML =
+      `<div class="card empty">
+        Matç seçin.
+      </div>`;
+
+    return;
+  }
 
   try {
 
-    const rows =
-      await api(`/api/lineups/${id}`);
+    const list =
+      await api(
+        `/api/lineups/${id}`
+      );
 
-    const box =
-      document.getElementById("lineupList");
+    if (!list.length) {
 
-    if (!rows.length) {
       box.innerHTML =
-        `<div class="empty">
-          Bu matç üçün heyət əlavə edilməyib.
+        `<div class="card empty">
+          Bu matç üçün heyət yoxdur.
         </div>`;
+
       return;
     }
 
-    box.innerHTML = rows.map(p => `
-      <div class="player">
-        <div class="avatar">
-          ${
-            p.photo
-            ? `<img src="${escapeHtml(p.photo)}">`
-            : escapeHtml(p.name[0] || "?")
-          }
-        </div>
+    const groups = {};
 
-        <div>
-          <b>#${p.number} ${escapeHtml(p.name)}</b>
-          <div class="small">
-            ${escapeHtml(p.position)}
+    list.forEach(p => {
+
+      if (!groups[p.position])
+        groups[p.position] = [];
+
+      groups[p.position].push(p);
+
+    });
+
+    box.innerHTML =
+      Object.entries(groups)
+        .map(([position,items]) => `
+
+          <div class="card lineup-group">
+
+            <h3>
+              ${escapeHtml(position)}
+            </h3>
+
+            ${
+              items.map(p => `
+
+                <div class="player">
+
+                  <div class="avatar">
+                    ${escapeHtml(
+                      String(p.number || 0)
+                    )}
+                  </div>
+
+                  <div class="player-info">
+
+                    <div class="player-name">
+                      ${escapeHtml(p.name)}
+                    </div>
+
+                    <div class="muted">
+                      ${escapeHtml(
+                        p.team_name || ""
+                      )}
+                    </div>
+
+                  </div>
+
+                </div>
+
+              `).join("")
+            }
+
           </div>
-        </div>
-      </div>
-    `).join("");
 
-  } catch(e) {
-    toast(e.message);
+        `).join("");
+
+  } catch (error) {
+
+    toast(error.message);
   }
 }
 
-/* =========================
-   ADMIN LOGIN
-========================= */
+
+/* =====================================================
+   ADMIN CHECK
+===================================================== */
 
 async function checkAdmin() {
 
@@ -1249,924 +2487,1431 @@ async function checkAdmin() {
     const data =
       await api("/api/admin/me");
 
-    isAdmin = data.loggedIn;
-
-    document.getElementById("adminLogin").style.display =
-      isAdmin ? "none" : "block";
-
-    document.getElementById("adminPanel").style.display =
-      isAdmin ? "block" : "none";
-
-    if (isAdmin) {
-      prepareAdminPanel();
-    }
+    isAdmin =
+      !!(
+        data.admin ||
+        data.loggedIn
+      );
 
   } catch {
+
     isAdmin = false;
   }
 
-  loadCards();
+  updateAdminUI();
+
+  if (isAdmin)
+    renderAdmin();
 }
+
+
+function updateAdminUI() {
+
+  const login =
+    document.getElementById(
+      "adminLoginBox"
+    );
+
+  const panel =
+    document.getElementById(
+      "adminPanel"
+    );
+
+  if (isAdmin) {
+
+    login.classList.add("hidden");
+    panel.classList.remove("hidden");
+
+  } else {
+
+    login.classList.remove("hidden");
+    panel.classList.add("hidden");
+  }
+}
+
+
+/* =====================================================
+   ADMIN LOGIN
+===================================================== */
 
 async function adminLogin() {
 
   const password =
-    document.getElementById("adminPassword").value;
+    document.getElementById(
+      "adminPassword"
+    ).value;
 
   if (!password) {
-    toast("Şifrə yaz");
+
+    toast("Şifrəni daxil edin.");
+
     return;
   }
 
   try {
 
-    await api("/api/admin/login",{
-      method:"POST",
-      body:JSON.stringify({password})
-    });
+    await api(
+      "/api/admin/login",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          password
+        })
+      }
+    );
 
     isAdmin = true;
 
-    document.getElementById("adminLogin").style.display =
-      "none";
+    document.getElementById(
+      "adminPassword"
+    ).value = "";
 
-    document.getElementById("adminPanel").style.display =
-      "block";
+    updateAdminUI();
 
-    prepareAdminPanel();
+    renderAdmin();
 
-    toast("Admin girişi uğurludur");
+    await loadAll();
 
-  } catch(e) {
-    toast(e.message);
+    toast("Admin girişi uğurludur.");
+
+  } catch (error) {
+
+    toast("Şifrə səhvdir.");
   }
 }
 
+
 async function adminLogout() {
 
-  await api("/api/admin/logout",{
-    method:"POST"
-  });
+  try {
 
-  isAdmin = false;
+    await api(
+      "/api/admin/logout",
+      {
+        method:"POST"
+      }
+    );
 
-  document.getElementById("adminLogin").style.display =
-    "block";
+    isAdmin = false;
 
-  document.getElementById("adminPanel").style.display =
-    "none";
+    updateAdminUI();
 
-  toast("Çıxış edildi");
+    renderPlayers();
+    loadStats();
+
+    toast("Admin çıxışı edildi.");
+
+  } catch (error) {
+
+    toast(error.message);
+  }
 }
 
-/* =========================
+
+/* =====================================================
    ADMIN SELECTS
-========================= */
+===================================================== */
 
 function prepareAdminSelects() {
 
-  const teamOptions =
-    teams.map(t =>
-      `<option value="${t.id}">
-        ${escapeHtml(t.name)}
-      </option>`
-    ).join("");
+  const teamSelects = [
+    "newPlayerTeam",
+    "newMatchHome",
+    "newMatchAway",
+    "transferTeam",
+    "eventTeam"
+  ];
 
-  document.getElementById("newPlayerTeam").innerHTML =
-    teamOptions;
+  teamSelects.forEach(id => {
 
-  document.getElementById("newMatchHome").innerHTML =
-    teamOptions;
+    const select =
+      document.getElementById(id);
 
-  document.getElementById("newMatchAway").innerHTML =
-    teamOptions;
+    if (!select)
+      return;
 
-  document.getElementById("transferTeam").innerHTML =
-    teamOptions;
+    const current =
+      select.value;
 
-  document.getElementById("transferPlayer").innerHTML =
-    players.map(p =>
-      `<option value="${p.id}">
-        ${escapeHtml(p.name)}
-        — ${escapeHtml(p.team_name || "Komandasız")}
-      </option>`
-    ).join("");
+    let first =
+      "Komanda seç";
+
+    if (
+      id === "newMatchHome"
+    )
+      first = "Ev sahibi";
+
+    if (
+      id === "newMatchAway"
+    )
+      first = "Qonaq";
+
+    if (
+      id === "transferTeam"
+    )
+      first = "Yeni komanda";
+
+    if (
+      id === "eventTeam"
+    )
+      first = "Komanda seç";
+
+    select.innerHTML =
+      `<option value="">
+        ${first}
+      </option>` +
+
+      teams.map(team => `
+
+        <option value="${Number(team.id)}">
+          ${escapeHtml(team.name)}
+        </option>
+
+      `).join("");
+
+    if (current)
+      select.value = current;
+  });
+
+
+  const playerSelect =
+    document.getElementById(
+      "transferPlayer"
+    );
+
+  if (playerSelect) {
+
+    playerSelect.innerHTML =
+      `<option value="">
+        Oyunçu seç
+      </option>` +
+
+      players.map(p => `
+
+        <option value="${Number(p.id)}">
+          ${escapeHtml(p.name)}
+          — ${escapeHtml(
+            p.team_name || "Komandasız"
+          )}
+        </option>
+
+      `).join("");
+  }
+
+
+  const eventPlayer =
+    document.getElementById(
+      "eventPlayer"
+    );
+
+  if (eventPlayer) {
+
+    eventPlayer.innerHTML =
+      `<option value="">
+        Oyunçu seç
+      </option>` +
+
+      players.map(p => `
+
+        <option value="${Number(p.id)}">
+          ${escapeHtml(p.name)}
+        </option>
+
+      `).join("");
+  }
+
+
+  const editMatch =
+    document.getElementById(
+      "editMatchSelect"
+    );
+
+  if (editMatch) {
+
+    editMatch.innerHTML =
+      `<option value="">
+        Matç seç
+      </option>` +
+
+      matches.map(m => `
+
+        <option value="${Number(m.id)}">
+          ${escapeHtml(
+            m.home_name ||
+            m.home_team_name ||
+            "?"
+          )}
+          ${Number(m.home_score || 0)}
+          :
+          ${Number(m.away_score || 0)}
+          ${escapeHtml(
+            m.away_name ||
+            m.away_team_name ||
+            "?"
+          )}
+        </option>
+
+      `).join("");
+  }
+
+
+  prepareTeamOfWeekSelects();
+
+  prepareLineupMatches();
 }
 
-/* =========================
+
+/* =====================================================
    ADD TEAM
-========================= */
+===================================================== */
 
 async function addTeam() {
 
   try {
 
     const name =
-      document.getElementById("newTeamName").value.trim();
+      document.getElementById(
+        "newTeamName"
+      ).value.trim();
 
     const points =
-      Number(document.getElementById("newTeamPoints").value) || 0;
+      Number(
+        document.getElementById(
+          "newTeamPoints"
+        ).value
+      ) || 0;
 
-    if (!name) {
-      toast("Komanda adı yaz");
-      return;
-    }
+    await api(
+      "/api/teams",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          name,
+          points
+        })
+      }
+    );
 
-    await api("/api/teams",{
-      method:"POST",
-      body:JSON.stringify({
-        name,
-        points
-      })
-    });
+    document.getElementById(
+      "newTeamName"
+    ).value = "";
 
-    teams = await api("/api/teams");
+    toast("Komanda əlavə edildi.");
 
-    document.getElementById("newTeamName").value = "";
-    document.getElementById("newTeamPoints").value = "0";
+    await loadAll();
 
-    prepareAdminSelects();
-    renderTable();
-    renderTeams();
-    renderAdminTeams();
+    renderAdmin();
 
-    toast("Komanda əlavə edildi");
+  } catch (error) {
 
-  } catch(e) {
-    toast(e.message);
+    toast(error.message);
   }
 }
 
-/* =========================
+
+/* =====================================================
    ADD PLAYER
-========================= */
+===================================================== */
 
 async function addPlayer() {
 
   try {
 
     const name =
-      document.getElementById("newPlayerName").value.trim();
+      document.getElementById(
+        "newPlayerName"
+      ).value.trim();
 
-    if (!name) {
-      toast("Oyunçu adı yaz");
-      return;
-    }
+    const number =
+      Number(
+        document.getElementById(
+          "newPlayerNumber"
+        ).value
+      ) || 0;
 
-    await api("/api/players",{
-      method:"POST",
-      body:JSON.stringify({
-        name,
-        number:
-          Number(document.getElementById("newPlayerNumber").value) || 0,
-        position:
-          document.getElementById("newPlayerPosition").value,
-        team_id:
-          Number(document.getElementById("newPlayerTeam").value)
-      })
-    });
+    const position =
+      document.getElementById(
+        "newPlayerPosition"
+      ).value;
 
-    players = await api("/api/players");
+    const team_id =
+      Number(
+        document.getElementById(
+          "newPlayerTeam"
+        ).value
+      ) || null;
 
-    document.getElementById("newPlayerName").value = "";
-    document.getElementById("newPlayerNumber").value = "";
+    const photo =
+      document.getElementById(
+        "newPlayerPhoto"
+      ).value.trim();
 
-    prepareAdminSelects();
-    renderPlayers();
-    renderAdminPlayers();
+    await api(
+      "/api/players",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          name,
+          number,
+          position,
+          team_id,
+          photo:photo || null
+        })
+      }
+    );
 
-    toast("Oyunçu əlavə edildi");
+    document.getElementById(
+      "newPlayerName"
+    ).value = "";
 
-  } catch(e) {
-    toast(e.message);
+    document.getElementById(
+      "newPlayerPhoto"
+    ).value = "";
+
+    toast("Oyunçu əlavə edildi.");
+
+    await loadAll();
+
+    renderAdmin();
+
+  } catch (error) {
+
+    toast(error.message);
   }
 }
 
-/* =========================
+
+/* =====================================================
    ADD MATCH
-========================= */
+===================================================== */
 
 async function addMatch() {
 
   try {
 
     const home =
-      Number(document.getElementById("newMatchHome").value);
+      Number(
+        document.getElementById(
+          "newMatchHome"
+        ).value
+      );
 
     const away =
-      Number(document.getElementById("newMatchAway").value);
+      Number(
+        document.getElementById(
+          "newMatchAway"
+        ).value
+      );
 
-    if (home === away) {
-      toast("Eyni komanda seçilə bilməz");
+    if (!home || !away) {
+
+      toast("İki komanda seçin.");
+
       return;
     }
 
-    await api("/api/matches",{
-      method:"POST",
-      body:JSON.stringify({
-        home_team_id:home,
-        away_team_id:away,
-        match_date:
-          document.getElementById("newMatchDate").value ||
-          new Date().toISOString(),
-        status:
-          document.getElementById("newMatchStatus").value
-      })
-    });
+    if (home === away) {
 
-    matches = await api("/api/matches");
+      toast(
+        "Eyni komanda ilə matç yaratmaq olmaz."
+      );
 
-    renderMatches();
-    updateHome();
-    renderAdminMatches();
-    prepareLineupMatches();
+      return;
+    }
 
-    toast("Matç əlavə edildi");
+    const date =
+      document.getElementById(
+        "newMatchDate"
+      ).value;
 
-  } catch(e) {
-    toast(e.message);
+    const status =
+      document.getElementById(
+        "newMatchStatus"
+      ).value;
+
+    const home_score =
+      Number(
+        document.getElementById(
+          "newHomeScore"
+        ).value
+      ) || 0;
+
+    const away_score =
+      Number(
+        document.getElementById(
+          "newAwayScore"
+        ).value
+      ) || 0;
+
+    await api(
+      "/api/matches",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          home_team_id:home,
+          away_team_id:away,
+          match_date:date || null,
+          status,
+          home_score,
+          away_score
+        })
+      }
+    );
+
+    toast("Matç əlavə edildi.");
+
+    await loadAll();
+
+    renderAdmin();
+
+  } catch (error) {
+
+    toast(error.message);
   }
 }
 
-/* =========================
-   TRANSFER
-========================= */
 
-async function makeTransfer() {
+/* =====================================================
+   TRANSFER
+===================================================== */
+
+async function transferPlayer() {
 
   try {
 
     const player_id =
-      Number(document.getElementById("transferPlayer").value);
+      Number(
+        document.getElementById(
+          "transferPlayer"
+        ).value
+      );
 
     const to_team_id =
-      Number(document.getElementById("transferTeam").value);
+      Number(
+        document.getElementById(
+          "transferTeam"
+        ).value
+      );
 
-    const result =
-      await api("/api/transfers",{
+    if (!player_id || !to_team_id) {
+
+      toast(
+        "Oyunçu və yeni komanda seçin."
+      );
+
+      return;
+    }
+
+    await api(
+      "/api/transfers",
+      {
         method:"POST",
         body:JSON.stringify({
           player_id,
           to_team_id
         })
-      });
+      }
+    );
 
-    players = await api("/api/players");
+    toast(
+      "Transfer edildi və bildiriş yaradıldı."
+    );
 
-    prepareAdminSelects();
-    renderPlayers();
-    renderAdminPlayers();
+    await loadAll();
 
-    toast(result.message);
+    renderAdmin();
 
-    loadNotifications();
+  } catch (error) {
 
-  } catch(e) {
-    toast(e.message);
+    toast(error.message);
   }
 }
 
-/* =========================
+
+/* =====================================================
+   MATCH EDIT
+===================================================== */
+
+function loadSelectedMatchForEdit() {
+
+  const id =
+    Number(
+      document.getElementById(
+        "editMatchSelect"
+      ).value
+    );
+
+  const match =
+    matches.find(
+      m => Number(m.id) === id
+    );
+
+  if (!match) {
+
+    toast("Matç seçin.");
+
+    return;
+  }
+
+  document.getElementById(
+    "editHomeScore"
+  ).value =
+    Number(match.home_score || 0);
+
+  document.getElementById(
+    "editAwayScore"
+  ).value =
+    Number(match.away_score || 0);
+
+  document.getElementById(
+    "editMatchStatus"
+  ).value =
+    match.status || "scheduled";
+
+  toast("Matç məlumatları yükləndi.");
+}
+
+
+async function saveMatchEdit() {
+
+  try {
+
+    const id =
+      Number(
+        document.getElementById(
+          "editMatchSelect"
+        ).value
+      );
+
+    if (!id) {
+
+      toast("Matç seçin.");
+
+      return;
+    }
+
+    const home_score =
+      Math.max(
+        0,
+        Number(
+          document.getElementById(
+            "editHomeScore"
+          ).value
+        ) || 0
+      );
+
+    const away_score =
+      Math.max(
+        0,
+        Number(
+          document.getElementById(
+            "editAwayScore"
+          ).value
+        ) || 0
+      );
+
+    const status =
+      document.getElementById(
+        "editMatchStatus"
+      ).value;
+
+    await api(
+      `/api/matches/${id}`,
+      {
+        method:"PUT",
+        body:JSON.stringify({
+          home_score,
+          away_score,
+          status
+        })
+      }
+    );
+
+    toast(
+      `Hesab ${home_score} : ${away_score} olaraq yadda saxlanıldı.`
+    );
+
+    await loadAll();
+
+    renderAdmin();
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+async function deleteSelectedMatch() {
+
+  const id =
+    Number(
+      document.getElementById(
+        "editMatchSelect"
+      ).value
+    );
+
+  if (!id) {
+
+    toast("Matç seçin.");
+
+    return;
+  }
+
+  if (
+    !confirm(
+      "Bu matçı silmək istəyirsiniz?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+
+    await api(
+      `/api/matches/${id}`,
+      {
+        method:"DELETE"
+      }
+    );
+
+    toast("Matç silindi.");
+
+    await loadAll();
+
+    renderAdmin();
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+/* =====================================================
+   ADD EVENT
+===================================================== */
+
+async function addMatchEvent() {
+
+  try {
+
+    const match_id =
+      Number(
+        document.getElementById(
+          "eventMatch"
+        ).value
+      );
+
+    const player_id =
+      Number(
+        document.getElementById(
+          "eventPlayer"
+        ).value
+      ) || null;
+
+    const team_id =
+      Number(
+        document.getElementById(
+          "eventTeam"
+        ).value
+      ) || null;
+
+    const type =
+      document.getElementById(
+        "eventType"
+      ).value;
+
+    const minute =
+      Number(
+        document.getElementById(
+          "eventMinute"
+        ).value
+      ) || 0;
+
+    if (!match_id) {
+
+      toast("Matç seçin.");
+
+      return;
+    }
+
+    await api(
+      `/api/matches/${match_id}/events`,
+      {
+        method:"POST",
+        body:JSON.stringify({
+          player_id,
+          team_id,
+          type,
+          minute
+        })
+      }
+    );
+
+    toast(
+      "Hadisə əlavə edildi."
+    );
+
+    await loadAll();
+
+    await loadStats();
+
+    await loadCards();
+
+    renderAdmin();
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+/* =====================================================
    ADMIN TEAM EDIT
-========================= */
+===================================================== */
 
 function renderAdminTeams() {
 
   const box =
-    document.getElementById("adminTeams");
+    document.getElementById(
+      "adminTeams"
+    );
 
-  box.innerHTML = teams.map(t => `
-    <div class="card">
+  if (!isAdmin) {
 
-      <input
-        id="teamName${t.id}"
-        value="${escapeHtml(t.name)}">
+    box.innerHTML =
+      `<div class="muted">
+        Admin kimi daxil olun.
+      </div>`;
 
-      <div class="form-grid">
+    return;
+  }
 
-        <div>
-          <label>Xal</label>
+  box.innerHTML =
+    teams.map(t => `
+
+      <div class="card">
+
+        <input
+          id="team_name_${Number(t.id)}"
+          value="${escapeHtml(t.name)}"
+        >
+
+        <div class="row">
+
           <input
-            id="teamPoints${t.id}"
+            id="team_points_${Number(t.id)}"
             type="number"
-            value="${t.points || 0}">
+            value="${Number(t.points || 0)}"
+            placeholder="Xal"
+          >
+
+          <input
+            id="team_played_${Number(t.id)}"
+            type="number"
+            value="${Number(t.played || 0)}"
+            placeholder="O"
+          >
+
+          <input
+            id="team_wins_${Number(t.id)}"
+            type="number"
+            value="${Number(t.wins || 0)}"
+            placeholder="Q"
+          >
+
+          <input
+            id="team_draws_${Number(t.id)}"
+            type="number"
+            value="${Number(t.draws || 0)}"
+            placeholder="B"
+          >
+
+          <input
+            id="team_losses_${Number(t.id)}"
+            type="number"
+            value="${Number(t.losses || 0)}"
+            placeholder="M"
+          >
+
         </div>
 
-        <div>
-          <label>Oyun</label>
+        <div class="row">
+
           <input
-            id="teamPlayed${t.id}"
+            id="team_gf_${Number(t.id)}"
             type="number"
-            value="${t.played || 0}">
+            value="${Number(t.gf || 0)}"
+            placeholder="GF"
+          >
+
+          <input
+            id="team_ga_${Number(t.id)}"
+            type="number"
+            value="${Number(t.ga || 0)}"
+            placeholder="GA"
+          >
+
         </div>
 
-        <div>
-          <label>Qələbə</label>
-          <input
-            id="teamWins${t.id}"
-            type="number"
-            value="${t.wins || 0}">
-        </div>
+        <button
+          class="btn green"
+          onclick="
+            saveTeam(${Number(t.id)})
+          "
+        >
+          Yadda saxla
+        </button>
 
-        <div>
-          <label>Heç-heçə</label>
-          <input
-            id="teamDraws${t.id}"
-            type="number"
-            value="${t.draws || 0}">
-        </div>
-
-        <div>
-          <label>Məğlubiyyət</label>
-          <input
-            id="teamLosses${t.id}"
-            type="number"
-            value="${t.losses || 0}">
-        </div>
-
-        <div>
-          <label>GF</label>
-          <input
-            id="teamGF${t.id}"
-            type="number"
-            value="${t.gf || 0}">
-        </div>
-
-        <div>
-          <label>GA</label>
-          <input
-            id="teamGA${t.id}"
-            type="number"
-            value="${t.ga || 0}">
-        </div>
+        <button
+          class="btn red"
+          onclick="
+            deleteTeam(${Number(t.id)})
+          "
+        >
+          Sil
+        </button>
 
       </div>
 
-      <button class="btn green"
-        onclick="saveTeam(${t.id})">
-        Yadda saxla
-      </button>
-
-      <button class="btn red"
-        onclick="deleteTeam(${t.id})">
-        Sil
-      </button>
-
-    </div>
-  `).join("");
+    `).join("");
 }
+
 
 async function saveTeam(id) {
 
   try {
 
-    await api(`/api/teams/${id}`,{
-      method:"PUT",
-      body:JSON.stringify({
-        name:
-          document.getElementById(`teamName${id}`).value,
+    await api(
+      `/api/teams/${id}`,
+      {
+        method:"PUT",
+        body:JSON.stringify({
 
-        points:
-          Number(document.getElementById(`teamPoints${id}`).value),
+          name:
+            document.getElementById(
+              `team_name_${id}`
+            ).value,
 
-        played:
-          Number(document.getElementById(`teamPlayed${id}`).value),
+          points:
+            Number(
+              document.getElementById(
+                `team_points_${id}`
+              ).value
+            ) || 0,
 
-        wins:
-          Number(document.getElementById(`teamWins${id}`).value),
+          played:
+            Number(
+              document.getElementById(
+                `team_played_${id}`
+              ).value
+            ) || 0,
 
-        draws:
-          Number(document.getElementById(`teamDraws${id}`).value),
+          wins:
+            Number(
+              document.getElementById(
+                `team_wins_${id}`
+              ).value
+            ) || 0,
 
-        losses:
-          Number(document.getElementById(`teamLosses${id}`).value),
+          draws:
+            Number(
+              document.getElementById(
+                `team_draws_${id}`
+              ).value
+            ) || 0,
 
-        gf:
-          Number(document.getElementById(`teamGF${id}`).value),
+          losses:
+            Number(
+              document.getElementById(
+                `team_losses_${id}`
+              ).value
+            ) || 0,
 
-        ga:
-          Number(document.getElementById(`teamGA${id}`).value)
-      })
-    });
+          gf:
+            Number(
+              document.getElementById(
+                `team_gf_${id}`
+              ).value
+            ) || 0,
 
-    teams = await api("/api/teams");
+          ga:
+            Number(
+              document.getElementById(
+                `team_ga_${id}`
+              ).value
+            ) || 0
 
-    prepareAdminSelects();
-    renderTable();
-    renderTeams();
-    renderAdminTeams();
+        })
+      }
+    );
 
-    toast("Komanda yeniləndi");
+    toast("Komanda yeniləndi.");
 
-  } catch(e) {
-    toast(e.message);
+    await loadAll();
+
+    renderAdmin();
+
+  } catch (error) {
+
+    toast(error.message);
   }
 }
+
 
 async function deleteTeam(id) {
 
-  if (!confirm("Bu komanda silinsin?")) return;
+  if (
+    !confirm(
+      "Bu komandanı silmək istəyirsiniz?"
+    )
+  ) {
+    return;
+  }
 
   try {
 
-    await api(`/api/teams/${id}`,{
-      method:"DELETE"
-    });
+    await api(
+      `/api/teams/${id}`,
+      {
+        method:"DELETE"
+      }
+    );
 
-    teams = await api("/api/teams");
+    toast("Komanda silindi.");
 
-    prepareAdminSelects();
-    renderTable();
-    renderTeams();
-    renderAdminTeams();
+    await loadAll();
 
-    toast("Komanda silindi");
+    renderAdmin();
 
-  } catch(e) {
-    toast(e.message);
+  } catch (error) {
+
+    toast(error.message);
   }
 }
 
-/* =========================
-   ADMIN PLAYERS
-========================= */
+
+/* =====================================================
+   ADMIN PLAYER EDIT
+===================================================== */
 
 function renderAdminPlayers() {
 
   const box =
-    document.getElementById("adminPlayers");
+    document.getElementById(
+      "adminPlayers"
+    );
 
-  box.innerHTML = players.map(p => `
-    <div class="card">
+  if (!isAdmin) {
 
-      <b>${escapeHtml(p.name)}</b>
+    box.innerHTML =
+      `<div class="muted">
+        Admin kimi daxil olun.
+      </div>`;
 
-      <div class="form-grid">
+    return;
+  }
 
-        <div>
-          <label>Ad</label>
+  box.innerHTML =
+    players.map(p => `
+
+      <div class="card">
+
+        <input
+          id="player_name_${Number(p.id)}"
+          value="${escapeHtml(p.name)}"
+        >
+
+        <div class="row">
+
           <input
-            id="pname${p.id}"
-            value="${escapeHtml(p.name)}">
-        </div>
-
-        <div>
-          <label>Nömrə</label>
-          <input
-            id="pnumber${p.id}"
+            id="player_number_${Number(p.id)}"
             type="number"
-            value="${p.number || 0}">
-        </div>
+            value="${Number(p.number || 0)}"
+            placeholder="Nömrə"
+          >
 
-        <div>
-          <label>Mövqe</label>
-          <select id="pposition${p.id}">
-            ${[
-              "Qapıçı",
-              "Müdafiəçi",
-              "Yarımmüdafiəçi",
-              "Hücumçu"
-            ].map(pos =>
-              `<option ${p.position === pos ? "selected" : ""}>
-                ${pos}
-              </option>`
-            ).join("")}
+          <select
+            id="player_position_${Number(p.id)}"
+          >
+
+            <option
+              value="Qapıçı"
+              ${p.position === "Qapıçı" ? "selected" : ""}
+            >
+              Qapıçı
+            </option>
+
+            <option
+              value="Müdafiəçi"
+              ${p.position === "Müdafiəçi" ? "selected" : ""}
+            >
+              Müdafiəçi
+            </option>
+
+            <option
+              value="Yarımmüdafiəçi"
+              ${p.position === "Yarımmüdafiəçi" ? "selected" : ""}
+            >
+              Yarımmüdafiəçi
+            </option>
+
+            <option
+              value="Hücumçu"
+              ${p.position === "Hücumçu" ? "selected" : ""}
+            >
+              Hücumçu
+            </option>
+
           </select>
+
         </div>
 
-        <div>
-          <label>Komanda</label>
-          <select id="pteam${p.id}">
-            <option value="">Komandasız</option>
+        <select
+          id="player_team_${Number(p.id)}"
+        >
 
-            ${teams.map(t =>
-              `<option
-                value="${t.id}"
-                ${Number(p.team_id) === Number(t.id) ? "selected" : ""}>
+          <option value="">
+            Komandasız
+          </option>
+
+          ${
+            teams.map(t => `
+
+              <option
+                value="${Number(t.id)}"
+                ${
+                  Number(p.team_id) ===
+                  Number(t.id)
+                    ? "selected"
+                    : ""
+                }
+              >
                 ${escapeHtml(t.name)}
-              </option>`
-            ).join("")}
+              </option>
 
-          </select>
-        </div>
+            `).join("")
+          }
+
+        </select>
+
+        <input
+          id="player_photo_${Number(p.id)}"
+          value="${escapeHtml(p.photo || "")}"
+          placeholder="Foto URL"
+        >
+
+        <button
+          class="btn green"
+          onclick="
+            savePlayer(${Number(p.id)})
+          "
+        >
+          Yadda saxla
+        </button>
+
+        <button
+          class="btn red"
+          onclick="
+            deletePlayer(${Number(p.id)})
+          "
+        >
+          Sil
+        </button>
 
       </div>
 
-      <button class="btn green"
-        onclick="savePlayer(${p.id})">
-        Yadda saxla
-      </button>
-
-      <button class="btn red"
-        onclick="deletePlayer(${p.id})">
-        Sil
-      </button>
-
-    </div>
-  `).join("");
+    `).join("");
 }
+
 
 async function savePlayer(id) {
 
   try {
 
-    await api(`/api/players/${id}`,{
-      method:"PUT",
-      body:JSON.stringify({
-        name:
-          document.getElementById(`pname${id}`).value,
-
-        number:
-          Number(document.getElementById(`pnumber${id}`).value),
-
-        position:
-          document.getElementById(`pposition${id}`).value,
-
-        team_id:
-          document.getElementById(`pteam${id}`).value || null
-      })
-    });
-
-    players = await api("/api/players");
-
-    prepareAdminSelects();
-    renderPlayers();
-    renderAdminPlayers();
-
-    toast("Oyunçu yeniləndi");
-
-  } catch(e) {
-    toast(e.message);
-  }
-}
-
-async function deletePlayer(id) {
-
-  if (!confirm("Bu oyunçu silinsin?")) return;
-
-  try {
-
-    await api(`/api/players/${id}`,{
-      method:"DELETE"
-    });
-
-    players = await api("/api/players");
-
-    prepareAdminSelects();
-    renderPlayers();
-    renderAdminPlayers();
-
-    toast("Oyunçu silindi");
-
-  } catch(e) {
-    toast(e.message);
-  }
-}
-
-/* =========================
-   ADMIN MATCHES
-========================= */
-
-function renderAdminMatches() {
-
-  const box =
-    document.getElementById("adminMatches");
-
-  box.innerHTML = matches.map(m => `
-    <div class="card">
-
-      <b>
-        ${escapeHtml(m.home_name)}
-        vs
-        ${escapeHtml(m.away_name)}
-      </b>
-
-      <div class="form-grid">
-
-        <div>
-          <label>Ev hesabı</label>
-          <input
-            id="homeScore${m.id}"
-            type="number"
-            value="${m.home_score || 0}">
-        </div>
-
-        <div>
-          <label>Qonaq hesabı</label>
-          <input
-            id="awayScore${m.id}"
-            type="number"
-            value="${m.away_score || 0}">
-        </div>
-
-        <div>
-          <label>Status</label>
-          <select id="matchStatus${m.id}">
-            <option value="scheduled"
-              ${m.status === "scheduled" ? "selected" : ""}>
-              Planlaşdırılıb
-            </option>
-
-            <option value="live"
-              ${m.status === "live" ? "selected" : ""}>
-              Canlı
-            </option>
-
-            <option value="finished"
-              ${m.status === "finished" ? "selected" : ""}>
-              Bitib
-            </option>
-          </select>
-        </div>
-
-      </div>
-
-      <button class="btn green"
-        onclick="saveMatch(${m.id})">
-        Hesabı yadda saxla
-      </button>
-
-      <button class="btn red"
-        onclick="deleteMatch(${m.id})">
-        Sil
-      </button>
-
-      <h3>Hadisə əlavə et</h3>
-
-      <div class="form-grid">
-
-        <div>
-          <label>Oyunçu</label>
-          <select id="eventPlayer${m.id}">
-            <option value="">Seçilməyib</option>
-            ${players.map(p => `
-              <option value="${p.id}">
-                ${escapeHtml(p.name)}
-              </option>
-            `).join("")}
-          </select>
-        </div>
-
-        <div>
-          <label>Hadisə</label>
-          <select id="eventType${m.id}">
-            <option value="goal">⚽ Qol</option>
-            <option value="assist">🅰️ Assist</option>
-            <option value="save">🧤 Seyv</option>
-            <option value="yellow">🟨 Sarı kart</option>
-            <option value="red">🟥 Qırmızı kart</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Dəqiqə</label>
-          <input
-            id="eventMinute${m.id}"
-            type="number"
-            value="1">
-        </div>
-
-      </div>
-
-      <button class="btn"
-        onclick="addEvent(${m.id})">
-        Hadisə əlavə et
-      </button>
-
-    </div>
-  `).join("");
-}
-
-async function saveMatch(id) {
-
-  try {
-
-    await api(`/api/matches/${id}`,{
-      method:"PUT",
-      body:JSON.stringify({
-        home_score:
-          Number(document.getElementById(`homeScore${id}`).value),
-
-        away_score:
-          Number(document.getElementById(`awayScore${id}`).value),
-
-        status:
-          document.getElementById(`matchStatus${id}`).value
-      })
-    });
-
-    matches = await api("/api/matches");
-
-    renderMatches();
-    updateHome();
-    renderAdminMatches();
-
-    toast("Matç yeniləndi");
-
-  } catch(e) {
-    toast(e.message);
-  }
-}
-
-async function deleteMatch(id) {
-
-  if (!confirm("Bu matç silinsin?")) return;
-
-  try {
-
-    await api(`/api/matches/${id}`,{
-      method:"DELETE"
-    });
-
-    matches = await api("/api/matches");
-
-    renderMatches();
-    updateHome();
-    renderAdminMatches();
-    prepareLineupMatches();
-
-    toast("Matç silindi");
-
-  } catch(e) {
-    toast(e.message);
-  }
-}
-
-/* =========================
-   EVENTS
-========================= */
-
-async function addEvent(matchId) {
-
-  try {
-
-    const playerId =
-      document.getElementById(`eventPlayer${matchId}`).value;
-
-    const type =
-      document.getElementById(`eventType${matchId}`).value;
-
-    const minute =
-      Number(
-        document.getElementById(`eventMinute${matchId}`).value
-      ) || 1;
-
-    const player =
-      players.find(p => Number(p.id) === Number(playerId));
-
-    await api(`/api/matches/${matchId}/events`,{
-      method:"POST",
-      body:JSON.stringify({
-        player_id:playerId || null,
-        team_id:player?.team_id || null,
-        type,
-        minute
-      })
-    });
-
-    players = await api("/api/players");
-
-    renderPlayers();
-    renderAdminPlayers();
-    loadCards();
-    loadNotifications();
-
-    toast("Hadisə əlavə edildi");
-
-  } catch(e) {
-    toast(e.message);
-  }
-}
-
-/* =========================
-   ADMIN PANEL
-========================= */
-
-function prepareAdminPanel() {
-
-  prepareAdminSelects();
-  renderAdminTeams();
-  renderAdminPlayers();
-  renderAdminMatches();
-  prepareTeamOfWeekAdmin();
-}
-
-/* =========================
-   TEAM OF WEEK ADMIN
-========================= */
-
-function prepareTeamOfWeekAdmin() {
-
-  const box =
-    document.getElementById("totwAdmin");
-
-  const positions = [
-    ["Qapıçı",1],
-    ["Müdafiəçi",4],
-    ["Yarımmüdafiəçi",3],
-    ["Hücumçu",3]
-  ];
-
-  let html = "";
-
-  for (const [position,count] of positions) {
-
-    html += `
-      <div class="position-title">
-        ${position} (${count})
-      </div>
-    `;
-
-    for (let i=0;i<count;i++) {
-
-      html += `
-        <select
-          class="totw-select"
-          data-position="${position}">
-
-          <option value="">
-            ${position} seç
-          </option>
-
-          ${players
-            .filter(p => p.position === position)
-            .map(p => `
-              <option value="${p.id}">
-                ${escapeHtml(p.name)}
-                — ${escapeHtml(p.team_name || "")}
-              </option>
-            `).join("")}
-
-        </select>
-      `;
-    }
-  }
-
-  box.innerHTML = html;
-}
-
-async function saveTeamOfWeek() {
-
-  try {
-
-    const selects =
-      [...document.querySelectorAll(".totw-select")];
-
-    const playersSelected =
-      selects
-        .filter(s => s.value)
-        .map(s => ({
-          player_id:Number(s.value),
-          position:s.dataset.position
-        }));
-
-    if (playersSelected.length !== 11) {
-      toast("Tam 11 oyunçu seç");
-      return;
-    }
-
-    await api("/api/team-of-week",{
-      method:"POST",
-      body:JSON.stringify({
-        week:"Bu həftə",
-        players:playersSelected
-      })
-    });
-
-    toast("⭐ Komanda həftəsi yadda saxlanıldı");
-
-    loadTeamOfWeek();
-    loadNotifications();
-
-  } catch(e) {
-    toast(e.message);
-  }
-}
-
-/* =========================
-   INIT
-========================= */
-
-(async function init(){
-
-  try {
+    await api(
+      `/api/players/${id}`,
+      {
+        method:"PUT",
+        body:JSON.stringify({
+
+          name:
+            document.getElementById(
+              `player_name_${id}`
+            ).value,
+
+          number:
+            Number(
+              document.getElementById(
+                `player_number_${id}`
+              ).value
+            ) || 0,
+
+          position:
+            document.getElementById(
+              `player_position_${id}`
+            ).value,
+
+          team_id:
+            Number(
+              document.getElementById(
+                `player_team_${id}`
+              ).value
+            ) || null,
+
+          photo:
+            document.getElementById(
+              `player_photo_${id}`
+            ).value.trim() || null
+
+        })
+      }
+    );
+
+    toast("Oyunçu yeniləndi.");
 
     await loadAll();
 
-    await loadNotifications();
+    renderAdmin();
 
-    const admin =
-      await api("/api/admin/me");
+  } catch (error) {
 
-    isAdmin = admin.loggedIn;
+    toast(error.message);
+  }
+}
 
-  } catch(e) {
 
-    console.error(e);
+async function deletePlayer(id) {
 
+  if (
+    !confirm(
+      "Bu oyunçunu silmək istəyirsiniz?"
+    )
+  ) {
+    return;
   }
 
-})();
+  try {
+
+    await api(
+      `/api/players/${id}`,
+      {
+        method:"DELETE"
+      }
+    );
+
+    toast("Oyunçu silindi.");
+
+    await loadAll();
+
+    renderAdmin();
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+/* =====================================================
+   TEAM OF WEEK ADMIN
+===================================================== */
+
+function prepareTeamOfWeekSelects() {
+
+  const ids = [
+    "weekGoalkeeper",
+
+    "weekDefender1",
+    "weekDefender2",
+    "weekDefender3",
+    "weekDefender4",
+
+    "weekMidfielder1",
+    "weekMidfielder2",
+    "weekMidfielder3",
+
+    "weekAttacker1",
+    "weekAttacker2",
+    "weekAttacker3"
+  ];
+
+  ids.forEach(id => {
+
+    const select =
+      document.getElementById(id);
+
+    if (!select)
+      return;
+
+    const current =
+      select.value;
+
+    select.innerHTML =
+      `<option value="">
+        Oyunçu seç
+      </option>` +
+
+      players.map(p => `
+
+        <option value="${Number(p.id)}">
+          ${escapeHtml(p.name)}
+          — ${escapeHtml(
+            p.team_name || ""
+          )}
+        </option>
+
+      `).join("");
+
+    if (current)
+      select.value = current;
+  });
+}
+
+
+async function createTeamOfWeek() {
+
+  if (!isAdmin) {
+
+    toast(
+      "Admin kimi daxil olun."
+    );
+
+    return;
+  }
+
+  const positions = [
+
+    ["weekGoalkeeper","Qapıçı"],
+
+    ["weekDefender1","Müdafiəçi"],
+    ["weekDefender2","Müdafiəçi"],
+    ["weekDefender3","Müdafiəçi"],
+    ["weekDefender4","Müdafiəçi"],
+
+    ["weekMidfielder1","Yarımmüdafiəçi"],
+    ["weekMidfielder2","Yarımmüdafiəçi"],
+    ["weekMidfielder3","Yarımmüdafiəçi"],
+
+    ["weekAttacker1","Hücumçu"],
+    ["weekAttacker2","Hücumçu"],
+    ["weekAttacker3","Hücumçu"]
+
+  ];
+
+  const selected =
+    positions.map(([id,position]) => {
+
+      const player_id =
+        Number(
+          document.getElementById(id).value
+        );
+
+      return {
+        player_id,
+        position
+      };
+
+    });
+
+  if (
+    selected.some(
+      p => !p.player_id
+    )
+  ) {
+
+    toast(
+      "Bütün 11 oyunçunu seçin."
+    );
+
+    return;
+  }
+
+  const ids =
+    selected.map(
+      p => p.player_id
+    );
+
+  if (
+    new Set(ids).size !== 11
+  ) {
+
+    toast(
+      "Eyni oyunçunu iki dəfə seçmək olmaz."
+    );
+
+    return;
+  }
+
+  try {
+
+    await api(
+      "/api/team-of-week",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          week:"Bu həftə",
+          players:selected
+        })
+      }
+    );
+
+    toast(
+      "⭐ Komanda həftəsi yaradıldı."
+    );
+
+    await loadTeamOfWeek();
+
+  } catch (error) {
+
+    toast(error.message);
+  }
+}
+
+
+/* =====================================================
+   ADMIN RENDER
+===================================================== */
+
+function renderAdmin() {
+
+  updateAdminUI();
+
+  if (!isAdmin)
+    return;
+
+  renderAdminTeams();
+  renderAdminPlayers();
+  renderAdminCards();
+
+  prepareAdminSelects();
+}
+
+
+/* =====================================================
+   INIT
+===================================================== */
+
+async function init() {
+
+  showPage("home");
+
+  await checkAdmin();
+
+  await loadAll();
+
+  await loadStats();
+
+  await loadCards();
+
+  await loadTeamOfWeek();
+
+  renderAdmin();
+}
+
+init();
 </script>
 
 </body>
