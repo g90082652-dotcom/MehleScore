@@ -56,7 +56,22 @@ async function initDatabase() {
       status TEXT DEFAULT 'scheduled'
     );
   `);
+    const teams = [
+      "Xirdalan United",
+      "Xirdalan Wolves",
+      "Neweli FK",
+      "MSN FK",
+      "Lotu pişiklər"
+    ];
 
+    for (const team of teams) {
+      await pool.query(
+        `INSERT INTO teams (name)
+         VALUES ($1)
+         ON CONFLICT (name) DO NOTHING`,
+        [team]
+      );
+    }
   console.log("Database tables ready");
 }
 
