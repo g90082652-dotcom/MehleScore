@@ -338,22 +338,65 @@ td:first-child,th:first-child{
     </div>
 
   </section>
+<!-- ADMİN -->
+<section id="admin" class="page">
 
+  <h2 class="section-title">⚙️ İdarəetmə</h2>
 
-  <!-- ADMİN -->
-  <section id="admin" class="page">
+  <div class="card">
 
-    <h2 class="section-title">⚙️ İdarəetmə</h2>
+    <h3>🔐 Admin giriş</h3>
 
-    <div class="card">
-      <h3>Admin paneli</h3>
-      <p style="color:#8da0b5">
-        Komandalar, oyunçular, matçlar və digər məlumatlar burada idarə olunacaq.
-      </p>
-    </div>
+    <p style="color:#8da0b5">
+      İdarəetmə funksiyalarından istifadə etmək üçün daxil olun.
+    </p>
 
-  </section>
+    <input
+      id="adminPassword"
+      type="password"
+      placeholder="Admin şifrəsi"
+      style="
+        width:100%;
+        padding:14px;
+        margin-top:10px;
+        border-radius:10px;
+        border:1px solid #29415c;
+        background:#091525;
+        color:white;
+        font-size:16px;
+      "
+    >
 
+    <button
+      onclick="adminLogin()"
+      style="
+        width:100%;
+        margin-top:12px;
+        padding:14px;
+        border:0;
+        border-radius:10px;
+        background:#36e27b;
+        color:#06110c;
+        font-weight:800;
+        font-size:16px;
+      "
+    >
+      🔓 Daxil ol
+    </button>
+
+    <div
+      id="adminMessage"
+      style="
+        margin-top:12px;
+        color:#ff8b8b;
+      "
+    ></div>
+
+  </div>
+
+</section>
+
+  
 </main>
 
 <script>
