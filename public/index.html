@@ -2707,7 +2707,6 @@ function escapeAttr(value){
   return escapeHtml(value);
 }
 
-
 /* =========================
    START
 ========================= */
@@ -2726,7 +2725,324 @@ function escapeAttr(value){
 
 })();
 
-</script>
+/* =========================
+   🔔 PUSH NOTIFICATIONS
+========================= */
 
+let pushRegistration = null;
+
+function addNotificationBox(){
+
+  if(document.getElementById("aliscoreNotificationBox"))
+    return;
+
+  const home = document.getElementById("home");
+
+  if(!home) return;
+
+  const box = document.createElement("div");
+
+  box.id = "aliscoreNotificationBox";
+
+  box.className = "card";
+
+  box.innerHTML = `
+    <h2>🔔 AliScore bildirişləri</h2>
+
+    <p class="muted">
+      Qollar, sarı/qırmızı kartlar, transferlər və
+      Komanda həftəsi haqqında bildiriş al.
+    </p>
+
+    <button
+      id="notificationButton"
+      class="btn green"
+      onclick="enableNotifications()"
+    >
+      🔔 Bildirişləri aktiv et
+    </button>
+
+    <div
+      id="notificationStatus"
+      class="notice"
+    ></div>
+  `;
+
+  const firstGrid =
+    home.querySelector(".grid");
+
+  if(firstGrid){
+    home.insertBefore(box, firstGrid);
+  }else{
+    home.insertBefore(
+      box,
+      home.children[1] || null
+    );
+  }
+}
+
+
+function notificationMessage(
+  message,
+  type = "ok"
+){
+
+  const el =
+    document.getElementById(
+      "notificationStatus"
+    );
+
+  if(!el) return;
+
+  el.textContent = message;
+
+  el.className =
+    "notice " + type;
+
+  el.style.display = "block";
+}
+
+
+function base64ToUint8Array(
+  base64String
+){
+
+  const padding =
+    "=".repeat(
+      (4 - base64String.length % 4) % 4
+    );
+
+  const base64 =
+    (
+      base64String + padding
+    )
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+  const rawData =
+    window.atob(base64);
+
+  return Uint8Array.from(
+    [...rawData].map(
+      char => char.charCodeAt(0)
+    )
+  );
+}
+
+
+async function enableNotifications(){
+
+  const button =
+    document.getElementById(
+      "notificationButton"
+    );
+
+  try{
+
+    if(!("Notification" in window)){
+
+      notificationMessage(
+        "Bu brauzer bildirişləri dəstəkləmir.",
+        "error"
+      );
+
+      return;
+    }
+
+    if(!("serviceWorker" in navigator)){
+
+      notificationMessage(
+        "Service Worker dəstəklənmir.",
+        "error"
+      );
+
+      return;
+    }
+
+    if(!("PushManager" in window)){
+
+      notificationMessage(
+        "Push bildirişləri dəstəklənmir.",
+        "error"
+      );
+
+      return;
+    }
+
+    if(button){
+
+      button.disabled = true;
+
+      button.textContent =
+        "⏳ Aktivləşdirilir...";
+    }
+
+    const permission =
+      await Notification.requestPermission();
+
+    if(permission !== "granted"){
+
+      if(button){
+
+        button.disabled = false;
+
+        button.textContent =
+          "🔔 Bildirişləri aktiv et";
+      }
+
+      notificationMessage(
+        "Bildiriş icazəsi verilmədi.",
+        "error"
+      );
+
+      return;
+    }
+
+    pushRegistration =
+      await navigator.serviceWorker.register(
+        "/service-worker.js"
+      );
+
+    await navigator.serviceWorker.ready;
+
+    const keyResponse =
+      await api(
+        "/api/push/public-key"
+      );
+
+    if(!keyResponse.publicKey){
+
+      throw new Error(
+        "VAPID public key tapılmadı."
+      );
+    }
+
+    let subscription =
+      await pushRegistration
+        .pushManager
+        .getSubscription();
+
+    if(!subscription){
+
+      subscription =
+        await pushRegistration
+          .pushManager
+          .subscribe({
+
+            userVisibleOnly:true,
+
+            applicationServerKey:
+              base64ToUint8Array(
+                keyResponse.publicKey
+              )
+
+          });
+    }
+
+    await api(
+      "/api/push/subscribe",
+      {
+        method:"POST",
+
+        body:JSON.stringify(
+          subscription
+        )
+      }
+    );
+
+    if(button){
+
+      button.disabled = true;
+
+      button.textContent =
+        "✅ Bildirişlər aktivdir";
+    }
+
+    notificationMessage(
+      "✅ AliScore bildirişləri aktiv edildi.",
+      "ok"
+    );
+
+  }catch(error){
+
+    console.error(
+      "Push error:",
+      error
+    );
+
+    if(button){
+
+      button.disabled = false;
+
+      button.textContent =
+        "🔔 Bildirişləri aktiv et";
+    }
+
+    notificationMessage(
+      "❌ " + error.message,
+      "error"
+    );
+  }
+}
+
+
+async function setupPushNotifications(){
+
+  addNotificationBox();
+
+  if(!("serviceWorker" in navigator))
+    return;
+
+  if(!("PushManager" in window))
+    return;
+
+  try{
+
+    pushRegistration =
+      await navigator.serviceWorker.register(
+        "/service-worker.js"
+      );
+
+    if(
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ){
+
+      const subscription =
+        await pushRegistration
+          .pushManager
+          .getSubscription();
+
+      if(subscription){
+
+        const button =
+          document.getElementById(
+            "notificationButton"
+          );
+
+        if(button){
+
+          button.disabled = true;
+
+          button.textContent =
+            "✅ Bildirişlər aktivdir";
+        }
+
+        notificationMessage(
+          "AliScore bildirişləri aktivdir. 🔔",
+          "ok"
+        );
+      }
+    }
+
+  }catch(error){
+
+    console.error(
+      "Notification setup:",
+      error
+    );
+  }
+}
+</script>
 </body>
 </html>
