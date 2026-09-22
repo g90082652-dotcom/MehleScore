@@ -196,68 +196,107 @@ function renderStats(){
  $("statsList").innerHTML=[...players].sort((a,b)=>(+b.goals||0)-(+a.goals||0)||(+b.assists||0)-(+a.assists||0)||(+b.saves||0)-(+a.saves||0)).map(p=>`<div class=card><div class=playerRow><div class=playerMain>${p.photo?`<img class=photo src="${esc(p.photo)}">`:`<div class=photo></div>`}<div><b>${esc(p.name)}</b><div class=muted>${esc(p.team_name||"")}</div></div></div><div>⚽ ${p.goals||0}<br>🎯 ${p.assists||0}<br>🧤 ${p.saves||0}</div></div></div>`).join("")}
 async function loadCards(){try{const rows=await api("/cards");$("cardsList").innerHTML=rows.filter(p=>(+p.yellow_cards||0)+(+p.red_cards||0)>0).map(p=>`<div class=card><b>${esc(p.name)}</b> — ${esc(p.team_name||"")}<div>🟨 ${p.yellow_cards||0} &nbsp; 🟥 ${p.red_cards||0}</div></div>`).join("")||'<div class=empty>Kart yoxdur</div>'}catch(e){$("cardsList").innerHTML='<div class="card error">'+esc(e.message)+'</div>'}}
 
-function renderWeekAdmin(){
-  const positions = [
-    "Qapıçı",
-    "Müdafiəçi",
-    "Müdafiəçi",
-    "Müdafiəçi",
-    "Müdafiəçi",
-    "Yarımmüdafiəçi",
-    "Yarımmüdafiəçi",
-    "Yarımmüdafiəçi",
-    "Hücumçu",
-    "Hücumçu",
-    "Hücumçu"
-  ];
+async function loadTeamOfWeek(){
+  try{
+    const rows = await api("/team-of-week");
 
-  $("weekAdmin").innerHTML = `
-    <div class="card">
-      <h3>⭐ Yeni Komanda həftəsi</h3>
-
-      <p class="muted">
-        11 fərqli oyunçu seç:
-        1 qapıçı, 4 müdafiəçi,
-        3 yarımmüdafiəçi, 3 hücumçu.
-      </p>
-
-      ${Array.from({length:11},(_,i)=>`
-        <div class="row">
-          <select id="wp${i}">
-            ${players.map(p=>`
-              <option value="${p.id}">
-                ${esc(p.name)} — ${esc(p.team_name||"")}
-              </option>
-            `).join("")}
-          </select>
-
-          <select id="wpos${i}">
-            ${[
-              "Qapıçı",
-              "Müdafiəçi",
-              "Yarımmüdafiəçi",
-              "Hücumçu"
-            ].map(pos=>`
-              <option
-                value="${pos}"
-                ${positions[i]===pos ? "selected" : ""}
-              >
-                ${pos}
-              </option>
-            `).join("")}
-          </select>
+    $("weekList").innerHTML = rows.length
+      ? `
+        <div class="grid">
+          ${rows.map(x => `
+            <div class="card">
+              <div class="playerMain">
+                ${
+                  x.photo
+                    ? `<img class="photo" src="${esc(x.photo)}">`
+                    : `<div class="photo"></div>`
+                }
+                <div>
+                  <b>${esc(x.name || x.player_name || "")}</b>
+                  <div class="muted">
+                    ${esc(x.position || "")} ·
+                    ${esc(x.team_name || x.team || "")}
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join("")}
         </div>
-      `).join("")}
+      `
+      : `<div class="empty">Komanda həftəsi yoxdur</div>`;
 
-      <button
-        class="action good"
-        onclick="saveTeamOfWeek()"
-      >
-        ⭐ Komanda həftəsini yadda saxla
-      </button>
-    </div>
-  `;
+    if(isAdmin){
+      renderWeekAdmin();
+    }
+
+  }catch(e){
+    $("weekList").innerHTML =
+      `<div class="card error">${esc(e.message)}</div>`;
+  }
 }
+
+async function saveTeamOfWeek(){
+  try{
+    const arr=[];
+
+    for(let i=0;i<11;i++){
+      arr.push({
+        player_id:$("wp"+i).value,
+        position:$("wpos"+i).value
+      });
+    }
+
+    const ids=arr.map(x=>String(x.player_id));
+
+    if(new Set(ids).size!==11){
+      alert("11 fərqli oyunçu seçməlisən!");
+      return;
+    }
+
+    const counts={
+      "Qapıçı":0,
+      "Müdafiəçi":0,
+      "Yarımmüdafiəçi":0,
+      "Hücumçu":0
+    };
+
+    arr.forEach(x=>{
+      counts[x.position]++;
+    });
+
+    if(
+      counts["Qapıçı"]!==1 ||
+      counts["Müdafiəçi"]!==4 ||
+      counts["Yarımmüdafiəçi"]!==3 ||
+      counts["Hücumçu"]!==3
+    ){
+      alert(
+        "Düzülüş belə olmalıdır:\n\n"+
+        "1 Qapıçı\n"+
+        "4 Müdafiəçi\n"+
+        "3 Yarımmüdafiəçi\n"+
+        "3 Hücumçu"
+      );
+      return;
+    }
+
+    await api("/team-of-week",{
+      method:"POST",
+      body:JSON.stringify({
+        week:"Bu həftə",
+        players:arr
+      })
+    });
+
+    await loadTeamOfWeek();
+
+    alert("⭐ Komanda həftəsi yadda saxlanıldı!");
+
+  }catch(e){
+    alert("Xəta: "+e.message);
+  }
+}
+  
 
 function optsTeams(){return teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("")}
 function optsPlayers(){return players.map(p=>`<option value="${p.id}">${esc(p.name)} — ${esc(p.team_name||"")}</option>`).join("")}
