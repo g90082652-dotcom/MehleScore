@@ -235,9 +235,120 @@ async function deleteMatch(id){if(!confirm("Matçı silmək istəyirsən?"))retu
 async function deleteTeam(id){if(!confirm("Komandanı silmək istəyirsən?"))return;try{await api("/teams/"+id,{method:"DELETE"});await loadAll()}catch(e){alert(e.message)}}
 async function deletePlayer(id){if(!confirm("Oyunçunu silmək istəyirsən?"))return;try{await api("/players/"+id,{method:"DELETE"});await loadAll()}catch(e){alert(e.message)}}
 async function transferPlayer(){try{await api("/transfers",{method:"POST",body:JSON.stringify({player_id:$("trp").value,to_team_id:$("trt").value})});await loadAll();alert("Transfer edildi və bildiriş yaradıldı")}catch(e){alert(e.message)}}
-async function addEvent(){try{await api("/matches/"+$("evmatch").value+"/events",{method:"POST",body:JSON.stringify({player_id:$("evplayer").value,team_id:$("evteam").value,type:$("evtype").value,minute:$("evminute").value})});await loadAll();alert("Hadisə əlavə edildi")}catch(e){alert(e.message)}}
-async function changeCard(id,type,amount){try{await api("/cards/change",{method:"POST",body:JSON.stringify({player_id:id,type,amount})});await loadAll()}catch(e){alert(e.message)}}
+async function addEvent(){
+  try{
+    const selects=document.querySelectorAll("select");
+
+    let matchId="";
+    let playerId="";
+    let type="";
+    let minute=0;
+
+    for(const s of selects){
+      const id=(s.id||"").toLowerCase();
+      const value=s.value;
+
+      if(id.includes("eventmatch") || id==="em" || id.includes("match")){
+        matchId=value;
+      }
+
+      if(id.includes("eventplayer") || id==="ep" || id.includes("player")){
+        playerId=value;
+      }
+
+      if(id.includes("eventtype") || id==="et" || id.includes("event")){
+        type=value;
+      }
+    }
+
+    const inputs=document.querySelectorAll("input");
+
+    for(const i of inputs){
+      const id=(i.id||"").toLowerCase();
+
+      if(
+        id.includes("minute") ||
+        id.includes("eventminute")
+      ){
+        minute=Number(i.value||0);
+      }
+    }
+
+    if(!matchId){
+      alert("Выбери матч");
+      return;
+    }
+
+    if(!playerId){
+      alert("Выбери игрока");
+      return;
+    }
+
+    if(!type){
+      alert("Выбери тип события");
+      return;
+    }
+
+    await api("/matches/"+matchId+"/events",{
+      method:"POST",
+      body:JSON.stringify({
+        player_id:Number(playerId),
+        type:type,
+        minute:minute
+      })
+    });
+
+    alert("Событие добавлено");
+
+    await loadAll();
+
+  }catch(e){
+    console.error(e);
+    alert("Ошибка события: "+e.message);
+  }
+}
+
+
+async function changeCard(id,type,amount){
+  try{
+
+    await api("/cards/change",{
+      method:"POST",
+      body:JSON.stringify({
+        player_id:Number(id),
+        type:type,
+        amount:Number(amount)
+      })
+    });
+
+    await loadAll();
+
+  }catch(e){
+    console.error(e);
+    alert("Ошибка карточки: "+e.message);
+  }
+}
+
+
 async function changeStatistic(id,type,amount){
+  try{
+
+    await api("/statistics/change",{
+      method:"POST",
+      body:JSON.stringify({
+        player_id:Number(id),
+        type:type,
+        amount:Number(amount)
+      })
+    });
+
+    await loadAll();
+
+  }catch(e){
+    console.error(e);
+    alert("Ошибка статистики: "+e.message);
+  }
+}
  try{
   await api("/statistics/change",{method:"POST",body:JSON.stringify({player_id:id,type,amount})});
   await loadAll();
