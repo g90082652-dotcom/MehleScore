@@ -1278,41 +1278,40 @@ app.delete(
    MATCHES
 ========================================================= */
 
-app.get(
-  "/api/matches",
-  async (req, res) => {
-    try {
-      const result = await pool.query(`
-        SELECT
-          m.id,
-          m.home_team_id,
-          ht.name AS home_team,
-          m.away_team_id,
-          at.name AS away_team,
-          COALESCE(m.home_score,0) AS home_score,
-          COALESCE(m.away_score,0) AS away_score,
-          m.match_date,
-          COALESCE(m.status,'scheduled') AS status
-        FROM matches m
-        LEFT JOIN teams ht
-          ON ht.id=m.home_team_id
-        LEFT JOIN teams at
-          ON at.id=m.away_team_id
-        ORDER BY m.match_date DESC
-      `);
+app.get("/api/matches", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        m.id,
+        m.home_team_id,
+        ht.name AS home_name,
+        m.away_team_id,
+        at.name AS away_name,
+        ht.name AS home_team_name,
+        at.name AS away_team_name,
+        COALESCE(m.home_score, 0) AS home_score,
+        COALESCE(m.away_score, 0) AS away_score,
+        m.match_date,
+        COALESCE(m.status, 'scheduled') AS status
+      FROM matches m
+      LEFT JOIN teams ht
+        ON ht.id = m.home_team_id
+      LEFT JOIN teams at
+        ON at.id = m.away_team_id
+      ORDER BY m.match_date DESC
+    `);
 
-      res.json(result.rows);
-    } catch (error) {
-      console.error("MATCHES GET ERROR:", error);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("MATCHES GET ERROR:", error);
 
-      res.status(500).json({
-        ok:false,
-        error:error.message
-      });
-    }
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
   }
-);
-
+});
+  
 app.post(
   "/api/matches",
   requireAdmin,
