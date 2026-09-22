@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07131f">
+<title>AliScore</title>
+<style>
+
+:root{
+ --bg:#050b14;--surface:#0b1624;--surface2:#101f31;--surface3:#172b40;
+ --text:#f7fbff;--muted:#8195aa;--blue:#1688ff;--blue2:#55b1ff;
+ --green:#25d47a;--yellow:#ffd35a;--red:#ff5f70;--line:#1b3147;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+body{padding-bottom:88px}
+button,input,select{font:inherit}button{border:0;color:inherit}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 50% -10%,rgba(22,136,255,.18),transparent 38%);z-index:-1}
+.top{position:sticky;top:0;z-index:20;padding:calc(11px + env(safe-area-inset-top)) 15px 11px;background:rgba(5,11,20,.82);backdrop-filter:blur(22px);border-bottom:1px solid rgba(255,255,255,.06)}
+.toprow{display:flex;align-items:center;justify-content:space-between;width:min(760px,100%);margin:auto}
+.logo{font-size:30px;font-weight:950;letter-spacing:-1.5px}.logo span{color:var(--blue2)}
+.iconbtn{width:42px;height:42px;border-radius:14px;background:var(--surface2);font-size:22px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.container{width:min(760px,100%);margin:auto;padding:14px}
+.section-title{font-size:21px;font-weight:900;margin:24px 2px 12px}
+.league{background:linear-gradient(145deg,#102a45,#091522);border:1px solid #1c4262;border-radius:24px;padding:18px;box-shadow:0 18px 45px rgba(0,0,0,.28)}
+.league-head{display:flex;align-items:center;gap:14px}.trophy{width:52px;height:52px;border-radius:16px;background:linear-gradient(145deg,#194a73,#10283e);display:grid;place-items:center;font-size:27px;box-shadow:0 8px 20px rgba(0,0,0,.2)}
+.league h1{font-size:22px;margin:0 0 4px;font-weight:950}.season{font-size:12px;color:var(--muted);font-weight:700}
+.pills{display:flex;gap:8px;margin-top:17px;overflow:auto}.pill{white-space:nowrap;background:rgba(255,255,255,.06);color:var(--muted);padding:10px 14px;border-radius:12px;font-size:13px;font-weight:800}.pill.active{background:var(--blue);color:#fff;box-shadow:0 6px 18px rgba(22,136,255,.28)}
+.card{background:linear-gradient(145deg,#0d1a29,#09131f);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 12px 30px rgba(0,0,0,.16)}
+.match-card{padding:15px}.match-top,.match-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;font-weight:700;margin-bottom:13px}
+.match-teams{display:grid;grid-template-columns:1fr 70px 1fr;align-items:center;text-align:center}.team-name{font-weight:850;font-size:15px;line-height:1.15}.team-logo{width:44px;height:44px;border-radius:14px;background:var(--surface3);display:grid;place-items:center;margin:0 auto 8px;font-size:20px}.score{font-size:27px;font-weight:950}.status{font-size:10px;color:var(--muted);margin-top:3px}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:510px}th{font-size:10px;color:var(--muted);font-weight:850;text-transform:uppercase}th,td{padding:14px 9px;border-bottom:1px solid var(--line);text-align:center}th:first-child,td:first-child{width:34px}th:nth-child(2),td:nth-child(2){text-align:left}tr:last-child td{border-bottom:0}.rank{font-weight:950;color:var(--muted)}.teamcell{display:flex;align-items:center;gap:9px;font-weight:800}.mini{width:30px;height:30px;border-radius:10px;background:var(--surface3);display:grid;place-items:center;font-size:15px}.points{font-weight:950}
+.search{width:100%;background:var(--surface2);border:1px solid var(--line);outline:none;color:#fff;border-radius:14px;padding:13px 15px;margin-bottom:10px}.search:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(22,136,255,.12)}
+.player-row{display:flex;align-items:center;justify-content:space-between;padding:14px;border-bottom:1px solid var(--line)}.player-left{display:flex;align-items:center;gap:11px}.avatar{width:43px;height:43px;border-radius:14px;background:linear-gradient(145deg,#1b3d5b,#102338);display:grid;place-items:center;font-weight:950}.player-name{font-weight:850}.player-team{font-size:12px;color:var(--muted);margin-top:3px}.statnum{font-weight:950;font-size:17px}
+.team-filter{display:flex;gap:7px;overflow:auto;margin-bottom:10px}.team-filter button{background:var(--surface2);color:var(--muted);padding:9px 12px;border-radius:11px;white-space:nowrap;font-size:12px;font-weight:800}.team-filter button.active{background:#164875;color:#fff}
+.empty{padding:30px 18px;text-align:center;color:var(--muted)}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(6,14,24,.9);backdrop-filter:blur(22px);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center}.nav-inner{width:min(760px,100%);display:grid;grid-template-columns:repeat(4,1fr);gap:5px}.nav button{background:transparent;color:var(--muted);padding:8px 4px;border-radius:14px;font-size:11px;font-weight:800}.nav button.active{background:linear-gradient(145deg,#164875,#123653);color:#fff}.nav .ico{font-size:20px;display:block;margin-bottom:2px}
+.panel{display:none}.panel.active{display:block}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:14px}.formgrid input,.formgrid select{width:100%;background:var(--surface2);border:1px solid var(--line);color:#fff;border-radius:12px;padding:12px;outline:none}.formgrid .wide{grid-column:1/-1}.addbtn{width:calc(100% - 28px);margin:0 14px 14px;background:linear-gradient(135deg,#1688ff,#0870dc);padding:13px;border-radius:13px;font-weight:900;box-shadow:0 8px 20px rgba(22,136,255,.2)}
+.match-list{display:grid;gap:9px}.match-item{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:13px 14px}.match-score{display:grid;grid-template-columns:1fr 62px 1fr;align-items:center;text-align:center}.match-score b{font-size:14px}.match-score strong{font-size:24px;font-weight:950}
+.profile-card{background:linear-gradient(145deg,#102b46,#0a1725);border:1px solid #1d4566;border-radius:20px;padding:17px;margin-bottom:10px}.profile-head{display:flex;align-items:center;gap:13px}.profile-avatar{width:62px;height:62px;border-radius:17px;background:#183b59;display:grid;place-items:center;font-weight:950;font-size:22px}.profile-name{font-size:20px;font-weight:950}.profile-team{color:var(--muted);font-size:12px;margin-top:3px}.profile-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:15px}.profile-stat{background:#102237;border-radius:12px;padding:10px 5px;text-align:center}.profile-stat b{display:block;font-size:18px}.profile-stat span{font-size:10px;color:var(--muted)}.formrow{display:flex;gap:5px;margin-top:9px}.formbadge{width:21px;height:21px;border-radius:6px;display:grid;place-items:center;font-size:10px;font-weight:950}.formbadge.w{background:var(--green)}.formbadge.d{background:var(--yellow);color:#07131f}.formbadge.l{background:var(--red)}.center-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.center-title span{font-size:10px;color:var(--muted);font-weight:800}
+@media(max-width:420px){.formgrid{grid-template-columns:1fr}.formgrid .wide{grid-column:auto}.team-name{font-size:13px}}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="toprow">
+    <div class="logo">Ali<span>Score</span></div>
+    <button class="iconbtn" aria-label="Поиск" onclick="show('players')">⌕</button>
+  </div>
+</header>
+
+<main class="container">
+  <section class="league">
+    <div class="league-head">
+      <div class="trophy">🏆</div>
+      <div>
+        <h1>MƏHLƏ LEAGUE</h1>
+        <div class="season">2026/27 MÖVSÜMÜ</div>
+      </div>
+    </div>
+    <div class="pills">
+      <button class="pill active" onclick="show('home')">Обзор</button>
+      <button class="pill" onclick="show('table')">Таблица</button>
+      <button class="pill" onclick="show('players')">Игроки</button>
+    </div>
+  </section>
+
+  <section class="card" style="padding:14px;margin-top:12px">
+    <div class="center-title"><b style="font-size:18px">Матч-центр</b><span>LIVE • РЕЗУЛЬТАТЫ</span></div>
+    <div id="matchCenter"></div>
+  </section>
+
+  <section id="home" class="panel active">
+    <div class="section-title">Последние матчи</div>
+    <div class="card" style="padding-top:14px">
+      <div class="match-top" style="padding:0 15px"><span>MƏHLƏ LEAGUE</span><span>2026/27</span></div>
+      <div id="matchList" class="match-list" style="padding:0 10px 10px"></div>
+      <button class="addbtn" onclick="toggleAdd()">＋ Добавить матч</button>
+      <div id="addMatchBox" style="display:none">
+        <div class="formgrid">
+          <select id="homeTeam"></select>
+          <select id="awayTeam"></select>
+          <input id="homeScore" type="number" min="0" placeholder="Голы хозяев">
+          <input id="awayScore" type="number" min="0" placeholder="Голы гостей">
+          <input id="matchDate" class="wide" type="date">
+        </div>
+        <button class="addbtn" onclick="addMatch()">Сохранить матч</button>
+      </div>
+    </div>
+
+    <div class="section-title">Турнирная таблица</div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Команда</th><th>И</th><th>QF</th><th>О</th></tr></thead>
+        <tbody id="homeTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="table" class="panel">
+    <div class="section-title">Турнирная таблица</div>
+    <div class="card table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Команда</th><th>И</th><th>QF</th><th>О</th></tr></thead>
+        <tbody id="fullTable"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="players" class="panel">
+    <div class="section-title">Игроки</div>
+    <input id="search" class="search" placeholder="Поиск игрока..." oninput="renderPlayers()">
+    <div class="team-filter" id="filters"></div>
+    <div class="card" id="playersList"></div>
+  </section>
+</main>
+
+<section id="profilePanel" class="panel" style="display:none;padding:0 14px 14px"><div id="profileContent"></div></section>
+
+<nav class="nav">
+ <div class="nav-inner">
+  <button class="active" data-page="home" onclick="show('home')"><span class="ico">⌂</span>Главная</button>
+  <button data-page="table" onclick="show('table')"><span class="ico">▤</span>Таблица</button>
+  <button data-page="players" onclick="show('players')"><span class="ico">♙</span>Игроки</button>
+  <button data-page="more" onclick="show('more')"><span class="ico">•••</span>Ещё</button>
+ </div>
+</nav>
+
+<script>
+const teams=[
+ {name:"XIRDALAN UNITED",games:3,qf:"+2",points:6,icon:"⚽"},
+ {name:"LOTU PİSİKLƏR",games:2,qf:"+3",points:4,icon:"🟢"},
+ {name:"MSN FK",games:3,qf:"-2",points:3,icon:"🔵"},
+ {name:"NEWELİ FK",games:2,qf:"0",points:3,icon:"🟣"},
+ {name:"XIRDALAN WOLVES",games:2,qf:"-3",points:1,icon:"🐺"}
+];
+const players=[
+ ["Amil","XIRDALAN UNITED"],["Elmir","XIRDALAN UNITED"],["Isa","XIRDALAN UNITED"],["Umud","XIRDALAN UNITED"],
+ ["Kamran","LOTU PİSİKLƏR"],["Minə","LOTU PİSİKLƏR"],["Ramil","LOTU PİSİKLƏR"],["Huseyin","LOTU PİSİKLƏR"],
+ ["Fuad","MSN FK"],["Murad","MSN FK"],["Şahin","MSN FK"],["Ayxan","MSN FK"],
+ ["Tofik","NEWELİ FK"],["Arda","NEWELİ FK"],["Emil","NEWELİ FK"],["Vəli","NEWELİ FK"],
+ ["Ali","XIRDALAN WOLVES"],["Emin","XIRDALAN WOLVES"],["Huseyin","XIRDALAN WOLVES"],["Raul","XIRDALAN WOLVES"]
+].map((p,i)=>({name:p[0],team:p[1],goals:0,assists:0,saves:0,id:i}));
+
+let filter="Все";
+
+function tableRows(){
+ return teams.map((t,i)=>`<tr><td class="rank">${i+1}</td><td><div class="teamcell"><span class="mini">${t.icon}</span>${t.name}</div></td><td>${t.games}</td><td>${t.qf}</td><td class="points">${t.points}</td></tr>`).join("");
+}
+document.getElementById("homeTable").innerHTML=tableRows();
+document.getElementById("fullTable").innerHTML=tableRows();
+
+function initials(n){return n.slice(0,2).toUpperCase()}
+function renderFilters(){
+ const names=["Все",...teams.map(t=>t.name)];
+ document.getElementById("filters").innerHTML=names.map(n=>`<button class="${filter===n?'active':''}" onclick="filter='${n.replace(/'/g,"\\'")}';renderFilters();renderPlayers()">${n}</button>`).join("");
+}
+function renderPlayers(){
+ const q=(document.getElementById("search").value||"").toLowerCase();
+ const list=players.filter(p=>(filter==="Все"||p.team===filter)&&p.name.toLowerCase().includes(q));
+ document.getElementById("playersList").innerHTML=list.length?list.map(p=>`
+  <button type="button" class="player-row" style="width:100%;background:transparent;text-align:left;cursor:pointer" onclick="openProfile(${p.id})">
+   <div class="player-left"><div class="avatar">${initials(p.name)}</div><div><div class="player-name">${p.name}</div><div class="player-team">${p.team}</div></div></div>
+   <div class="statnum">${p.goals} ⚽</div>
+  </button>`).join(""):`<div class="empty">Игрок не найден</div>`;
+}
+function show(page){
+ if(page==="more"){
+   alert("AliScore • MƏHLƏ LEAGUE 2026/27");
+   return;
+ }
+ document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+ document.getElementById(page).classList.add("active");
+ document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+
+let matches = JSON.parse(localStorage.getItem("alisc_matches") || "[]");
+function toggleAdd(){
+  const box=document.getElementById("addMatchBox");
+  box.style.display=box.style.display==="none"?"block":"none";
+  fillTeamSelects();
+}
+function fillTeamSelects(){
+  ["homeTeam","awayTeam"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    const current=el.value;
+    el.innerHTML=teams.map(t=>`<option value="${t.name}">${t.name}</option>`).join("");
+    if(current) el.value=current;
+  });
+  const h=document.getElementById("homeTeam"), a=document.getElementById("awayTeam");
+  if(h && a && h.value===a.value && teams.length>1) a.value=teams[1].name;
+}
+function addMatch(){
+  const home=document.getElementById("homeTeam").value;
+  const away=document.getElementById("awayTeam").value;
+  const hs=document.getElementById("homeScore").value;
+  const as=document.getElementById("awayScore").value;
+  const date=document.getElementById("matchDate").value;
+  if(!home||!away||home===away||hs===""||as===""){alert("Выбери две разные команды и укажи счёт.");return}
+  matches.unshift({home,away,hs:Number(hs),as:Number(as),date:date||""});
+  localStorage.setItem("alisc_matches",JSON.stringify(matches));
+  document.getElementById("homeScore").value="";
+  document.getElementById("awayScore").value="";
+  renderMatches();renderCenter();
+  document.getElementById("addMatchBox").style.display="none";
+}
+function renderMatches(){
+  const el=document.getElementById("matchList");
+  if(!matches.length){el.innerHTML='<div class="empty">Матчей пока нет</div>';return}
+  el.innerHTML=matches.map((m,i)=>`<div class="match-item">
+    <div class="match-meta"><span>MƏHLƏ LEAGUE</span><span>${m.date||"Матч завершён"}</span></div>
+    <div class="match-score"><b>${m.home}</b><strong>${m.hs} : ${m.as}</strong><b>${m.away}</b></div>
+  </div>`).join("");
+}
+
+function teamByName(name){return teams.find(t=>t.name===name)||teams[0]}
+function teamForm(name){
+  const ms=matches.filter(m=>m.home===name||m.away===name).slice(0,5).reverse();
+  return ms.map(m=>{const home=m.home===name, a=home?m.hs:m.as, b=home?m.as:m.hs; return a>b?'W':a===b?'D':'L'});
+}
+function renderCenter(){
+ const el=document.getElementById('matchCenter');
+ if(!matches.length){el.innerHTML='<div class="empty">Матчей пока нет</div>';return}
+ el.innerHTML=matches.slice(0,3).map(m=>`<div class="match-item" style="margin-bottom:8px"><div class="match-meta"><span>MƏHLƏ LEAGUE</span><span>${m.date||'Завершён'}</span></div><div class="match-score"><b>${m.home}</b><strong>${m.hs} : ${m.as}</strong><b>${m.away}</b></div></div>`).join('');
+}
+function openProfile(id){
+ const p=players.find(x=>x.id===id); if(!p)return;
+ const f=teamForm(p.team);
+ document.getElementById('profileContent').innerHTML=`<div class="section-title">Профиль игрока</div><div class="profile-card"><div class="profile-head"><div class="profile-avatar">${initials(p.name)}</div><div><div class="profile-name">${p.name}</div><div class="profile-team">${p.team}</div><div class="formrow">${(f.length?f:['—']).map(x=>`<span class="formbadge ${x==='W'?'w':x==='D'?'d':'l'}">${x}</span>`).join('')}</div></div></div><div class="profile-stats"><div class="profile-stat"><b>${p.goals}</b><span>Голы</span></div><div class="profile-stat"><b>${p.assists}</b><span>Ассисты</span></div><div class="profile-stat"><b>${p.saves}</b><span>Сейвы</span></div><div class="profile-stat"><b>${p.goals+p.assists}</b><span>Очки</span></div></div></div><button class="addbtn" onclick="show('players')">← Назад к игрокам</button>`;
+ document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active')); document.getElementById('profilePanel').style.display='block'; document.getElementById('profilePanel').classList.add('active'); document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active')); window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderAll(){renderFilters();renderPlayers();fillTeamSelects();renderMatches();renderCenter();}
+renderAll();
+</script>
+</body>
+</html>
