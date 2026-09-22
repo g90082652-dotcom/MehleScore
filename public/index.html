@@ -268,18 +268,18 @@ function highlightVideo(url){
 }
 function renderHighlights(){
  const rows=getHighlights();
- $("highlightsList").innerHTML=rows.length?`<div class="highlight-grid">${rows.slice().reverse().map((x,i)=>`<div class="highlight-card">${highlightVideo(x.url)}<div class="highlight-title">${esc(x.title||"Hайлайт")}</div><div class="highlight-meta">${esc(x.match||"AliScore")} · ${esc(x.date||"")}</div>${isAdmin?`<button class="btn red" onclick="deleteHighlight(${esc(x.id)})">🗑 Sil</button>`:""}</div>`).join("")}</div>`:'<div class="card highlight-empty">🎬 Hələ heç bir хайлайт əlavə edilməyib.</div>';
+ $("highlightsList").innerHTML=rows.length?`<div class="highlight-grid">${rows.slice().reverse().map((x,i)=>`<div class="highlight-card">${highlightVideo(x.url)}<div class="highlight-title">${esc(x.title||"✨ Highlights")}</div><div class="highlight-meta">${esc(x.match||"AliScore")} · ${esc(x.date||"")}</div>${isAdmin?`<button class="btn red" onclick="deleteHighlight(${esc(x.id)})">🗑 Sil</button>`:""}</div>`).join("")}</div>`:'<div class="card highlight-empty">🎬 Hələ heç bir  Highlight əlavə edilməyib.</div>';
  if(isAdmin){
-  $("highlightsAdmin").innerHTML=`<div class="card"><h3>➕ Hайлайт əlavə et</h3><p class="muted">YouTube linki və ya birbaşa MP4/WebM video linki əlavə et.</p><input id="hlTitle" placeholder="Başlıq, məsələn: Ardanın möhtəşəm qolu"><input id="hlMatch" placeholder="Matç, məsələn: MSN FK 5:5 Neweli FK"><input id="hlUrl" placeholder="YouTube və ya video linki"><div class="row"><button class="btn green" onclick="addHighlight()">🎬 Videonu əlavə et</button></div><p class="muted small">Qeyd: linklə əlavə olunan video bütün istifadəçilər üçün link üzərindən açıla bilər. Telefonundan birbaşa fayl yükləmək isə hazırda yalnız həmin cihazda işləyir.</p></div>`;
+  $("highlightsAdmin").innerHTML=`<div class="card"><h3>➕  Highlight əlavə et</h3><p class="muted">YouTube linki və ya birbaşa MP4/WebM video linki əlavə et.</p><input id="hlTitle" placeholder="Başlıq, məsələn: Ardanın möhtəşəm qolu"><input id="hlMatch" placeholder="Matç, məsələn: MSN FK 5:5 Neweli FK"><input id="hlUrl" placeholder="YouTube və ya video linki"><div class="row"><button class="btn green" onclick="addHighlight()">🎬 Videonu əlavə et</button></div><p class="muted small">Qeyd: linklə əlavə olunan video bütün istifadəçilər üçün link üzərindən açıla bilər. Telefonundan birbaşa fayl yükləmək isə hazırda yalnız həmin cihazda işləyir.</p></div>`;
  }else $("highlightsAdmin").innerHTML="";
 }
 function addHighlight(){
  const title=$("hlTitle").value.trim(),match=$("hlMatch").value.trim(),url=$("hlUrl").value.trim();
  if(!url)return alert("Video linkini daxil et.");
  if(!/^https?:\/\//i.test(url))return alert("Video linki http:// və ya https:// ilə başlamalıdır.");
- const rows=getHighlights();rows.push({id:Date.now(),title:title||"Hайлайт",match,date:new Date().toLocaleDateString("az-AZ"),url});saveHighlights(rows);$("hlTitle").value="";$("hlMatch").value="";$("hlUrl").value="";renderHighlights();alert("🎬 Hайлайt əlavə edildi!");
+ const rows=getHighlights();rows.push({id:Date.now(),title:title||"✨ Highlights",match,date:new Date().toLocaleDateString("az-AZ"),url});saveHighlights(rows);$("hlTitle").value="";$("hlMatch").value="";$("hlUrl").value="";renderHighlights();alert("✨ Highlights əlavə edildi!");
 }
-function deleteHighlight(id){if(!confirm("Bu хайлайt silinsin?"))return;saveHighlights(getHighlights().filter(x=>String(x.id)!==String(id)));renderHighlights();}
+function deleteHighlight(id){if(!confirm("Bu  Highlight silinsin?"))return;saveHighlights(getHighlights().filter(x=>String(x.id)!==String(id)));renderHighlights();}
 
 async function loadTransfers(){
  try{
