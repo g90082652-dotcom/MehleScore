@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071426">
+<title>AliScore</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#06111f;color:#f5f7fb;font-family:Arial,sans-serif}
+header{position:sticky;top:0;z-index:5;background:#071426;padding:14px;border-bottom:1px solid #1b3d62}
+.logo{font-size:26px;font-weight:900}.logo i{color:#3290ff;font-style:normal}
+nav{display:flex;gap:7px;overflow:auto;margin-top:12px}nav button{white-space:nowrap;padding:9px 12px;border-radius:11px;border:1px solid #23496e;background:#10243a;color:#fff}nav button.on{background:#2f8cff}
+main{max-width:1000px;margin:auto;padding:16px 12px 60px}.page{display:none}.page.on{display:block}
+h1{font-size:28px}h2{font-size:19px}.card{background:#0d1d31;border:1px solid #1d4268;border-radius:17px;padding:15px;margin:10px 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}@media(max-width:650px){.grid{grid-template-columns:1fr}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.stat{text-align:center;background:#0d1d31;border:1px solid #1d4268;border-radius:14px;padding:13px}.stat b{display:block;font-size:25px}
+.match{text-align:center;background:#0d1d31;border:1px solid #1d4268;border-radius:17px;padding:16px;margin:10px 0}.teams{display:grid;grid-template-columns:1fr 110px 1fr;align-items:center;gap:8px}.score{font-size:29px;font-weight:900}.muted{color:#9db0c8}.pill{display:inline-block;margin-top:4px;padding:4px 8px;border-radius:20px;background:#17304c;font-size:12px}
+input,select{width:100%;padding:11px;border-radius:10px;border:1px solid #285078;background:#09182a;color:white}label{display:block;color:#9db0c8;font-size:13px;margin:8px 0 5px}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}@media(max-width:650px){.form{grid-template-columns:1fr}}
+button.action{padding:10px 13px;border:0;border-radius:10px;background:#2f8cff;color:white;font-weight:700;margin:5px 5px 0 0}button.red{background:#a52c3b}button.green{background:#13845e}.actions{display:flex;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #183653;text-align:left}.player{display:flex;gap:12px;align-items:center}.avatar{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#17304c}.hidden{display:none!important}.msg{padding:10px;border-radius:10px;background:#102c47;margin-top:8px}
+</style>
+</head>
+<body>
+<header><div class="logo">Ali<i>Score</i></div><nav id="nav"></nav></header>
+<main>
+<section id="home" class="page on"><h1>Главная</h1><div class="stats"><div class="stat"><b id="ct">0</b>Команды</div><div class="stat"><b id="cp">0</b>Игроки</div><div class="stat"><b id="cm">0</b>Матчи</div><div class="stat"><b id="cg">0</b>Голы</div></div><div class="card"><h2>Последние матчи</h2><div id="recent"></div></div></section>
+<section id="matches" class="page"><h1>Матчи</h1><div id="matchList"></div></section>
+<section id="table" class="page"><h1>Турнирная таблица</h1><div class="card" style="overflow:auto"><table><thead><tr><th>#</th><th>Команда</th><th>И</th><th>В</th><th>Н</th><th>П</th><th>ГЗ</th><th>ГП</th><th>РМ</th><th>О</th></tr></thead><tbody id="tb"></tbody></table></div></section>
+<section id="teams" class="page"><h1>Команды</h1><div id="teamList" class="grid"></div></section>
+<section id="players" class="page"><h1>Игроки</h1><div id="playerList" class="grid"></div></section>
+<section id="stats" class="page"><h1>Статистика</h1><div id="statList"></div></section>
+<section id="cards" class="page"><h1>Карточки</h1><div id="cardList"></div></section>
+<section id="week" class="page"><h1>Команда недели</h1><div id="weekList"></div></section>
+<section id="transfers" class="page"><h1>Трансферы</h1><div id="transferList"></div></section>
+<section id="admin" class="page"><h1>Админ</h1>
+<div id="loginBox" class="card"><h2>Вход администратора</h2><label>Пароль</label><input id="pass" type="password"><div class="actions"><button class="action" onclick="login()">Войти</button></div><div id="loginMsg"></div></div>
+<div id="adminBox" class="hidden">
+<div class="card"><h2>⚽ Матчевое событие</h2><div class="form">
+<div><label>Матч</label><select id="eventMatch"></select></div>
+<div><label>Игрок</label><select id="eventPlayer"></select></div>
+<div><label>Событие</label><select id="eventType"><option value="goal">⚽ Гол</option><option value="assist">🅰️ Ассист</option><option value="save">🧤 Сейв</option><option value="yellow">🟨 Жёлтая</option><option value="red">🟥 Красная</option></select></div>
+<div><label>Минута</label><input id="eventMinute" type="number" value="1" min="0"></div></div>
+<div class="actions"><button class="action" onclick="addEvent()">Добавить событие</button></div><div id="eventMsg"></div></div>
+
+<div class="card"><h2>Изменить статистику</h2><div class="form"><div><label>Игрок</label><select id="statPlayer"></select></div><div><label>Показатель</label><select id="statType"><option value="goals">Голы</option><option value="assists">Ассисты</option><option value="saves">Сейвы</option></select></div><div><label>Изменение</label><input id="statAmount" type="number" value="1"></div></div><div class="actions"><button class="action green" onclick="changeStatistic()">Изменить</button></div></div>
+
+<div class="card"><h2>🟨 🟥 Карточки</h2><div class="form"><div><label>Игрок</label><select id="cardPlayer"></select></div><div><label>Тип</label><select id="cardType"><option value="yellow">🟨 Жёлтая</option><option value="red">🟥 Красная</option></select></div><div><label>Изменение</label><input id="cardAmount" type="number" value="1"></div></div><div class="actions"><button class="action" onclick="changeCard()">Изменить карточку</button></div></div>
+
+<div class="card"><h2>Добавить матч</h2><div class="form"><div><label>Хозяева</label><select id="homeTeam"></select></div><div><label>Гости</label><select id="awayTeam"></select></div><div><label>Дата</label><input id="matchDate" type="datetime-local"></div><div><label>Статус</label><select id="matchStatus"><option value="scheduled">План</option><option value="live">LIVE</option><option value="finished">Завершён</option></select></div></div><button class="action" onclick="addMatch()">Добавить матч</button></div>
+
+<div class="card"><h2>Изменить матч</h2><div class="form"><div><label>Матч</label><select id="editMatch"></select></div><div><label>Счёт хозяев</label><input id="hs" type="number" value="0"></div><div><label>Счёт гостей</label><input id="as" type="number" value="0"></div><div><label>Статус</label><select id="es"><option value="scheduled">План</option><option value="live">LIVE</option><option value="finished">Завершён</option></select></div></div><button class="action" onclick="saveMatch()">Сохранить</button></div>
+
+<div class="card"><h2>Добавить команду</h2><input id="newTeam" placeholder="Название команды"><button class="action" onclick="addTeam()">Добавить</button></div>
+<div class="card"><h2>Добавить игрока</h2><div class="form"><div><label>Имя</label><input id="newPlayer" placeholder="Имя"></div><div><label>Номер</label><input id="newNumber" type="number" value="1"></div><div><label>Позиция</label><select id="newPosition"><option value="Qapıçı">Вратарь</option><option value="Müdafiə">Защитник</option><option value="Yarımmüdafiə">Полузащитник</option><option value="Hücum">Нападающий</option></select></div><div><label>Команда</label><select id="newPlayerTeam"></select></div></div><button class="action" onclick="addPlayer()">Добавить игрока</button></div>
+
+<div class="card"><h2>Push-уведомления</h2><div id="pushMsg" class="msg">Проверка...</div><button class="action" onclick="enablePush()">Включить уведомления</button><button class="action" onclick="testPush()">Тест</button></div>
+<button class="action red" onclick="logout()">Выйти</button>
+</div></section>
+</main>
+<script>
+const API="/api";let teams=[],players=[],matches=[],admin=false;
+const $=id=>document.getElementById(id),esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function api(path,opt={}){let r=await fetch(API+path,{credentials:"include",headers:{"Content-Type":"application/json"},...opt});let d={};try{d=await r.json()}catch{}if(!r.ok)throw Error(d.error||d.message||"Ошибка HTTP "+r.status);return d}
+function tn(id){let t=teams.find(x=>String(x.id)==String(id));return t?.name||t?.team_name||"—"}
+function pn(id){let p=players.find(x=>String(x.id)==String(id));return p?.name||p?.full_name||"—"}
+function n(x){return Number(x||0)}
+function norm(m){return {...m,hi:m.home_team_id??m.homeTeamId,ai:m.away_team_id??m.awayTeamId,hs:n(m.home_score??m.homeScore),as:n(m.away_score??m.awayScore),dt:m.match_date??m.date,st:(m.status||"scheduled").toLowerCase()}}
+function nav(){let a=[["home","Главная"],["matches","Матчи"],["table","Таблица"],["teams","Команды"],["players","Игроки"],["stats","Статистика"],["cards","Карточки"],["week","Команда недели"],["transfers","Трансферы"],["admin","Админ"]];$("nav").innerHTML=a.map(x=>`<button data-p="${x[0]}" onclick="go('${x[0]}')">${x[1]}</button>`).join("");$("nav button").classList.add("on")}
+function go(p){document.querySelectorAll(".page").forEach(x=>x.classList.remove("on"));$(p).classList.add("on");document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x.dataset.p==p));if(p=="week")loadWeek();if(p=="transfers")loadTransfers()}
+function match(m0){let m=norm(m0),hn=m.home_name||m.home_team_name||tn(m.hi),an=m.away_name||m.away_team_name||tn(m.ai),s=m.st=="live"?"LIVE":m.st=="finished"?"ЗАВЕРШЁН":"ПЛАН";let d=m.dt?new Date(m.dt).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}):"";return `<div class="match"><div class="teams"><b>${esc(hn)}</b><div><div class="score">${m.hs} : ${m.as}</div><span class="pill">${s}</span></div><b>${esc(an)}</b></div><div class="muted">${esc(d)}</div></div>`}
+function render(){let mm=[...matches].sort((a,b)=>new Date(b.match_date)-new Date(a.match_date));$("ct").textContent=teams.length;$("cp").textContent=players.length;$("cm").textContent=matches.length;$("cg").textContent=players.reduce((s,p)=>s+n(p.goals),0);$("matchList").innerHTML=mm.map(match).join("")||"<div class=card>Матчей нет</div>";$("recent").innerHTML=mm.slice(0,5).map(match).join("")||"<div>Матчей нет</div>";
+$("teamList").innerHTML=teams.map(t=>`<div class=card><h2>${esc(t.name||t.team_name)}</h2><span class=muted>${players.filter(p=>String(p.team_id)==String(t.id)).length} игроков</span></div>`).join("");
+$("playerList").innerHTML=players.map(p=>`<div class="card player">${p.photo?`<img class=avatar src="${esc(p.photo)}">`:`<div class=avatar></div>`}<div><b>${esc(p.name||p.full_name)}</b><div class=muted>#${esc(p.number??"—")} · ${esc(p.position||"—")} · ${esc(tn(p.team_id))}</div></div></div>`).join("");
+let r=teams.map(t=>({t,i:0,w:0,d:0,l:0,gf:0,ga:0})),map=new Map(r.map(x=>[String(x.t.id),x]));matches.forEach(z=>{let m=norm(z);if(m.st!="finished")return;let h=map.get(String(m.hi)),a=map.get(String(m.ai));if(!h||!a)return;h.i++;a.i++;h.gf+=m.hs;h.ga+=m.as;a.gf+=m.as;a.ga+=m.hs;if(m.hs>m.as){h.w++;a.l++}else if(m.hs<m.as){a.w++;h.l++}else{h.d++;a.d++}});r.sort((a,b)=>(b.w*3+b.d)-(a.w*3+a.d)||(b.gf-b.ga)-(a.gf-a.ga));$("tb").innerHTML=r.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.t.name||x.t.team_name)}</td><td>${x.i}</td><td>${x.w}</td><td>${x.d}</td><td>${x.l}</td><td>${x.gf}</td><td>${x.ga}</td><td>${x.gf-x.ga}</td><td><b>${x.w*3+x.d}</b></td></tr>`).join("");
+$("statList").innerHTML=players.map(p=>`<div class=card><b>${esc(p.name||p.full_name)}</b> · ${esc(tn(p.team_id))}<br>⚽ ${n(p.goals)} &nbsp; 🅰️ ${n(p.assists)} &nbsp; 🧤 ${n(p.saves)}</div>`).join("");
+$("cardList").innerHTML=players.map(p=>`<div class=card><b>${esc(p.name||p.full_name)}</b> · ${esc(tn(p.team_id))}<br>🟨 ${n(p.yellow_cards)} &nbsp; 🟥 ${n(p.red_cards)}</div>`).join("")}
+function fill(id,arr,fn,first="Выберите"){let e=$(id);if(!e)return;e.innerHTML=`<option value="">${first}</option>`+arr.map(x=>`<option value="${x.id}">${esc(fn(x))}</option>`).join("")}
+function forms(){fill("eventMatch",matches,m=>`${tn(m.home_team_id)} — ${tn(m.away_team_id)} (${n(m.home_score)}:${n(m.away_score)})`);fill("editMatch",matches,m=>`${tn(m.home_team_id)} — ${tn(m.away_team_id)}`);fill("eventPlayer",players,p=>`${p.name||p.full_name} — ${tn(p.team_id)}`);fill("statPlayer",players,p=>p.name||p.full_name);fill("cardPlayer",players,p=>p.name||p.full_name);fill("homeTeam",teams,t=>t.name||t.team_name);fill("awayTeam",teams,t=>t.name||t.team_name);fill("newPlayerTeam",teams,t=>t.name||t.team_name)}
+async function load(){try{let[t,p,m]=await Promise.all([api("/teams"),api("/players"),api("/matches")]);teams=Array.isArray(t)?t:t.teams||[];players=Array.isArray(p)?p:p.players||[];matches=Array.isArray(m)?m:m.matches||[];try{let q=await api("/admin/me");admin=!!(q.ok||q.admin||q.loggedIn)}catch{admin=false}render();forms();$("loginBox").classList.toggle("hidden",admin);$("adminBox").classList.toggle("hidden",!admin)}catch(e){document.body.insertAdjacentHTML("afterbegin",`<div class=msg>Ошибка загрузки: ${esc(e.message)}</div>`)}}
+async function login(){try{await api("/admin/login",{method:"POST",body:JSON.stringify({password:$("pass").value})});admin=true;$("loginMsg").textContent="Вход выполнен";$("loginBox").classList.add("hidden");$("adminBox").classList.remove("hidden");forms()}catch(e){$("loginMsg").textContent=e.message}}
+async function logout(){try{await api("/admin/logout",{method:"POST",body:"{}"})}catch{}admin=false;$("loginBox").classList.remove("hidden");$("adminBox").classList.add("hidden")}
+async function addEvent(){try{let matchId=$("eventMatch").value,playerId=$("eventPlayer").value,type=$("eventType").value,minute=n($("eventMinute").value);if(!matchId||!playerId)return alert("Выберите матч и игрока");await api(`/matches/${matchId}/events`,{method:"POST",body:JSON.stringify({type,player_id:Number(playerId),minute})});$("eventMsg").textContent="Событие добавлено";await load()}catch(e){$("eventMsg").textContent="Ошибка: "+e.message}}
+async function changeStatistic(){try{let player_id=n($("statPlayer").value),type=$("statType").value,amount=n($("statAmount").value);if(!player_id)return alert("Выберите игрока");await api("/statistics/change",{method:"POST",body:JSON.stringify({player_id,type,amount})});await load()}catch(e){alert("Ошибка статистики: "+e.message)}}
+async function changeCard(){try{let player_id=n($("cardPlayer").value),type=$("cardType").value,amount=n($("cardAmount").value);if(!player_id)return alert("Выберите игрока");await api("/cards/change",{method:"POST",body:JSON.stringify({player_id,type,amount})});await load()}catch(e){alert("Ошибка карточки: "+e.message)}}
+async function addTeam(){try{let name=$("newTeam").value.trim();if(!name)return;await api("/teams",{method:"POST",body:JSON.stringify({name})});$("newTeam").value="";await load()}catch(e){alert(e.message)}}
+async function addPlayer(){try{let b={name:$("newPlayer").value.trim(),number:n($("newNumber").value),position:$("newPosition").value,team_id:n($("newPlayerTeam").value)};if(!b.name||!b.team_id)return alert("Заполните игрока");await api("/players",{method:"POST",body:JSON.stringify(b)});await load()}catch(e){alert(e.message)}}
+async function addMatch(){try{let d=$("matchDate").value;if(!d)return alert("Выберите дату");let b={home_team_id:n($("homeTeam").value),away_team_id:n($("awayTeam").value),match_date:new Date(d).toISOString(),status:$("matchStatus").value,home_score:0,away_score:0};await api("/matches",{method:"POST",body:JSON.stringify(b)});await load()}catch(e){alert("Ошибка: "+e.message)}}
+$("editMatch").addEventListener("change",()=>{let m=matches.find(x=>String(x.id)==String($("editMatch").value));if(m){$("hs").value=n(m.home_score);$("as").value=n(m.away_score);$("es").value=m.status||"scheduled"}});
+async function saveMatch(){try{let id=$("editMatch").value;if(!id)return alert("Выберите матч");await api("/matches/"+id,{method:"PUT",body:JSON.stringify({home_score:n($("hs").value),away_score:n($("as").value),status:$("es").value})});await load()}catch(e){alert("Ошибка: "+e.message)}}
+async function loadWeek(){try{let d=await api("/team-of-week");let a=Array.isArray(d)?d:d.items||[];$("weekList").innerHTML=a.length?a.map(x=>`<div class=card>${esc(x.player_name||pn(x.player_id)||x.name)}</div>`).join(""):"<div class=card>Команда недели пока не создана.</div>"}catch(e){$("weekList").innerHTML=`<div class=card>${esc(e.message)}</div>`}}
+async function loadTransfers(){try{let d=await api("/transfers");let a=Array.isArray(d)?d:d.transfers||[];$("transferList").innerHTML=a.map(x=>`<div class=card><b>${esc(x.player_name||pn(x.player_id))}</b><br>${esc(x.from_team_name||tn(x.from_team_id))} → ${esc(x.to_team_name||tn(x.to_team_id))}</div>`).join("")||"<div class=card>Трансферов пока нет.</div>"}catch(e){$("transferList").innerHTML=`<div class=card>${esc(e.message)}</div>`}}
+function b64(s){let p="=".repeat((4-s.length%4)%4),x=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...x].map(c=>c.charCodeAt(0)))}
+async function pushStatus(){try{let d=await api("/push/public-key");$("pushMsg").textContent=d.enabled?"Push включён на сервере.":"VAPID не настроен на сервере."}catch(e){$("pushMsg").textContent=e.message}}
+async function enablePush(){try{let d=await api("/push/public-key");if(!d.enabled)return alert("На Render не настроен VAPID");let p=await Notification.requestPermission();if(p!="granted")return alert("Уведомления запрещены");let r=await navigator.serviceWorker.register("/service-worker.js");let s=await r.pushManager.getSubscription();if(!s)s=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64(d.publicKey)});await api("/push/subscribe",{method:"POST",body:JSON.stringify(s.toJSON())});$("pushMsg").textContent="Уведомления включены"}catch(e){alert("Push: "+e.message)}}
+async function testPush(){try{await api("/push/test",{method:"POST",body:"{}"});alert("Тест отправлен")}catch(e){alert("Push: "+e.message)}}
+nav();if("serviceWorker"in navigator)navigator.serviceWorker.register("/service-worker.js").catch(()=>{});pushStatus();load();setInterval(load,20000);
+</script>
+</body></html>
