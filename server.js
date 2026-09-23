@@ -7,6 +7,8 @@ const webpush = require("web-push");
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 const PORT = process.env.PORT || 10000;
 const DATABASE_URL = process.env.DATABASE_URL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -93,7 +95,7 @@ if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   }
 } else {
   console.log(
-    "Web Push: disabled - VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY missing"
+    "Web Push: disabled - VAPID keys missing"
   );
 }
 
@@ -115,12 +117,23 @@ function signAdminToken() {
 
 function requireAdmin(req, res, next) {
   try {
-    const token = req.cookies.aliscore_admin;
+    let token = req.cookies.aliscore_admin;
+
+    // Дополнительно принимаем Authorization: Bearer TOKEN
+    if (!token) {
+      const auth =
+        req.headers.authorization || "";
+
+      if (auth.startsWith("Bearer ")) {
+        token = auth.slice(7).trim();
+      }
+    }
 
     if (!token) {
       return res.status(401).json({
         ok: false,
-        error: "Admin login required"
+        error: "Admin login required",
+        code: "ADMIN_REQUIRED"
       });
     }
 
@@ -129,10 +142,14 @@ function requireAdmin(req, res, next) {
       JWT_SECRET
     );
 
-    if (decoded.role !== "admin") {
+    if (
+      !decoded ||
+      decoded.role !== "admin"
+    ) {
       return res.status(401).json({
         ok: false,
-        error: "Admin login required"
+        error: "Admin login required",
+        code: "ADMIN_REQUIRED"
       });
     }
 
@@ -140,15 +157,24 @@ function requireAdmin(req, res, next) {
 
     next();
   } catch (err) {
+    console.error(
+      "ADMIN AUTH ERROR:",
+      err.message
+    );
+
     return res.status(401).json({
       ok: false,
-      error: "Invalid admin session"
+      error: "Admin session expired",
+      code: "ADMIN_EXPIRED"
     });
   }
 }
 
 function cleanString(value) {
-  if (value === undefined || value === null) {
+  if (
+    value === undefined ||
+    value === null
+  ) {
     return "";
   }
 
@@ -198,25 +224,16 @@ async function query(text, params = []) {
   return pool.query(text, params);
 }
 
-async function playerTeamId(playerId) {
-  if (!playerId) {
-    return null;
-  }
+function eventStatColumn(type) {
+  const map = {
+    goal: "goals",
+    assist: "assists",
+    save: "saves",
+    yellow: "yellow_cards",
+    red: "red_cards"
+  };
 
-  const result = await query(
-    `
-      SELECT team_id
-      FROM players
-      WHERE id = $1
-    `,
-    [playerId]
-  );
-
-  if (!result.rows.length) {
-    return null;
-  }
-
-  return result.rows[0].team_id;
+  return map[type] || null;
 }
 
 async function createNotification(
@@ -260,16 +277,14 @@ async function sendPush(
   let subscriptions;
 
   try {
-    const result = await query(
-      `
-        SELECT
-          id,
-          endpoint,
-          p256dh,
-          auth
-        FROM push_subscriptions
-      `
-    );
+    const result = await query(`
+      SELECT
+        id,
+        endpoint,
+        p256dh,
+        auth
+      FROM push_subscriptions
+    `);
 
     subscriptions = result.rows;
   } catch (err) {
@@ -347,18 +362,6 @@ async function notify(
     body,
     data
   );
-}
-
-function eventStatColumn(type) {
-  const map = {
-    goal: "goals",
-    assist: "assists",
-    save: "saves",
-    yellow: "yellow_cards",
-    red: "red_cards"
-  };
-
-  return map[type] || null;
 }
 
 /* =========================================================
@@ -531,10 +534,6 @@ async function initDatabase() {
 
   /* =======================================================
      PLAYERS COMPATIBILITY
-     
-     IMPORTANT:
-     These columns are added to OLD production databases too.
-     This fixes position/number/team editing.
   ======================================================= */
 
   await query(`
@@ -557,7 +556,7 @@ async function initDatabase() {
         .includes("already exists")
     ) {
       console.log(
-        "players_team_id_fkey compatibility:",
+        "players_team_id_fkey:",
         err.message
       );
     }
@@ -613,7 +612,6 @@ async function initDatabase() {
     ADD COLUMN IF NOT EXISTS rating NUMERIC DEFAULT 0
   `);
 
-  /* Remove old 4,2 rating limitation if it exists */
   try {
     await query(`
       ALTER TABLE players
@@ -647,22 +645,22 @@ async function initDatabase() {
   `);
 
   /* =======================================================
-     MATCH EVENTS COMPATIBILITY
+     EVENTS COMPATIBILITY
   ======================================================= */
 
   await query(`
     ALTER TABLE match_events
-    ADD COLUMN IF NOT EXISTS team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL
+    ADD COLUMN IF NOT EXISTS team_id INTEGER
   `);
 
   await query(`
     ALTER TABLE match_events
-    ADD COLUMN IF NOT EXISTS player_id INTEGER REFERENCES players(id) ON DELETE SET NULL
+    ADD COLUMN IF NOT EXISTS player_id INTEGER
   `);
 
   await query(`
     ALTER TABLE match_events
-    ADD COLUMN IF NOT EXISTS type TEXT
+    ADD COLUMN IF NOT EXISTS type TEXT DEFAULT ''
   `);
 
   await query(`
@@ -720,118 +718,28 @@ async function seedData() {
   }
 
   const seedPlayers = [
-    [
-      "Xirdalan Wolves",
-      "Ali",
-      1,
-      "Qapıçı"
-    ],
-    [
-      "Xirdalan Wolves",
-      "Emin",
-      2,
-      "Müdafiə"
-    ],
-    [
-      "Xirdalan Wolves",
-      "Huseyin",
-      3,
-      "Müdafiə"
-    ],
-    [
-      "Xirdalan Wolves",
-      "Raul",
-      4,
-      "Hücum"
-    ],
+    ["Xirdalan Wolves", "Ali", 1, "Qapıçı"],
+    ["Xirdalan Wolves", "Emin", 2, "Müdafiə"],
+    ["Xirdalan Wolves", "Huseyin", 3, "Müdafiə"],
+    ["Xirdalan Wolves", "Raul", 4, "Hücum"],
 
-    [
-      "Xirdalan United",
-      "Amil",
-      1,
-      "Qapıçı"
-    ],
-    [
-      "Xirdalan United",
-      "Elmir",
-      2,
-      "Müdafiə"
-    ],
-    [
-      "Xirdalan United",
-      "İsa",
-      3,
-      "Yarımmüdafiə"
-    ],
-    [
-      "Xirdalan United",
-      "Ümüd",
-      4,
-      "Hücum"
-    ],
-    [
-      "Xirdalan United",
-      "Huseyin",
-      5,
-      "Müdafiə"
-    ],
+    ["Xirdalan United", "Amil", 1, "Qapıçı"],
+    ["Xirdalan United", "Elmir", 2, "Müdafiə"],
+    ["Xirdalan United", "İsa", 3, "Yarımmüdafiə"],
+    ["Xirdalan United", "Ümüd", 4, "Hücum"],
+    ["Xirdalan United", "Huseyin", 5, "Müdafiə"],
 
-    [
-      "MSN FK",
-      "Fuad",
-      1,
-      "Qapıçı"
-    ],
-    [
-      "MSN FK",
-      "Murad",
-      2,
-      "Müdafiə"
-    ],
+    ["MSN FK", "Fuad", 1, "Qapıçı"],
+    ["MSN FK", "Murad", 2, "Müdafiə"],
 
-    [
-      "Neweli FK",
-      "Tofik",
-      1,
-      "Qapıçı"
-    ],
-    [
-      "Neweli FK",
-      "Arda",
-      2,
-      "Müdafiə"
-    ],
-    [
-      "Neweli FK",
-      "Veli",
-      3,
-      "Yarımmüdafiə"
-    ],
-    [
-      "Neweli FK",
-      "Emil",
-      4,
-      "Hücum"
-    ],
+    ["Neweli FK", "Tofik", 1, "Qapıçı"],
+    ["Neweli FK", "Arda", 2, "Müdafiə"],
+    ["Neweli FK", "Veli", 3, "Yarımmüdafiə"],
+    ["Neweli FK", "Emil", 4, "Hücum"],
 
-    [
-      "Lotu pişiklər",
-      "Kamran",
-      1,
-      "Qapıçı"
-    ],
-    [
-      "Lotu pişiklər",
-      "Ayxan",
-      2,
-      "Müdafiə"
-    ],
-    [
-      "Lotu pişiklər",
-      "Ramil",
-      3,
-      "Hücum"
-    ]
+    ["Lotu pişiklər", "Kamran", 1, "Qapıçı"],
+    ["Lotu pişiklər", "Ayxan", 2, "Müdafiə"],
+    ["Lotu pişiklər", "Ramil", 3, "Hücum"]
   ];
 
   for (const item of seedPlayers) {
@@ -842,9 +750,7 @@ async function seedData() {
 
     const teamId = teamMap[teamName];
 
-    if (!teamId) {
-      continue;
-    }
+    if (!teamId) continue;
 
     const exists = await query(
       `
@@ -854,10 +760,7 @@ async function seedData() {
           AND LOWER(name) = LOWER($2)
         LIMIT 1
       `,
-      [
-        teamId,
-        playerName
-      ]
+      [teamId, playerName]
     );
 
     if (!exists.rows.length) {
@@ -888,308 +791,59 @@ async function seedData() {
    BASIC
 ========================================================= */
 
-app.get(
-  "/api/health",
-  async (req, res) => {
-    try {
-      await query("SELECT 1");
+app.get("/api/health", async (req, res) => {
+  try {
+    await query("SELECT 1");
 
-      res.json({
-        ok: true,
-        database: "connected"
-      });
-    } catch (err) {
-      res.status(500).json({
-        ok: false,
-        database: "error",
-        error: err.message
-      });
-    }
+    res.json({
+      ok: true,
+      database: "connected"
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      database: "error",
+      error: err.message
+    });
   }
-);
+});
 
-app.get(
-  "/api",
-  async (req, res) => {
-    try {
-      await query("SELECT 1");
+app.get("/api", async (req, res) => {
+  try {
+    await query("SELECT 1");
 
-      res.json({
-        ok: true,
-        api: "AliScore API",
-        database: "connected",
-        push: pushEnabled
-      });
-    } catch (err) {
-      res.status(500).json({
-        ok: false,
-        api: "AliScore API",
-        database: "error",
-        error: err.message
-      });
-    }
+    res.json({
+      ok: true,
+      api: "AliScore API",
+      database: "connected",
+      push: pushEnabled
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      api: "AliScore API",
+      database: "error",
+      error: err.message
+    });
   }
-);
+});
 
 /* =========================================================
    STATE
 ========================================================= */
 
-app.get(
-  "/api/state",
-  async (req, res) => {
-    try {
-      const [
-        teams,
-        players,
-        matches,
-        events,
-        notifications,
-        transfers,
-        teamOfWeek
-      ] = await Promise.all([
-        query(`
-          SELECT
-            t.*,
-            (
-              t.goals_for -
-              t.goals_against
-            ) AS goal_difference
-          FROM teams t
-          ORDER BY
-            t.points DESC,
-            (
-              t.goals_for -
-              t.goals_against
-            ) DESC,
-            t.goals_for DESC,
-            t.name ASC
-        `),
-
-        query(`
-          SELECT
-            p.*,
-            t.name AS team_name
-          FROM players p
-          LEFT JOIN teams t
-            ON t.id = p.team_id
-          ORDER BY
-            t.name ASC,
-            p.number ASC,
-            p.name ASC
-        `),
-
-        query(`
-          SELECT
-            m.*,
-            ht.name AS home_team_name,
-            at.name AS away_team_name
-          FROM matches m
-          LEFT JOIN teams ht
-            ON ht.id = m.home_team_id
-          LEFT JOIN teams at
-            ON at.id = m.away_team_id
-          ORDER BY
-            m.match_date DESC,
-            m.id DESC
-        `),
-
-        query(`
-          SELECT
-            e.*,
-            p.name AS player_name,
-            p.photo AS player_photo,
-            t.name AS team_name
-          FROM match_events e
-          LEFT JOIN players p
-            ON p.id = e.player_id
-          LEFT JOIN teams t
-            ON t.id = e.team_id
-          ORDER BY
-            e.created_at DESC,
-            e.id DESC
-        `),
-
-        query(`
-          SELECT *
-          FROM notifications
-          ORDER BY
-            created_at DESC,
-            id DESC
-          LIMIT 100
-        `),
-
-        query(`
-          SELECT
-            tr.*,
-            p.name AS player_name,
-            ft.name AS from_team_name,
-            tt.name AS to_team_name
-          FROM transfers tr
-          LEFT JOIN players p
-            ON p.id = tr.player_id
-          LEFT JOIN teams ft
-            ON ft.id = tr.from_team_id
-          LEFT JOIN teams tt
-            ON tt.id = tr.to_team_id
-          ORDER BY
-            tr.created_at DESC,
-            tr.id DESC
-          LIMIT 100
-        `),
-
-        query(`
-          SELECT
-            tw.*,
-            gp.name AS goalkeeper_name,
-            dp.name AS defender_name,
-            mp.name AS midfielder_name,
-            ap.name AS attacker_name
-          FROM team_of_week tw
-          LEFT JOIN players gp
-            ON gp.id = tw.goalkeeper_id
-          LEFT JOIN players dp
-            ON dp.id = tw.defender_id
-          LEFT JOIN players mp
-            ON mp.id = tw.midfielder_id
-          LEFT JOIN players ap
-            ON ap.id = tw.attacker_id
-          ORDER BY
-            tw.created_at DESC,
-            tw.id DESC
-        `)
-      ]);
-
-      res.json({
-        ok: true,
-        teams: teams.rows,
-        players: players.rows,
-        matches: matches.rows,
-        events: events.rows,
-        notifications: notifications.rows,
-        transfers: transfers.rows,
-        teamOfWeek: teamOfWeek.rows,
-        push: {
-          enabled: pushEnabled,
-          publicKey:
-            VAPID_PUBLIC_KEY || ""
-        }
-      });
-    } catch (err) {
-      console.error(
-        "State error:",
-        err
-      );
-
-      res.status(500).json({
-        ok: false,
-        error: err.message
-      });
-    }
-  }
-);
-
-/* =========================================================
-   ADMIN
-========================================================= */
-
-app.post(
-  "/api/admin/login",
-  (req, res) => {
-    const password =
-      cleanString(req.body.password);
-
-    if (password !== ADMIN_PASSWORD) {
-      return res.status(401).json({
-        ok: false,
-        error: "Yanlış şifrə"
-      });
-    }
-
-    const token =
-      signAdminToken();
-
-    res.cookie(
-      "aliscore_admin",
-      token,
-      {
-        httpOnly: true,
-        sameSite: "lax",
-        secure:
-          process.env.NODE_ENV ===
-          "production",
-        maxAge:
-          7 *
-          24 *
-          60 *
-          60 *
-          1000
-      }
-    );
-
-    res.json({
-      ok: true,
-      admin: true
-    });
-  }
-);
-
-app.get(
-  "/api/admin/me",
-  (req, res) => {
-    try {
-      const token =
-        req.cookies.aliscore_admin;
-
-      if (!token) {
-        return res.json({
-          ok: true,
-          admin: false
-        });
-      }
-
-      const decoded =
-        jwt.verify(
-          token,
-          JWT_SECRET
-        );
-
-      res.json({
-        ok: true,
-        admin:
-          decoded.role === "admin"
-      });
-    } catch (err) {
-      res.json({
-        ok: true,
-        admin: false
-      });
-    }
-  }
-);
-
-app.post(
-  "/api/admin/logout",
-  (req, res) => {
-    res.clearCookie(
-      "aliscore_admin"
-    );
-
-    res.json({
-      ok: true
-    });
-  }
-);
-
-/* =========================================================
-   TEAMS
-========================================================= */
-
-app.get(
-  "/api/teams",
-  async (req, res) => {
-    try {
-      const result = await query(`
+app.get("/api/state", async (req, res) => {
+  try {
+    const [
+      teams,
+      players,
+      matches,
+      events,
+      notifications,
+      transfers,
+      teamOfWeek
+    ] = await Promise.all([
+      query(`
         SELECT
           t.*,
           (
@@ -1205,20 +859,262 @@ app.get(
           ) DESC,
           t.goals_for DESC,
           t.name ASC
-      `);
+      `),
 
-      res.json({
+      query(`
+        SELECT
+          p.*,
+          t.name AS team_name
+        FROM players p
+        LEFT JOIN teams t
+          ON t.id = p.team_id
+        ORDER BY
+          t.name ASC,
+          p.number ASC,
+          p.name ASC
+      `),
+
+      query(`
+        SELECT
+          m.*,
+          ht.name AS home_team_name,
+          ht.logo AS home_team_logo,
+          at.name AS away_team_name,
+          at.logo AS away_team_logo
+        FROM matches m
+        LEFT JOIN teams ht
+          ON ht.id = m.home_team_id
+        LEFT JOIN teams at
+          ON at.id = m.away_team_id
+        ORDER BY
+          m.match_date DESC,
+          m.id DESC
+      `),
+
+      query(`
+        SELECT
+          e.*,
+          p.name AS player_name,
+          p.photo AS player_photo,
+          t.name AS team_name
+        FROM match_events e
+        LEFT JOIN players p
+          ON p.id = e.player_id
+        LEFT JOIN teams t
+          ON t.id = e.team_id
+        ORDER BY
+          e.created_at DESC,
+          e.id DESC
+      `),
+
+      query(`
+        SELECT *
+        FROM notifications
+        ORDER BY
+          created_at DESC,
+          id DESC
+        LIMIT 100
+      `),
+
+      query(`
+        SELECT
+          tr.*,
+          p.name AS player_name,
+          ft.name AS from_team_name,
+          tt.name AS to_team_name
+        FROM transfers tr
+        LEFT JOIN players p
+          ON p.id = tr.player_id
+        LEFT JOIN teams ft
+          ON ft.id = tr.from_team_id
+        LEFT JOIN teams tt
+          ON tt.id = tr.to_team_id
+        ORDER BY
+          tr.created_at DESC,
+          tr.id DESC
+        LIMIT 100
+      `),
+
+      query(`
+        SELECT
+          tw.*,
+          gp.name AS goalkeeper_name,
+          dp.name AS defender_name,
+          mp.name AS midfielder_name,
+          ap.name AS attacker_name
+        FROM team_of_week tw
+        LEFT JOIN players gp
+          ON gp.id = tw.goalkeeper_id
+        LEFT JOIN players dp
+          ON dp.id = tw.defender_id
+        LEFT JOIN players mp
+          ON mp.id = tw.midfielder_id
+        LEFT JOIN players ap
+          ON ap.id = tw.attacker_id
+        ORDER BY
+          tw.created_at DESC,
+          tw.id DESC
+      `)
+    ]);
+
+    res.json({
+      ok: true,
+      teams: teams.rows,
+      players: players.rows,
+      matches: matches.rows,
+      events: events.rows,
+      notifications: notifications.rows,
+      transfers: transfers.rows,
+      teamOfWeek: teamOfWeek.rows,
+      push: {
+        enabled: pushEnabled,
+        publicKey: VAPID_PUBLIC_KEY || ""
+      }
+    });
+  } catch (err) {
+    console.error("State error:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
+
+/* =========================================================
+   ADMIN
+========================================================= */
+
+app.post("/api/admin/login", (req, res) => {
+  const password = cleanString(
+    req.body.password
+  );
+
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({
+      ok: false,
+      error: "Yanlış şifrə"
+    });
+  }
+
+  const token = signAdminToken();
+
+  res.cookie(
+    "aliscore_admin",
+    token,
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: true,
+      path: "/",
+      maxAge:
+        7 *
+        24 *
+        60 *
+        60 *
+        1000
+    }
+  );
+
+  res.json({
+    ok: true,
+    admin: true,
+    token
+  });
+});
+
+app.get("/api/admin/me", (req, res) => {
+  try {
+    let token =
+      req.cookies.aliscore_admin;
+
+    if (!token) {
+      const auth =
+        req.headers.authorization || "";
+
+      if (auth.startsWith("Bearer ")) {
+        token =
+          auth.slice(7).trim();
+      }
+    }
+
+    if (!token) {
+      return res.json({
         ok: true,
-        teams: result.rows
-      });
-    } catch (err) {
-      res.status(500).json({
-        ok: false,
-        error: err.message
+        admin: false
       });
     }
+
+    const decoded =
+      jwt.verify(
+        token,
+        JWT_SECRET
+      );
+
+    res.json({
+      ok: true,
+      admin:
+        decoded.role === "admin"
+    });
+  } catch (err) {
+    res.json({
+      ok: true,
+      admin: false
+    });
+  }
+});
+
+app.post(
+  "/api/admin/logout",
+  (req, res) => {
+    res.clearCookie(
+      "aliscore_admin",
+      {
+        path: "/"
+      }
+    );
+
+    res.json({
+      ok: true
+    });
   }
 );
+
+/* =========================================================
+   TEAMS
+========================================================= */
+
+app.get("/api/teams", async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT
+        t.*,
+        (
+          t.goals_for -
+          t.goals_against
+        ) AS goal_difference
+      FROM teams t
+      ORDER BY
+        t.points DESC,
+        (
+          t.goals_for -
+          t.goals_against
+        ) DESC,
+        t.goals_for DESC,
+        t.name ASC
+    `);
+
+    res.json({
+      ok: true,
+      teams: result.rows
+    });
+  } catch (err) {
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
 
 app.post(
   "/api/teams",
@@ -1247,10 +1143,7 @@ app.post(
             ($1, $2)
           RETURNING *
         `,
-        [
-          name,
-          logo
-        ]
+        [name, logo]
       );
 
       res.json({
@@ -1266,77 +1159,10 @@ app.post(
   }
 );
 
-async function updateTeam(
-  req,
-  res
-) {
+async function updateTeam(req, res) {
   try {
     const id =
       intValue(req.params.id);
-
-    const name =
-      req.body.name !== undefined
-        ? cleanString(
-            req.body.name
-          )
-        : undefined;
-
-    const logo =
-      req.body.logo !== undefined
-        ? cleanString(
-            req.body.logo
-          )
-        : undefined;
-
-    const points =
-      req.body.points !== undefined
-        ? intValue(
-            req.body.points
-          )
-        : undefined;
-
-    const played =
-      req.body.played !== undefined
-        ? intValue(
-            req.body.played
-          )
-        : undefined;
-
-    const wins =
-      req.body.wins !== undefined
-        ? intValue(
-            req.body.wins
-          )
-        : undefined;
-
-    const draws =
-      req.body.draws !== undefined
-        ? intValue(
-            req.body.draws
-          )
-        : undefined;
-
-    const losses =
-      req.body.losses !== undefined
-        ? intValue(
-            req.body.losses
-          )
-        : undefined;
-
-    const goalsFor =
-      req.body.goals_for !== undefined
-        ? intValue(
-            req.body.goals_for
-          )
-        : undefined;
-
-    const goalsAgainst =
-      req.body.goals_against !==
-      undefined
-        ? intValue(
-            req.body.goals_against
-          )
-        : undefined;
 
     const current =
       await query(
@@ -1359,6 +1185,51 @@ async function updateTeam(
     const old =
       current.rows[0];
 
+    const name =
+      req.body.name !== undefined
+        ? cleanString(req.body.name)
+        : old.name;
+
+    const logo =
+      req.body.logo !== undefined
+        ? cleanString(req.body.logo)
+        : old.logo;
+
+    const points =
+      req.body.points !== undefined
+        ? intValue(req.body.points)
+        : old.points;
+
+    const played =
+      req.body.played !== undefined
+        ? intValue(req.body.played)
+        : old.played;
+
+    const wins =
+      req.body.wins !== undefined
+        ? intValue(req.body.wins)
+        : old.wins;
+
+    const draws =
+      req.body.draws !== undefined
+        ? intValue(req.body.draws)
+        : old.draws;
+
+    const losses =
+      req.body.losses !== undefined
+        ? intValue(req.body.losses)
+        : old.losses;
+
+    const goalsFor =
+      req.body.goals_for !== undefined
+        ? intValue(req.body.goals_for)
+        : old.goals_for;
+
+    const goalsAgainst =
+      req.body.goals_against !== undefined
+        ? intValue(req.body.goals_against)
+        : old.goals_against;
+
     const result =
       await query(
         `
@@ -1377,50 +1248,22 @@ async function updateTeam(
           RETURNING *
         `,
         [
-          name !== undefined
-            ? name
-            : old.name,
-
-          logo !== undefined
-            ? logo
-            : old.logo,
-
-          points !== undefined
-            ? points
-            : old.points,
-
-          played !== undefined
-            ? played
-            : old.played,
-
-          wins !== undefined
-            ? wins
-            : old.wins,
-
-          draws !== undefined
-            ? draws
-            : old.draws,
-
-          losses !== undefined
-            ? losses
-            : old.losses,
-
-          goalsFor !== undefined
-            ? goalsFor
-            : old.goals_for,
-
-          goalsAgainst !== undefined
-            ? goalsAgainst
-            : old.goals_against,
-
+          name,
+          logo,
+          points,
+          played,
+          wins,
+          draws,
+          losses,
+          goalsFor,
+          goalsAgainst,
           id
         ]
       );
 
     res.json({
       ok: true,
-      team:
-        result.rows[0]
+      team: result.rows[0]
     });
   } catch (err) {
     res.status(400).json({
@@ -1482,7 +1325,8 @@ app.get(
         await query(`
           SELECT
             p.*,
-            t.name AS team_name
+            t.name AS team_name,
+            t.logo AS team_logo
           FROM players p
           LEFT JOIN teams t
             ON t.id = p.team_id
@@ -1494,10 +1338,14 @@ app.get(
 
       res.json({
         ok: true,
-        players:
-          result.rows
+        players: result.rows
       });
     } catch (err) {
+      console.error(
+        "GET PLAYERS ERROR:",
+        err
+      );
+
       res.status(500).json({
         ok: false,
         error: err.message
@@ -1513,7 +1361,9 @@ app.post(
     try {
       const teamId =
         nullableInt(
-          req.body.team_id
+          req.body.team_id !== undefined
+            ? req.body.team_id
+            : req.body.teamId
         );
 
       const name =
@@ -1523,13 +1373,20 @@ app.post(
 
       const number =
         intValue(
-          req.body.number
+          req.body.number !== undefined
+            ? req.body.number
+            : req.body.player_number
         );
 
+      const rawPosition =
+        req.body.position !== undefined
+          ? req.body.position
+          : req.body.player_position !== undefined
+            ? req.body.player_position
+            : req.body.role;
+
       const position =
-        cleanString(
-          req.body.position
-        );
+        cleanString(rawPosition);
 
       const photo =
         cleanString(
@@ -1542,6 +1399,26 @@ app.post(
           error:
             "Oyunçu adı tələb olunur"
         });
+      }
+
+      if (teamId !== null) {
+        const team =
+          await query(
+            `
+              SELECT id
+              FROM teams
+              WHERE id = $1
+            `,
+            [teamId]
+          );
+
+        if (!team.rows.length) {
+          return res.status(400).json({
+            ok: false,
+            error:
+              "Komanda tapılmadı"
+          });
+        }
       }
 
       const result =
@@ -1568,15 +1445,22 @@ app.post(
           ]
         );
 
-      res.json({
+      res.status(201).json({
         ok: true,
         player:
           result.rows[0]
       });
     } catch (err) {
+      console.error(
+        "ADD PLAYER ERROR:",
+        err
+      );
+
       res.status(400).json({
         ok: false,
-        error: err.message
+        error:
+          err.message ||
+          "Oyunçu əlavə edilmədi"
       });
     }
   }
@@ -1624,93 +1508,64 @@ async function updatePlayer(
       current.rows[0];
 
     const teamId =
-      req.body.team_id !==
-      undefined
-        ? nullableInt(
-            req.body.team_id
-          )
-        : old.team_id;
+      req.body.team_id !== undefined
+        ? nullableInt(req.body.team_id)
+        : req.body.teamId !== undefined
+          ? nullableInt(req.body.teamId)
+          : old.team_id;
 
     const name =
       req.body.name !== undefined
-        ? cleanString(
-            req.body.name
-          )
+        ? cleanString(req.body.name)
         : old.name;
 
     const number =
-      req.body.number !==
-      undefined
-        ? intValue(
-            req.body.number
-          )
-        : old.number;
-
-    /*
-      Accept all common frontend names:
-      position
-      player_position
-      role
-    */
+      req.body.number !== undefined
+        ? intValue(req.body.number)
+        : req.body.player_number !== undefined
+          ? intValue(req.body.player_number)
+          : old.number;
 
     const rawPosition =
-      req.body.position !==
-      undefined
+      req.body.position !== undefined
         ? req.body.position
-        : req.body.player_position !==
-          undefined
+        : req.body.player_position !== undefined
           ? req.body.player_position
           : req.body.role;
 
     const position =
       rawPosition !== undefined
-        ? cleanString(
-            rawPosition
-          )
+        ? cleanString(rawPosition)
         : old.position;
 
     const photo =
       req.body.photo !== undefined
-        ? cleanString(
-            req.body.photo
-          )
+        ? cleanString(req.body.photo)
         : old.photo;
 
     const goals =
       req.body.goals !== undefined
-        ? intValue(
-            req.body.goals
-          )
+        ? intValue(req.body.goals)
         : old.goals;
 
     const assists =
       req.body.assists !== undefined
-        ? intValue(
-            req.body.assists
-          )
+        ? intValue(req.body.assists)
         : old.assists;
 
     const saves =
       req.body.saves !== undefined
-        ? intValue(
-            req.body.saves
-          )
+        ? intValue(req.body.saves)
         : old.saves;
 
     const yellowCards =
-      req.body.yellow_cards !==
-      undefined
-        ? intValue(
-            req.body.yellow_cards
-          )
+      req.body.yellow_cards !== undefined
+        ? intValue(req.body.yellow_cards)
         : old.yellow_cards;
 
     const redCards =
-      req.body.red_cards !==
-      undefined
-        ? intValue(
-            req.body.red_cards
-          )
+      req.body.red_cards !== undefined
+        ? intValue(req.body.red_cards)
         : old.red_cards;
 
     let rating =
@@ -1743,6 +1598,26 @@ async function updatePlayer(
 
     if (!Number.isFinite(rating)) {
       rating = 0;
+    }
+
+    if (teamId !== null) {
+      const team =
+        await query(
+          `
+            SELECT id
+            FROM teams
+            WHERE id = $1
+          `,
+          [teamId]
+        );
+
+      if (!team.rows.length) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Komanda tapılmadı"
+        });
+      }
     }
 
     const result =
@@ -1820,6 +1695,14 @@ app.delete(
       const id =
         intValue(req.params.id);
 
+      if (!id) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Yanlış oyunçu ID-si"
+        });
+      }
+
       await query(
         `
           DELETE FROM players
@@ -1832,6 +1715,11 @@ app.delete(
         ok: true
       });
     } catch (err) {
+      console.error(
+        "DELETE PLAYER ERROR:",
+        err
+      );
+
       res.status(400).json({
         ok: false,
         error: err.message
@@ -1872,6 +1760,11 @@ app.get(
           result.rows
       });
     } catch (err) {
+      console.error(
+        "GET MATCHES ERROR:",
+        err
+      );
+
       res.status(500).json({
         ok: false,
         error: err.message
@@ -1887,22 +1780,30 @@ app.post(
     try {
       const homeTeamId =
         nullableInt(
-          req.body.home_team_id
+          req.body.home_team_id !== undefined
+            ? req.body.home_team_id
+            : req.body.homeTeamId
         );
 
       const awayTeamId =
         nullableInt(
-          req.body.away_team_id
+          req.body.away_team_id !== undefined
+            ? req.body.away_team_id
+            : req.body.awayTeamId
         );
 
       const homeScore =
         intValue(
-          req.body.home_score
+          req.body.home_score !== undefined
+            ? req.body.home_score
+            : req.body.homeScore
         );
 
       const awayScore =
         intValue(
-          req.body.away_score
+          req.body.away_score !== undefined
+            ? req.body.away_score
+            : req.body.awayScore
         );
 
       const status =
@@ -1912,6 +1813,7 @@ app.post(
 
       const matchDate =
         req.body.match_date ||
+        req.body.matchDate ||
         new Date().toISOString();
 
       const venue =
@@ -1938,6 +1840,29 @@ app.post(
           ok: false,
           error:
             "Eyni komanda ilə matç yaratmaq olmaz"
+        });
+      }
+
+      const teams =
+        await query(
+          `
+            SELECT id
+            FROM teams
+            WHERE id = ANY($1)
+          `,
+          [[
+            homeTeamId,
+            awayTeamId
+          ]]
+        );
+
+      if (
+        teams.rows.length !== 2
+      ) {
+        return res.status(400).json({
+          ok: false,
+          error:
+            "Seçilmiş komandalar tapılmadı"
         });
       }
 
@@ -1969,15 +1894,22 @@ app.post(
           ]
         );
 
-      res.json({
+      res.status(201).json({
         ok: true,
         match:
           result.rows[0]
       });
     } catch (err) {
+      console.error(
+        "ADD MATCH ERROR:",
+        err
+      );
+
       res.status(400).json({
         ok: false,
-        error: err.message
+        error:
+          err.message ||
+          "Matç əlavə edilmədi"
       });
     }
   }
@@ -2013,58 +1945,51 @@ async function updateMatch(
       current.rows[0];
 
     const homeTeamId =
-      req.body.home_team_id !==
-      undefined
-        ? nullableInt(
-            req.body.home_team_id
-          )
+      req.body.home_team_id !== undefined
+        ? nullableInt(req.body.home_team_id)
         : old.home_team_id;
 
     const awayTeamId =
-      req.body.away_team_id !==
-      undefined
-        ? nullableInt(
-            req.body.away_team_id
-          )
+      req.body.away_team_id !== undefined
+        ? nullableInt(req.body.away_team_id)
         : old.away_team_id;
 
     const homeScore =
-      req.body.home_score !==
-      undefined
-        ? intValue(
-            req.body.home_score
-          )
+      req.body.home_score !== undefined
+        ? intValue(req.body.home_score)
         : old.home_score;
 
     const awayScore =
-      req.body.away_score !==
-      undefined
-        ? intValue(
-            req.body.away_score
-          )
+      req.body.away_score !== undefined
+        ? intValue(req.body.away_score)
         : old.away_score;
 
     const status =
-      req.body.status !==
-      undefined
-        ? cleanString(
-            req.body.status
-          )
+      req.body.status !== undefined
+        ? cleanString(req.body.status)
         : old.status;
 
     const matchDate =
-      req.body.match_date !==
-      undefined
+      req.body.match_date !== undefined
         ? req.body.match_date
         : old.match_date;
 
     const venue =
-      req.body.venue !==
-      undefined
-        ? cleanString(
-            req.body.venue
-          )
+      req.body.venue !== undefined
+        ? cleanString(req.body.venue)
         : old.venue;
+
+    if (
+      homeTeamId &&
+      awayTeamId &&
+      homeTeamId === awayTeamId
+    ) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          "Eyni komanda ilə matç yaratmaq olmaz"
+      });
+    }
 
     const result =
       await query(
@@ -2099,6 +2024,11 @@ async function updateMatch(
         result.rows[0]
     });
   } catch (err) {
+    console.error(
+      "UPDATE MATCH ERROR:",
+      err
+    );
+
     res.status(400).json({
       ok: false,
       error: err.message
@@ -2138,6 +2068,11 @@ app.delete(
         ok: true
       });
     } catch (err) {
+      console.error(
+        "DELETE MATCH ERROR:",
+        err
+      );
+
       res.status(400).json({
         ok: false,
         error: err.message
@@ -2147,7 +2082,7 @@ app.delete(
 );
 
 /* =========================================================
-   MATCH EVENTS / HADİSƏLƏR
+   MATCH EVENTS
 ========================================================= */
 
 app.get(
@@ -2155,9 +2090,7 @@ app.get(
   async (req, res) => {
     try {
       const matchId =
-        intValue(
-          req.params.matchId
-        );
+        intValue(req.params.matchId);
 
       const result =
         await query(
@@ -2189,6 +2122,11 @@ app.get(
           result.rows
       });
     } catch (err) {
+      console.error(
+        "GET EVENTS ERROR:",
+        err
+      );
+
       res.status(500).json({
         ok: false,
         error: err.message
@@ -2196,6 +2134,10 @@ app.get(
     }
   }
 );
+
+/* =========================================================
+   ADD EVENT
+========================================================= */
 
 app.post(
   "/api/matches/:matchId/events",
@@ -2213,16 +2155,20 @@ app.post(
       const type =
         cleanString(
           req.body.type
-        );
+        ).toLowerCase();
 
       const playerId =
         nullableInt(
-          req.body.player_id
+          req.body.player_id !== undefined
+            ? req.body.player_id
+            : req.body.playerId
         );
 
       let teamId =
         nullableInt(
-          req.body.team_id
+          req.body.team_id !== undefined
+            ? req.body.team_id
+            : req.body.teamId
         );
 
       const minute =
@@ -2253,9 +2199,7 @@ app.post(
         });
       }
 
-      await client.query(
-        "BEGIN"
-      );
+      await client.query("BEGIN");
 
       const matchResult =
         await client.query(
@@ -2277,6 +2221,10 @@ app.post(
       const match =
         matchResult.rows[0];
 
+      /*
+        Əgər frontend komandanı göndərməyibsə,
+        oyunçunun komandasını avtomatik götürürük.
+      */
       if (
         !teamId &&
         playerId
@@ -2340,11 +2288,11 @@ app.post(
           );
         }
 
+        const player =
+          playerResult.rows[0];
+
         if (
-          Number(
-            playerResult.rows[0]
-              .team_id
-          ) !==
+          Number(player.team_id) !==
           Number(teamId)
         ) {
           throw new Error(
@@ -2446,9 +2394,7 @@ app.post(
           scoreResult.rows[0];
       }
 
-      await client.query(
-        "COMMIT"
-      );
+      await client.query("COMMIT");
 
       let notificationTitle =
         "AliScore";
@@ -2461,25 +2407,7 @@ app.post(
           "⚽ QOL!";
 
         notificationBody =
-          playerId
-            ? `Yeni qol hadisəsi — ${matchId}.`
-            : "Matçda yeni qol!";
-      }
-
-      if (type === "yellow") {
-        notificationTitle =
-          "🟨 Sarı kart";
-
-        notificationBody =
-          "Oyunçu sarı kart aldı.";
-      }
-
-      if (type === "red") {
-        notificationTitle =
-          "🟥 Qırmızı kart";
-
-        notificationBody =
-          "Oyunçu qırmızı kart aldı.";
+          "Matçda yeni qol!";
       }
 
       if (type === "assist") {
@@ -2498,23 +2426,37 @@ app.post(
           "Yeni seyv qeydə alındı.";
       }
 
-      if (
-        type === "goal" ||
-        type === "yellow" ||
-        type === "red"
-      ) {
-        await notify(
-          type,
-          notificationTitle,
-          notificationBody,
-          {
-            matchId,
-            eventId: event.id,
-            playerId,
-            teamId
-          }
-        );
+      if (type === "yellow") {
+        notificationTitle =
+          "🟨 Sarı kart";
+
+        notificationBody =
+          "Oyunçu sarı kart aldı.";
       }
+
+      if (type === "red") {
+        notificationTitle =
+          "🟥 Qırmızı kart";
+
+        notificationBody =
+          "Oyunçu qırmızı kart aldı.";
+      }
+
+      /*
+        Artıq bütün hadisələr üçün
+        notification yaradılır.
+      */
+      await notify(
+        type,
+        notificationTitle,
+        notificationBody,
+        {
+          matchId,
+          eventId: event.id,
+          playerId,
+          teamId
+        }
+      );
 
       const fullEventResult =
         await query(
@@ -2523,7 +2465,10 @@ app.post(
               e.*,
               p.name AS player_name,
               p.photo AS player_photo,
-              t.name AS team_name
+              p.number AS player_number,
+              p.position AS player_position,
+              t.name AS team_name,
+              t.logo AS team_logo
             FROM match_events e
             LEFT JOIN players p
               ON p.id = e.player_id
@@ -2534,7 +2479,7 @@ app.post(
           [event.id]
         );
 
-      res.json({
+      res.status(201).json({
         ok: true,
         event:
           fullEventResult.rows[0],
@@ -2549,13 +2494,15 @@ app.post(
       } catch (_) {}
 
       console.error(
-        "Event POST error:",
+        "ADD EVENT ERROR:",
         err
       );
 
       res.status(400).json({
         ok: false,
-        error: err.message
+        error:
+          err.message ||
+          "Hadisə əlavə edilmədi"
       });
     } finally {
       client.release();
@@ -2585,9 +2532,7 @@ app.patch(
           req.params.eventId
         );
 
-      await client.query(
-        "BEGIN"
-      );
+      await client.query("BEGIN");
 
       const matchResult =
         await client.query(
@@ -2638,43 +2583,28 @@ app.patch(
         oldResult.rows[0];
 
       const type =
-        req.body.type !==
-        undefined
-          ? cleanString(
-              req.body.type
-            )
+        req.body.type !== undefined
+          ? cleanString(req.body.type).toLowerCase()
           : oldEvent.type;
 
       const playerId =
-        req.body.player_id !==
-        undefined
-          ? nullableInt(
-              req.body.player_id
-            )
+        req.body.player_id !== undefined
+          ? nullableInt(req.body.player_id)
           : oldEvent.player_id;
 
       let teamId =
-        req.body.team_id !==
-        undefined
-          ? nullableInt(
-              req.body.team_id
-            )
+        req.body.team_id !== undefined
+          ? nullableInt(req.body.team_id)
           : oldEvent.team_id;
 
       const minute =
-        req.body.minute !==
-        undefined
-          ? intValue(
-              req.body.minute
-            )
+        req.body.minute !== undefined
+          ? intValue(req.body.minute)
           : oldEvent.minute;
 
       const note =
-        req.body.note !==
-        undefined
-          ? cleanString(
-              req.body.note
-            )
+        req.body.note !== undefined
+          ? cleanString(req.body.note)
           : oldEvent.note;
 
       const allowedTypes = [
@@ -2686,9 +2616,7 @@ app.patch(
       ];
 
       if (
-        !allowedTypes.includes(
-          type
-        )
+        !allowedTypes.includes(type)
       ) {
         throw new Error(
           "Yanlış hadisə tipi"
@@ -2765,7 +2693,7 @@ app.patch(
         }
       }
 
-      /* Remove old statistic */
+      /* Remove old stat */
 
       const oldStat =
         eventStatColumn(
@@ -2798,8 +2726,7 @@ app.patch(
       /* Remove old goal */
 
       if (
-        oldEvent.type ===
-        "goal"
+        oldEvent.type === "goal"
       ) {
         const oldHome =
           Number(
@@ -2873,7 +2800,7 @@ app.patch(
       const updatedEvent =
         updatedResult.rows[0];
 
-      /* Add new statistic */
+      /* Add new stat */
 
       const newStat =
         eventStatColumn(type);
@@ -2898,9 +2825,7 @@ app.patch(
 
       /* Add new goal */
 
-      if (
-        type === "goal"
-      ) {
+      if (type === "goal") {
         const homeAdd =
           Number(teamId) ===
           Number(
@@ -2945,9 +2870,7 @@ app.patch(
           [matchId]
         );
 
-      await client.query(
-        "COMMIT"
-      );
+      await client.query("COMMIT");
 
       const fullEventResult =
         await query(
@@ -2956,6 +2879,8 @@ app.patch(
               e.*,
               p.name AS player_name,
               p.photo AS player_photo,
+              p.number AS player_number,
+              p.position AS player_position,
               t.name AS team_name,
               t.logo AS team_logo
             FROM match_events e
@@ -2983,13 +2908,14 @@ app.patch(
       } catch (_) {}
 
       console.error(
-        "Event PATCH error:",
+        "UPDATE EVENT ERROR:",
         err
       );
 
       res.status(400).json({
         ok: false,
-        error: err.message
+        error:
+          err.message
       });
     } finally {
       client.release();
@@ -3019,9 +2945,7 @@ app.delete(
           req.params.eventId
         );
 
-      await client.query(
-        "BEGIN"
-      );
+      await client.query("BEGIN");
 
       const matchResult =
         await client.query(
@@ -3095,16 +3019,17 @@ app.delete(
       }
 
       if (
-        event.type ===
-        "goal"
+        event.type === "goal"
       ) {
+        const match =
+          matchResult.rows[0];
+
         const home =
           Number(
             event.team_id
           ) ===
           Number(
-            matchResult.rows[0]
-              .home_team_id
+            match.home_team_id
           )
             ? 1
             : 0;
@@ -3114,8 +3039,7 @@ app.delete(
             event.team_id
           ) ===
           Number(
-            matchResult.rows[0]
-              .away_team_id
+            match.away_team_id
           )
             ? 1
             : 0;
@@ -3166,9 +3090,7 @@ app.delete(
           [matchId]
         );
 
-      await client.query(
-        "COMMIT"
-      );
+      await client.query("COMMIT");
 
       res.json({
         ok: true,
@@ -3185,13 +3107,14 @@ app.delete(
       } catch (_) {}
 
       console.error(
-        "Event DELETE error:",
+        "DELETE EVENT ERROR:",
         err
       );
 
       res.status(400).json({
         ok: false,
-        error: err.message
+        error:
+          err.message
       });
     } finally {
       client.release();
@@ -3554,9 +3477,13 @@ app.post(
           req.body.note
         );
 
-      await client.query(
-        "BEGIN"
-      );
+      if (!playerId || !toTeamId) {
+        throw new Error(
+          "Oyunçu və yeni komanda seçilməlidir"
+        );
+      }
+
+      await client.query("BEGIN");
 
       const playerResult =
         await client.query(
@@ -3581,9 +3508,7 @@ app.post(
         playerResult.rows[0];
 
       if (
-        Number(
-          player.team_id
-        ) ===
+        Number(player.team_id) ===
         Number(toTeamId)
       ) {
         throw new Error(
@@ -3646,9 +3571,7 @@ app.post(
           ]
         );
 
-      await client.query(
-        "COMMIT"
-      );
+      await client.query("COMMIT");
 
       await notify(
         "transfer",
@@ -3715,20 +3638,16 @@ app.get(
           FROM team_of_week tw
 
           LEFT JOIN players gp
-            ON gp.id =
-              tw.goalkeeper_id
+            ON gp.id = tw.goalkeeper_id
 
           LEFT JOIN players dp
-            ON dp.id =
-              tw.defender_id
+            ON dp.id = tw.defender_id
 
           LEFT JOIN players mp
-            ON mp.id =
-              tw.midfielder_id
+            ON mp.id = tw.midfielder_id
 
           LEFT JOIN players ap
-            ON ap.id =
-              tw.attacker_id
+            ON ap.id = tw.attacker_id
 
           ORDER BY
             tw.created_at DESC,
@@ -4079,16 +3998,13 @@ app.get(
                 type: "window",
                 includeUncontrolled: true
               })
-              .then(function(
-                clientList
-              ) {
+              .then(function(clientList) {
                 for (
                   const client of
                     clientList
                 ) {
                   if (
-                    "focus" in
-                    client
+                    "focus" in client
                   ) {
                     return client.focus();
                   }
