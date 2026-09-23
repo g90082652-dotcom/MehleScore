@@ -231,6 +231,8 @@ async function saveMatchDetails(id){
  }catch(e){alert("❌ "+e.message)}
 }
 async function addDetailedEvent(id){
+ async function editDetailedEvent(...)
+ async function deleteDetailedEvent(...)
  try{
   const type=$("detailEventType").value,teamId=Number($("detailEventTeam").value),playerId=Number($("detailEventPlayer").value),minute=Math.max(0,Number($("detailEventMinute").value)||0);
   await api(`/matches/${id}/events`,{method:"POST",body:JSON.stringify({team_id:teamId,player_id:playerId,type,minute})});
