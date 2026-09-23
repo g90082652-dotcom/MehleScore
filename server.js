@@ -269,8 +269,6 @@ async function initDatabase() {
     ["Huseyin", "Xirdalan United"],
     ["Fuad", "MSN FK"],
     ["Murad", "MSN FK"],
-    ["Ayxan", "MSN FK"],
-    ["Şahin", "MSN FK"],
     ["Tofik", "Neweli FK"],
     ["Arda", "Neweli FK"],
     ["Veli", "Neweli FK"],
