@@ -716,83 +716,600 @@ app.delete("/api/matches/:id", requireAdmin, async (req, res) => {
    MATCH EVENTS
 ========================================================= */
 
+const EVENT_STAT_COLUMNS = {
+  goal: "goals",
+  assist: "assists",
+  save: "saves",
+  yellow: "yellow_cards",
+  red: "red_cards"
+};
+
 app.get("/api/matches/:id/events", async (req, res) => {
   try {
     const matchId = Number(req.params.id);
-    if (!Number.isInteger(matchId)) return res.status(400).json({ error: "Invalid match id" });
-    const result = await pool.query(`SELECT e.id,e.match_id,e.player_id,e.team_id,e.type,e.minute,e.created_at,p.name AS player_name,t.name AS team_name FROM match_events e LEFT JOIN players p ON p.id=e.player_id LEFT JOIN teams t ON t.id=e.team_id WHERE e.match_id=$1 ORDER BY e.minute ASC,e.id ASC`, [matchId]);
+
+    if (!Number.isInteger(matchId)) {
+      return res.status(400).json({ error: "Invalid match id" });
+    }
+
+    const result = await pool.query(`
+      SELECT
+        e.id,
+        e.match_id,
+        e.player_id,
+        e.team_id,
+        e.type,
+        e.minute,
+        e.created_at,
+        p.name AS player_name,
+        t.name AS team_name
+      FROM match_events e
+      LEFT JOIN players p ON p.id = e.player_id
+      LEFT JOIN teams t ON t.id = e.team_id
+      WHERE e.match_id = $1
+      ORDER BY e.minute ASC, e.id ASC
+    `, [matchId]);
+
     res.json(result.rows);
-  } catch (error) { console.error("EVENTS GET ERROR:", error); res.status(500).json({ error: error.message }); }
+  } catch (error) {
+    console.error("EVENTS GET ERROR:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
+
 app.post("/api/matches/:id/events", requireAdmin, async (req, res) => {
+  const client = await pool.connect();
+
   try {
-    const type = req.body.type;
-    if (!["goal","assist","save","yellow","red"].includes(type)) {
+    const matchId = Number(req.params.id);
+    const type = String(req.body.type || "").trim();
+
+    if (!["goal", "assist", "save", "yellow", "red"].includes(type)) {
       return res.status(400).json({ error: "Invalid event type" });
     }
 
-    const matchId = Number(req.params.id);
-    const playerId = req.body.player_id ? Number(req.body.player_id) : null;
-    const teamId = req.body.team_id ? Number(req.body.team_id) : null;
+    const playerId =
+      req.body.player_id === null ||
+      req.body.player_id === undefined ||
+      req.body.player_id === ""
+        ? null
+        : Number(req.body.player_id);
+
+    const teamId =
+      req.body.team_id === null ||
+      req.body.team_id === undefined ||
+      req.body.team_id === ""
+        ? null
+        : Number(req.body.team_id);
+
     const minute = Math.max(0, Number(req.body.minute) || 0);
 
-    await pool.query(`
-      INSERT INTO match_events
-      (match_id,player_id,team_id,type,minute)
-      VALUES ($1,$2,$3,$4,$5)
-    `, [matchId, playerId, teamId, type, minute]);
+    await client.query("BEGIN");
+
+    const match = await client.query(`
+      SELECT id, home_team_id, away_team_id
+      FROM matches
+      WHERE id=$1
+      FOR UPDATE
+    `, [matchId]);
+
+    if (!match.rows[0]) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "Matç tapılmadı" });
+    }
+
+    const m = match.rows[0];
+
+    if (
+      teamId !== null &&
+      teamId !== Number(m.home_team_id) &&
+      teamId !== Number(m.away_team_id)
+    ) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "Bu komanda həmin matçda iştirak etmir"
+      });
+    }
 
     if (playerId) {
-      const updates = {
-        goal: "goals",
-        assist: "assists",
-        save: "saves",
-        yellow: "yellow_cards",
-        red: "red_cards"
-      };
+      const player = await client.query(`
+        SELECT id, team_id
+        FROM players
+        WHERE id=$1
+      `, [playerId]);
 
-      if (updates[type]) {
-        await pool.query(
-          `UPDATE players SET ${updates[type]}=COALESCE(${updates[type]},0)+1 WHERE id=$1`,
-          [playerId]
-        );
+      if (!player.rows[0]) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Oyunçu tapılmadı"
+        });
       }
 
-      if (["goal","yellow","red"].includes(type)) {
-        const p = await pool.query(`SELECT name FROM players WHERE id=$1`, [playerId]);
+      if (
+        teamId !== null &&
+        Number(player.rows[0].team_id) !== teamId
+      ) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Oyunçu bu komandaya aid deyil"
+        });
+      }
+    }
 
-        if (p.rows[0]) {
-          let title;
-          let message;
+    await client.query(`
+      INSERT INTO match_events
+      (match_id, player_id, team_id, type, minute)
+      VALUES ($1,$2,$3,$4,$5)
+    `, [
+      matchId,
+      playerId,
+      teamId,
+      type,
+      minute
+    ]);
 
-          if (type === "goal") {
-            title = "⚽ Qol";
-            message = `${p.rows[0].name} qol vurdu!`;
-          } else if (type === "yellow") {
-            title = "🟨 Sarı kart";
-            message = `${p.rows[0].name} sarı kart aldı.`;
-          } else {
-            title = "🟥 Qırmızı kart";
-            message = `${p.rows[0].name} qırmızı kart aldı.`;
-          }
+    const statColumn = EVENT_STAT_COLUMNS[type];
 
-          await createNotification(title, message, {
-            type,
-            match_id: matchId,
-            player_id: playerId,
-            team_id: teamId
-          });
+    if (statColumn && playerId) {
+      await client.query(`
+        UPDATE players
+        SET ${statColumn}=COALESCE(${statColumn},0)+1
+        WHERE id=$1
+      `, [playerId]);
+    }
+
+    /*
+      Qol əlavə ediləndə hesab da avtomatik artır.
+    */
+    if (type === "goal" && teamId !== null) {
+      await client.query(`
+        UPDATE matches
+        SET
+          home_score =
+            CASE
+              WHEN home_team_id=$1
+              THEN COALESCE(home_score,0)+1
+              ELSE home_score
+            END,
+          away_score =
+            CASE
+              WHEN away_team_id=$1
+              THEN COALESCE(away_score,0)+1
+              ELSE away_score
+            END
+        WHERE id=$2
+      `, [teamId, matchId]);
+    }
+
+    await client.query("COMMIT");
+
+    /*
+      Bildiriş yalnız yeni hadisə əlavə olunanda göndərilir.
+    */
+    if (playerId && ["goal", "yellow", "red"].includes(type)) {
+      const p = await pool.query(
+        `SELECT name FROM players WHERE id=$1`,
+        [playerId]
+      );
+
+      if (p.rows[0]) {
+        let title = "";
+        let message = "";
+
+        if (type === "goal") {
+          title = "⚽ Qol";
+          message = `${p.rows[0].name} qol vurdu!`;
         }
+
+        if (type === "yellow") {
+          title = "🟨 Sarı kart";
+          message = `${p.rows[0].name} sarı kart aldı.`;
+        }
+
+        if (type === "red") {
+          title = "🟥 Qırmızı kart";
+          message = `${p.rows[0].name} qırmızı kart aldı.`;
+        }
+
+        await createNotification(title, message, {
+          type,
+          match_id: matchId,
+          player_id: playerId,
+          team_id: teamId
+        });
       }
     }
 
     res.json({ ok: true });
+
   } catch (error) {
-    console.error("EVENT ERROR:", error);
+    try {
+      await client.query("ROLLBACK");
+    } catch {}
+
+    console.error("EVENT POST ERROR:", error);
     res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
   }
 });
+
+
+/* =========================================================
+   EDIT EVENT
+========================================================= */
+
+app.patch(
+  "/api/matches/:matchId/events/:eventId",
+  requireAdmin,
+  async (req, res) => {
+
+    const client = await pool.connect();
+
+    try {
+      const matchId = Number(req.params.matchId);
+      const eventId = Number(req.params.eventId);
+
+      const type = String(req.body.type || "").trim();
+
+      if (!["goal", "assist", "save", "yellow", "red"].includes(type)) {
+        return res.status(400).json({
+          error: "Yanlış hadisə növü"
+        });
+      }
+
+      const playerId =
+        req.body.player_id === null ||
+        req.body.player_id === undefined ||
+        req.body.player_id === ""
+          ? null
+          : Number(req.body.player_id);
+
+      const teamId =
+        req.body.team_id === null ||
+        req.body.team_id === undefined ||
+        req.body.team_id === ""
+          ? null
+          : Number(req.body.team_id);
+
+      const minute = Math.max(
+        0,
+        Number(req.body.minute) || 0
+      );
+
+      await client.query("BEGIN");
+
+      const matchResult = await client.query(`
+        SELECT *
+        FROM matches
+        WHERE id=$1
+        FOR UPDATE
+      `, [matchId]);
+
+      if (!matchResult.rows[0]) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "Matç tapılmadı"
+        });
+      }
+
+      const match = matchResult.rows[0];
+
+      if (
+        teamId !== null &&
+        teamId !== Number(match.home_team_id) &&
+        teamId !== Number(match.away_team_id)
+      ) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Bu komanda həmin matçda iştirak etmir"
+        });
+      }
+
+      if (playerId) {
+        const playerResult = await client.query(`
+          SELECT id, team_id
+          FROM players
+          WHERE id=$1
+        `, [playerId]);
+
+        if (!playerResult.rows[0]) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({
+            error: "Oyunçu tapılmadı"
+          });
+        }
+
+        if (
+          teamId !== null &&
+          Number(playerResult.rows[0].team_id) !== teamId
+        ) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({
+            error: "Oyunçu seçilən komandaya aid deyil"
+          });
+        }
+      }
+
+      const oldResult = await client.query(`
+        SELECT *
+        FROM match_events
+        WHERE id=$1 AND match_id=$2
+        FOR UPDATE
+      `, [eventId, matchId]);
+
+      if (!oldResult.rows[0]) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "Hadisə tapılmadı"
+        });
+      }
+
+      const old = oldResult.rows[0];
+
+      /*
+        Köhnə statistikanı geri qaytar.
+      */
+      const oldColumn = EVENT_STAT_COLUMNS[old.type];
+
+      if (oldColumn && old.player_id) {
+        await client.query(`
+          UPDATE players
+          SET ${oldColumn} =
+            GREATEST(0, COALESCE(${oldColumn},0)-1)
+          WHERE id=$1
+        `, [old.player_id]);
+      }
+
+      let homeScore = Number(match.home_score || 0);
+      let awayScore = Number(match.away_score || 0);
+
+      /*
+        Köhnə qolun hesabını çıxar.
+      */
+      if (old.type === "goal") {
+
+        if (
+          Number(old.team_id) ===
+          Number(match.home_team_id)
+        ) {
+          homeScore = Math.max(0, homeScore - 1);
+        }
+
+        if (
+          Number(old.team_id) ===
+          Number(match.away_team_id)
+        ) {
+          awayScore = Math.max(0, awayScore - 1);
+        }
+      }
+
+      /*
+        Hadisəni dəyiş.
+      */
+      await client.query(`
+        UPDATE match_events
+        SET
+          player_id=$1,
+          team_id=$2,
+          type=$3,
+          minute=$4
+        WHERE id=$5 AND match_id=$6
+      `, [
+        playerId,
+        teamId,
+        type,
+        minute,
+        eventId,
+        matchId
+      ]);
+
+      /*
+        Yeni statistikanı artır.
+      */
+      const newColumn = EVENT_STAT_COLUMNS[type];
+
+      if (newColumn && playerId) {
+        await client.query(`
+          UPDATE players
+          SET ${newColumn} =
+            COALESCE(${newColumn},0)+1
+          WHERE id=$1
+        `, [playerId]);
+      }
+
+      /*
+        Yeni hadisə qoldursa hesabı artır.
+      */
+      if (type === "goal") {
+
+        if (
+          Number(teamId) ===
+          Number(match.home_team_id)
+        ) {
+          homeScore++;
+        }
+
+        if (
+          Number(teamId) ===
+          Number(match.away_team_id)
+        ) {
+          awayScore++;
+        }
+      }
+
+      if (
+        old.type === "goal" ||
+        type === "goal"
+      ) {
+        await client.query(`
+          UPDATE matches
+          SET home_score=$1,
+              away_score=$2
+          WHERE id=$3
+        `, [
+          homeScore,
+          awayScore,
+          matchId
+        ]);
+      }
+
+      await client.query("COMMIT");
+
+      res.json({
+        ok: true
+      });
+
+    } catch (error) {
+
+      try {
+        await client.query("ROLLBACK");
+      } catch {}
+
+      console.error("EVENT PATCH ERROR:", error);
+
+      res.status(500).json({
+        error: error.message
+      });
+
+    } finally {
+      client.release();
+    }
+  }
+);
+
+
+/* =========================================================
+   DELETE EVENT
+========================================================= */
+
+app.delete(
+  "/api/matches/:matchId/events/:eventId",
+  requireAdmin,
+  async (req, res) => {
+
+    const client = await pool.connect();
+
+    try {
+      const matchId = Number(req.params.matchId);
+      const eventId = Number(req.params.eventId);
+
+      await client.query("BEGIN");
+
+      const matchResult = await client.query(`
+        SELECT *
+        FROM matches
+        WHERE id=$1
+        FOR UPDATE
+      `, [matchId]);
+
+      if (!matchResult.rows[0]) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "Matç tapılmadı"
+        });
+      }
+
+      const match = matchResult.rows[0];
+
+      const eventResult = await client.query(`
+        SELECT *
+        FROM match_events
+        WHERE id=$1 AND match_id=$2
+        FOR UPDATE
+      `, [eventId, matchId]);
+
+      if (!eventResult.rows[0]) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "Hadisə tapılmadı"
+        });
+      }
+
+      const event = eventResult.rows[0];
+
+      /*
+        Statistikadan çıxar.
+      */
+      const column = EVENT_STAT_COLUMNS[event.type];
+
+      if (column && event.player_id) {
+        await client.query(`
+          UPDATE players
+          SET ${column} =
+            GREATEST(0, COALESCE(${column},0)-1)
+          WHERE id=$1
+        `, [event.player_id]);
+      }
+
+      /*
+        Əgər qol idisə hesabdan da çıxar.
+      */
+      if (event.type === "goal") {
+
+        let homeScore =
+          Number(match.home_score || 0);
+
+        let awayScore =
+          Number(match.away_score || 0);
+
+        if (
+          Number(event.team_id) ===
+          Number(match.home_team_id)
+        ) {
+          homeScore =
+            Math.max(0, homeScore - 1);
+        }
+
+        if (
+          Number(event.team_id) ===
+          Number(match.away_team_id)
+        ) {
+          awayScore =
+            Math.max(0, awayScore - 1);
+        }
+
+        await client.query(`
+          UPDATE matches
+          SET home_score=$1,
+              away_score=$2
+          WHERE id=$3
+        `, [
+          homeScore,
+          awayScore,
+          matchId
+        ]);
+      }
+
+      await client.query(`
+        DELETE FROM match_events
+        WHERE id=$1 AND match_id=$2
+      `, [eventId, matchId]);
+
+      await client.query("COMMIT");
+
+      res.json({
+        ok: true
+      });
+
+    } catch (error) {
+
+      try {
+        await client.query("ROLLBACK");
+      } catch {}
+
+      console.error("EVENT DELETE ERROR:", error);
+
+      res.status(500).json({
+        error: error.message
+      });
+
+    } finally {
+      client.release();
+    }
+  }
+);
 
 /* =========================================================
    CARDS
