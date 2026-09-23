@@ -982,87 +982,203 @@ app.get("/api/state", async (req, res) => {
 });
 
 /* =========================================================
-   ADMIN
+   ADMIN AUTH — FIXED
 ========================================================= */
 
-app.post("/api/admin/login", (req, res) => {
-  const password = cleanString(
-    req.body.password
+function signAdminToken() {
+  return jwt.sign(
+    {
+      role: "admin",
+      admin: true
+    },
+    JWT_SECRET,
+    {
+      expiresIn: "7d"
+    }
   );
+}
 
-  if (password !== ADMIN_PASSWORD) {
-    return res.status(401).json({
-      ok: false,
-      error: "Yanlış şifrə"
-    });
+function getAdminToken(req) {
+  // 1. Cookie
+  if (
+    req.cookies &&
+    req.cookies.aliscore_admin
+  ) {
+    return req.cookies.aliscore_admin;
   }
 
-  const token = signAdminToken();
+  // 2. Authorization Bearer
+  const auth =
+    req.headers.authorization || "";
 
-  res.cookie(
-    "aliscore_admin",
-    token,
-    {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: true,
-      path: "/",
-      maxAge:
-        7 *
-        24 *
-        60 *
-        60 *
-        1000
-    }
-  );
+  if (
+    auth &&
+    auth.startsWith("Bearer ")
+  ) {
+    return auth
+      .slice(7)
+      .trim();
+  }
 
-  res.json({
-    ok: true,
-    admin: true,
-    token
-  });
-});
+  return null;
+}
 
-app.get("/api/admin/me", (req, res) => {
+function verifyAdminToken(token) {
+  if (!token) {
+    return null;
+  }
+
   try {
-    let token =
-      req.cookies.aliscore_admin;
-
-    if (!token) {
-      const auth =
-        req.headers.authorization || "";
-
-      if (auth.startsWith("Bearer ")) {
-        token =
-          auth.slice(7).trim();
-      }
-    }
-
-    if (!token) {
-      return res.json({
-        ok: true,
-        admin: false
-      });
-    }
-
     const decoded =
       jwt.verify(
         token,
         JWT_SECRET
       );
 
-    res.json({
-      ok: true,
-      admin:
-        decoded.role === "admin"
-    });
+    if (
+      !decoded ||
+      decoded.role !== "admin"
+    ) {
+      return null;
+    }
+
+    return decoded;
   } catch (err) {
-    res.json({
-      ok: true,
-      admin: false
+    return null;
+  }
+}
+
+function requireAdmin(req, res, next) {
+  const token =
+    getAdminToken(req);
+
+  const decoded =
+    verifyAdminToken(token);
+
+  if (!decoded) {
+    return res.status(401).json({
+      ok: false,
+      error: "Admin Login required",
+      code: "ADMIN_REQUIRED"
     });
   }
-});
+
+  req.admin = decoded;
+  req.adminToken = token;
+
+  next();
+}
+
+/* =========================================================
+   ADMIN LOGIN
+========================================================= */
+
+app.post(
+  "/api/admin/login",
+  async (req, res) => {
+    try {
+      const password =
+        req.body &&
+        req.body.password !== undefined
+          ? String(
+              req.body.password
+            )
+          : "";
+
+      const correctPassword =
+        String(
+          ADMIN_PASSWORD
+        );
+
+      if (
+        password !==
+        correctPassword
+      ) {
+        return res.status(401).json({
+          ok: false,
+          error: "Yanlış şifrə"
+        });
+      }
+
+      const token =
+        signAdminToken();
+
+      /*
+        Cookie üçün Render / HTTPS
+        uyğun konfiqurasiya.
+      */
+      res.cookie(
+        "aliscore_admin",
+        token,
+        {
+          httpOnly: true,
+          secure: true,
+          sameSite: "lax",
+          path: "/",
+          maxAge:
+            7 *
+            24 *
+            60 *
+            60 *
+            1000
+        }
+      );
+
+      console.log(
+        "ADMIN LOGIN: success"
+      );
+
+      res.json({
+        ok: true,
+        admin: true,
+        token
+      });
+    } catch (err) {
+      console.error(
+        "ADMIN LOGIN ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        ok: false,
+        error:
+          "Admin login error"
+      });
+    }
+  }
+);
+
+/* =========================================================
+   ADMIN ME
+========================================================= */
+
+app.get(
+  "/api/admin/me",
+  (req, res) => {
+    const token =
+      getAdminToken(req);
+
+    const decoded =
+      verifyAdminToken(token);
+
+    if (!decoded) {
+      return res.json({
+        ok: true,
+        admin: false
+      });
+    }
+
+    res.json({
+      ok: true,
+      admin: true,
+      role: "admin"
+    });
+  }
+);
+
+/* =========================================================
+   ADMIN LOGOUT
+========================================================= */
 
 app.post(
   "/api/admin/logout",
@@ -1070,6 +1186,9 @@ app.post(
     res.clearCookie(
       "aliscore_admin",
       {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
         path: "/"
       }
     );
