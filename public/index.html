@@ -59,7 +59,7 @@ table{width:100%;border-collapse:collapse;background:#0d213a;border-radius:12px;
 <button data-page="lineups">📋 Heyətlər</button>
 <button data-page="stats">📊 Statistika</button>
 <button data-page="cards">🟨 Kartlar</button>
-<button data-page="week">⭐ Komanda həftəsi</button>
+<button data-page="dream">🌟 Xəyal komandası</button>
 <button data-page="transfers">🔄 Transferlər</button>
 <button data-page="admin">⚙️ İdarəetmə</button>
 </div>
@@ -105,8 +105,16 @@ table{width:100%;border-collapse:collapse;background:#0d213a;border-radius:12px;
 
 <section id="cards" class="page"><h2>Kartlar</h2><div id="cardsList"></div></section>
 
-<section id="week" class="page"><h2>⭐ Komanda həftəsi</h2>
-<div id="weekList"></div><div id="weekAdmin"></div></section>
+<section id="dream" class="page">
+<h2>🌟 Xəyal komandası</h2>
+<div class="card">
+  <div class="muted">
+    Statistikaya əsasən avtomatik seçilmiş ən yaxşı 11 oyunçu.
+    Düzülüş: 1-4-3-3
+  </div>
+</div>
+<div id="dreamList"></div>
+</section>
 
 <section id="transfers" class="page"><h2>🔄 Transferlər</h2>
 <div id="transferList"></div><div id="transferAdmin"></div></section>
@@ -156,8 +164,192 @@ function go(page){
  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
  $(page).classList.add("active");
  document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
- if(page==="week")loadWeek(); if(page==="transfers")loadTransfers(); if(page==="lineups")loadLineup();
+ function dreamScore(p){
+ const ratingValue=Number(p.rating)||0;
+ const goals=Number(p.goals)||0;
+ const assists=Number(p.assists)||0;
+ const saves=Number(p.saves)||0;
+ const yellow=Number(p.yellow_cards)||0;
+ const red=Number(p.red_cards)||0;
+ const ownGoals=Number(p.own_goals)||0;
+
+ /*
+   Reytinq əsas göstəricidir.
+   Sonra qol, assist və seyvlər əlavə üstünlük verir.
+   Kartlar və avtoqollar mənfi təsir edir.
+   Reytinq üçün heç bir maksimum yoxdur.
+ */
+ return (
+   ratingValue +
+   goals*5 +
+   assists*3 +
+   saves*2 -
+   yellow*2 -
+   red*5 -
+   ownGoals*5
+ );
 }
+
+function positionType(p){
+ const pos=String(p.position||"").toLowerCase().trim();
+
+ if(
+   pos.includes("qapıçı") ||
+   pos.includes("qapici") ||
+   pos.includes("goalkeeper") ||
+   pos.includes("gk")
+ ) return "GK";
+
+ if(
+   pos.includes("müdafi") ||
+   pos.includes("mudafi") ||
+   pos.includes("defender") ||
+   pos.includes("defence") ||
+   pos.includes("defense")
+ ) return "DEF";
+
+ if(
+   pos.includes("yarımmüdafi") ||
+   pos.includes("yarimmudafi") ||
+   pos.includes("midfielder") ||
+   pos.includes("midfield")
+ ) return "MID";
+
+ if(
+   pos.includes("hücum") ||
+   pos.includes("hucum") ||
+   pos.includes("forward") ||
+   pos.includes("attacker") ||
+   pos.includes("striker")
+ ) return "ATT";
+
+ return "";
+}
+
+function dreamPlayerCard(p,number,role){
+ return `
+ <div class="card player">
+   <img
+     class="avatar"
+     src="${esc(p.photo||"")}"
+     onerror="this.style.visibility='hidden'"
+   >
+   <div style="flex:1">
+     <b>${number}. ${esc(p.name)}</b>
+     <div class="muted">
+       ${esc(p.team_name||"")} · ${esc(p.position||"")}
+     </div>
+     <div>
+       ⭐ ${rating(p)}
+       · ⚽ ${p.goals||0}
+       · 🎯 ${p.assists||0}
+       · 🧤 ${p.saves||0}
+     </div>
+   </div>
+   <div class="rating">
+     ${role}
+   </div>
+ </div>`;
+}
+
+function renderDreamTeam(){
+ const pool=[...players];
+
+ const goalkeepers=pool
+   .filter(p=>positionType(p)==="GK")
+   .sort((a,b)=>dreamScore(b)-dreamScore(a));
+
+ const defenders=pool
+   .filter(p=>positionType(p)==="DEF")
+   .sort((a,b)=>dreamScore(b)-dreamScore(a));
+
+ const midfielders=pool
+   .filter(p=>positionType(p)==="MID")
+   .sort((a,b)=>dreamScore(b)-dreamScore(a));
+
+ const attackers=pool
+   .filter(p=>positionType(p)==="ATT")
+   .sort((a,b)=>dreamScore(b)-dreamScore(a));
+
+ const selected=[
+   ...goalkeepers.slice(0,1),
+   ...defenders.slice(0,4),
+   ...midfielders.slice(0,3),
+   ...attackers.slice(0,3)
+ ];
+
+ if(selected.length<11){
+   const selectedIds=new Set(selected.map(p=>String(p.id)));
+
+   const remaining=pool
+     .filter(p=>!selectedIds.has(String(p.id)))
+     .sort((a,b)=>dreamScore(b)-dreamScore(a));
+
+   for(const p of remaining){
+     if(selected.length>=11)break;
+     selected.push(p);
+   }
+ }
+
+ const gks=selected.filter(p=>positionType(p)==="GK");
+ const defs=selected.filter(p=>positionType(p)==="DEF");
+ const mids=selected.filter(p=>positionType(p)==="MID");
+ const atts=selected.filter(p=>positionType(p)==="ATT");
+
+ $("dreamList").innerHTML=`
+   <div class="card">
+     <h3>🌟 Xəyal komandası</h3>
+     <div class="muted">
+       Avtomatik seçim · Statistikaya əsasən · 1-4-3-3
+     </div>
+   </div>
+
+   <div class="card">
+     <h3>🧤 Qapıçı</h3>
+     ${gks.length
+       ? gks.map((p,i)=>dreamPlayerCard(p,i+1,"GK")).join("")
+       : '<div class="empty">Qapıçı statistikası yoxdur.</div>'}
+   </div>
+
+   <div class="card">
+     <h3>🛡️ Müdafiə</h3>
+     ${defs.length
+       ? defs.map((p,i)=>dreamPlayerCard(p,i+1,"DEF")).join("")
+       : '<div class="empty">Müdafiəçi statistikası yoxdur.</div>'}
+   </div>
+
+   <div class="card">
+     <h3>⚙️ Yarımmüdafiə</h3>
+     ${mids.length
+       ? mids.map((p,i)=>dreamPlayerCard(p,i+1,"MID")).join("")
+       : '<div class="empty">Yarımmüdafiəçi statistikası yoxdur.</div>'}
+   </div>
+
+   <div class="card">
+     <h3>⚡ Hücum</h3>
+     ${atts.length
+       ? atts.map((p,i)=>dreamPlayerCard(p,i+1,"ATT")).join("")
+       : '<div class="empty">Hücumçu statistikası yoxdur.</div>'}
+   </div>
+
+   <div class="card">
+     <h3>📋 Tam 11-lik</h3>
+     ${selected.map((p,i)=>`
+       <div class="rating-row">
+         <span>
+           <b>${i+1}. ${esc(p.name)}</b>
+           <span class="muted">
+             · ${esc(p.team_name||"")}
+             · ${esc(p.position||"")}
+           </span>
+         </span>
+         <b>⭐ ${rating(p)}</b>
+       </div>
+     `).join("")}
+   </div>
+ `;
+}
+
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
  go(b.dataset.page);
  document.querySelector("nav")?.classList.remove("open");
