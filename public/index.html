@@ -41,6 +41,62 @@ header{padding:10px 12px}.logo{font-size:22px}.menuToggle{display:block;backgrou
 </style>
 </head>
 <body>
+<div id="user-auth" style="
+  position:fixed;
+  top:15px;
+  right:15px;
+  z-index:9999;
+">
+  <button onclick="openAuth()">👤 Войти</button>
+</div>
+
+<div id="auth-modal" style="
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.65);
+  z-index:10000;
+  align-items:center;
+  justify-content:center;
+">
+  <div style="
+    background:white;
+    width:90%;
+    max-width:380px;
+    padding:25px;
+    border-radius:18px;
+  ">
+    <h2 id="auth-title">Вход</h2>
+
+    <input id="auth-username"
+      placeholder="Имя пользователя"
+      style="display:none;width:100%;padding:12px;margin:7px 0">
+
+    <input id="auth-email"
+      type="email"
+      placeholder="Email"
+      style="width:100%;padding:12px;margin:7px 0">
+
+    <input id="auth-password"
+      type="password"
+      placeholder="Пароль"
+      style="width:100%;padding:12px;margin:7px 0">
+
+    <button onclick="submitAuth()" id="auth-submit">
+      Войти
+    </button>
+
+    <button onclick="switchAuth()" id="auth-switch">
+      Регистрация
+    </button>
+
+    <button onclick="closeAuth()">
+      Закрыть
+    </button>
+
+    <div id="auth-message"></div>
+  </div>
+</div>  
 <header>
 <div class="logo">⚽ AliScore</div><div class="muted">Azərbaycan futbol statistikası</div>
 <nav><div class="menuToggle" id="menuToggle">☰ Menyu</div><div class="navLinks">
@@ -225,4 +281,114 @@ async function changeStat(id,type,amount){try{await api("/statistics/change",{me
 async function changeCard(id,type,amount){try{await api("/cards/change",{method:"POST",body:JSON.stringify({player_id:id,card:type==="yellow_cards"?"yellow":"red",delta:amount})});await loadAll()}catch(e){alert(e.message)}}
 function addNotificationBox(){$("notificationBox").innerHTML=`<div class="card"><h3>🔔 AliScore bildirişləri</h3><p class="muted">Qol, kart, transfer və Xəyal komandası bildirişləri.</p></div>`}
 (async()=>{await loadAll();go("home");setInterval(loadAll,30000)})();
-</script></body></html>
+</script></body><script>
+let authMode = "login";
+
+function openAuth() {
+  document.getElementById("auth-modal").style.display = "flex";
+}
+
+function closeAuth() {
+  document.getElementById("auth-modal").style.display = "none";
+}
+
+function switchAuth() {
+  authMode = authMode === "login" ? "register" : "login";
+
+  document.getElementById("auth-title").textContent =
+    authMode === "login" ? "Вход" : "Регистрация";
+
+  document.getElementById("auth-submit").textContent =
+    authMode === "login" ? "Войти" : "Зарегистрироваться";
+
+  document.getElementById("auth-switch").textContent =
+    authMode === "login" ? "Регистрация" : "У меня уже есть аккаунт";
+
+  document.getElementById("auth-username").style.display =
+    authMode === "register" ? "block" : "none";
+
+  document.getElementById("auth-message").textContent = "";
+}
+
+async function submitAuth() {
+  const username =
+    document.getElementById("auth-username").value.trim();
+
+  const email =
+    document.getElementById("auth-email").value.trim();
+
+  const password =
+    document.getElementById("auth-password").value;
+
+  const url =
+    authMode === "login"
+      ? "/api/users/login"
+      : "/api/users/register";
+
+  const body =
+    authMode === "login"
+      ? { email, password }
+      : { username, email, password };
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      document.getElementById("auth-message").textContent =
+        data.error || "Ошибка";
+      return;
+    }
+
+    closeAuth();
+    loadCurrentUser();
+
+  } catch (error) {
+    document.getElementById("auth-message").textContent =
+      "Ошибка соединения";
+  }
+}
+
+async function loadCurrentUser() {
+  try {
+    const response = await fetch("/api/users/me", {
+      credentials: "include"
+    });
+
+    const data = await response.json();
+
+    const box = document.getElementById("user-auth");
+
+    if (data.ok && data.user) {
+      box.innerHTML = `
+        <span>👤 ${data.user.username}</span>
+        <button onclick="logoutUser()">🚪</button>
+      `;
+    } else {
+      box.innerHTML = `
+        <button onclick="openAuth()">👤 Войти</button>
+      `;
+    }
+  } catch (e) {}
+}
+
+async function logoutUser() {
+  await fetch("/api/users/logout", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  loadCurrentUser();
+}
+
+loadCurrentUser();
+</script>
+</html>
