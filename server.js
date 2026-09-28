@@ -868,11 +868,12 @@ async function seedData() {
     ["Xirdalan Wolves", "Raul", 4, "Hücum"],
     ["Xirdalan Wolves", "Emil", 5, "Yarımmüdafiə"],
 
+    ["Xirdalan United", "Amil", 1, "Hücüm"],
     ["Xirdalan United", "Elmir", 2, "Müdafiə"],
     ["Xirdalan United", "İsa", 3, "Yarımmüdafiə"],
     ["Xirdalan United", "Ümüd", 4, "Hücum"],
     ["Xirdalan United", "Huseyin", 5, "Müdafiə"],
-
+    
     ["MSN FK", "Fuad", 1, "Qapıçı"],
     ["MSN FK", "Murad", 2, "Müdafiə"],
 
