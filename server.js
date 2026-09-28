@@ -4209,6 +4209,13 @@ app.get("/api/push/status", async (req, res) => {
 });
 
 app.post("/api/push/subscribe", async (req, res) => {
+  app.get("/api/push/public-key", (req, res) => {
+  res.json({
+    ok: true,
+    enabled: !!VAPID_PUBLIC_KEY,
+    publicKey: VAPID_PUBLIC_KEY || null
+  });
+});
   try {
     if (!pushEnabled) {
       return res.status(503).json({
