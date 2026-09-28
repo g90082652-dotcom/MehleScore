@@ -5877,6 +5877,120 @@ app.post("/api/users/register", async (req, res) => {
     });
   }
 });
+app.post("/api/users/login", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+
+    const result = await pool.query(
+      `SELECT * FROM users WHERE email = $1 LIMIT 1`,
+      [email]
+    );
+
+    if (!result.rows.length) {
+      return res.status(401).json({
+        ok: false,
+        error: "Неверный email или пароль"
+      });
+    }
+
+    const user = result.rows[0];
+    const [salt, savedHash] = user.password_hash.split(":");
+
+    const hash = crypto
+      .scryptSync(password, salt, 64)
+      .toString("hex");
+
+    if (hash !== savedHash) {
+      return res.status(401).json({
+        ok: false,
+        error: "Неверный email или пароль"
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username
+      },
+      JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    res.cookie("aliscore_user", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    res.json({
+      ok: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email
+      }
+    });
+
+  } catch (err) {
+    console.error("USER LOGIN ERROR:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Ошибка входа"
+    });
+  }
+});
+app.get("/api/users/me", async (req, res) => {
+  try {
+    const token = req.cookies.aliscore_user;
+
+    if (!token) {
+      return res.json({
+        ok: false,
+        user: null
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+
+    const result = await pool.query(
+      `SELECT id, username, email, avatar, favorite_team_id, created_at
+       FROM users
+       WHERE id = $1
+       LIMIT 1`,
+      [decoded.userId]
+    );
+
+    if (!result.rows.length) {
+      return res.json({
+        ok: false,
+        user: null
+      });
+    }
+
+    res.json({
+      ok: true,
+      user: result.rows[0]
+    });
+
+  } catch (err) {
+    res.json({
+      ok: false,
+      user: null
+    });
+  }
+});
+
+
+app.post("/api/users/logout", (req, res) => {
+  res.clearCookie("aliscore_user");
+
+  res.json({
+    ok: true
+  });
+});
 /* =========================================================
    START
 ========================================================= */
