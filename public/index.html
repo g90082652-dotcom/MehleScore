@@ -39,6 +39,114 @@ header{padding:10px 12px}.logo{font-size:22px}.menuToggle{display:block;backgrou
 }
 @media(max-width:600px){.row{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}th,td{font-size:11px;padding:6px}.card{padding:12px}.detail-score{font-size:32px}}
 </style>
+/* ===== AliScore Animations ===== */
+
+@keyframes aliFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aliScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes aliGoal {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.12);
+  }
+  60% {
+    transform: scale(.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes aliCard {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aliGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(18,59,99,0);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(18,59,99,.35);
+  }
+}
+
+main {
+  animation: aliFadeIn .45s ease;
+}
+
+.card,
+.match-card,
+.team-card,
+.player-card,
+.stat-card {
+  animation: aliCard .45s ease both;
+}
+
+.card,
+.match-card,
+.team-card,
+.player-card {
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease;
+}
+
+.card:hover,
+.match-card:hover,
+.team-card:hover,
+.player-card:hover {
+  transform: translateY(-3px);
+}
+
+.goal-animation {
+  animation: aliGoal .6s ease;
+}
+
+.mvp-animation {
+  animation: aliGlow 1.5s ease-in-out;
+}
+
+.page-animation {
+  animation: aliScaleIn .35s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}  
 </head>
 <body>
 <div id="user-auth" style="
@@ -282,6 +390,14 @@ async function changeCard(id,type,amount){try{await api("/cards/change",{method:
 function addNotificationBox(){$("notificationBox").innerHTML=`<div class="card"><h3>🔔 AliScore bildirişləri</h3><p class="muted">Qol, kart, transfer və Xəyal komandası bildirişləri.</p></div>`}
 (async()=>{await loadAll();go("home");setInterval(loadAll,30000)})();
 </script></body><script>
+document.addEventListener("DOMContentLoaded", () => {
+  document.querySelectorAll(
+    ".card, .match-card, .team-card, .player-card, .stat-card"
+  ).forEach((el, index) => {
+    el.style.animationDelay = `${Math.min(index * 0.05, 0.4)}s`;
+  });
+});
+</script></script>
 let authMode = "login";
 
 function openAuth() {
