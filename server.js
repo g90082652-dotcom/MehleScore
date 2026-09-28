@@ -5736,21 +5736,6 @@ async function executeAliAICommand(commandText) {
    parseAliCommand("delete Ali goal at 25 minute")
 
    ========================================================= */
-/* =========================================================
-   UNKNOWN API
-========================================================= */
-
-app.use(
-  "/api",
-  (req, res) => {
-    res.status(404).json({
-      ok: false,
-      error:
-        "API route not found",
-      path: req.path
-    });
-  }
-);
 
 /* =========================================================
    FRONTEND
