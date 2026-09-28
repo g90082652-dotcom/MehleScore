@@ -833,7 +833,7 @@ async function seedData() {
     ["Neweli FK", "Emil", 4, "Hücum"],
 
     ["Lotu pişiklər", "Kamran", 1, "Qapıçı"],
-    ["Lotu pişiklər", "Ayxan", 2, "Müdafiə"],
+    ["Lotu pişiklər", "Ayxan", 2, "Müdafiəə"],
     ["Lotu pişiklər", "Ramil", 3, "Hücum"]
   ];
 
