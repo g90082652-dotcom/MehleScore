@@ -4167,8 +4167,9 @@ app.delete("/api/lineups/:id/:playerId", requireAdmin, async (req, res) => {
     res.status(400).json({ ok: false, error: err.message });
   }
 });
+
 /* =========================================================
-   PUSH
+   PUSH — ALISCORE
 ========================================================= */
 
 app.get("/api/push/public-key", (req, res) => {
@@ -4189,10 +4190,10 @@ app.get("/api/push/public-key", (req, res) => {
 
 app.get("/api/push/status", async (req, res) => {
   try {
-    const result = await query(`
-      SELECT COUNT(*)::int AS count
-      FROM push_subscriptions
-    `);
+    const result = await query(
+      `SELECT COUNT(*)::int AS count
+       FROM push_subscriptions`
+    );
 
     res.json({
       ok: true,
@@ -4201,12 +4202,18 @@ app.get("/api/push/status", async (req, res) => {
         VAPID_PUBLIC_KEY &&
         VAPID_PRIVATE_KEY
       ),
-      subscriptions: result.rows[0]?.count || 0,
-      publicKey: VAPID_PUBLIC_KEY || null
+      subscriptions:
+        result.rows[0]?.count || 0,
+      publicKey:
+        VAPID_PUBLIC_KEY || null
     });
 
   } catch (err) {
-    console.error("PUSH STATUS ERROR:", err);
+
+    console.error(
+      "PUSH STATUS ERROR:",
+      err
+    );
 
     res.status(500).json({
       ok: false,
@@ -4229,12 +4236,13 @@ app.post("/api/push/subscribe", async (req, res) => {
       return res.status(503).json({
         ok: false,
         error:
-          "Web Push serveri aktiv deyil. Render ENV-də VAPID açarlarını əlavə et."
+          "Web Push disabled. Check VAPID keys in Render Environment."
       });
     }
 
     const subscription =
-      req.body?.subscription || req.body;
+      req.body?.subscription ||
+      req.body;
 
     if (
       !subscription ||
@@ -4245,16 +4253,22 @@ app.post("/api/push/subscribe", async (req, res) => {
     ) {
       return res.status(400).json({
         ok: false,
-        error: "Invalid push subscription"
+        error:
+          "Invalid push subscription"
       });
     }
 
     await query(
       `
       INSERT INTO push_subscriptions
-        (endpoint, p256dh, auth)
+        (
+          endpoint,
+          p256dh,
+          auth
+        )
       VALUES
         ($1, $2, $3)
+
       ON CONFLICT (endpoint)
       DO UPDATE SET
         p256dh = EXCLUDED.p256dh,
@@ -4267,10 +4281,12 @@ app.post("/api/push/subscribe", async (req, res) => {
       ]
     );
 
-    const result = await query(`
+    const result = await query(
+      `
       SELECT COUNT(*)::int AS count
       FROM push_subscriptions
-    `);
+      `
+    );
 
     res.json({
       ok: true,
@@ -4305,7 +4321,8 @@ app.delete("/api/push/unsubscribe", async (req, res) => {
     if (!endpoint) {
       return res.status(400).json({
         ok: false,
-        error: "Push endpoint tələb olunur"
+        error:
+          "Push endpoint required"
       });
     }
 
@@ -4337,38 +4354,53 @@ app.delete("/api/push/unsubscribe", async (req, res) => {
 });
 
 
-app.post("/api/push/test", requireAdmin, async (req, res) => {
-  try {
+app.post(
+  "/api/push/test",
+  requireAdmin,
+  async (req, res) => {
 
-    const result = await sendPush(
-      "AliScore",
-      "Push bildirişləri işləyir! ⚽",
-      {
-        type: "test",
-        url: "/"
+    try {
+
+      if (!pushEnabled) {
+        return res.status(503).json({
+          ok: false,
+          error:
+            "Web Push is disabled"
+        });
       }
-    );
 
-    res.json({
-      ok: result.ok,
-      pushEnabled,
-      ...result
-    });
+      const result = await sendPush(
+        "AliScore ⚽",
+        "Push bildirişləri işləyir!",
+        {
+          type: "test",
+          url: "/"
+        }
+      );
 
-  } catch (err) {
+      res.json({
+        ok: result.ok,
+        pushEnabled,
+        sent: result.sent || 0,
+        failed: result.failed || 0,
+        removed: result.removed || 0
+      });
 
-    console.error(
-      "PUSH TEST ERROR:",
-      err
-    );
+    } catch (err) {
 
-    res.status(500).json({
-      ok: false,
-      pushEnabled,
-      error: err.message
-    });
+      console.error(
+        "PUSH TEST ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        ok: false,
+        pushEnabled,
+        error: err.message
+      });
+    }
   }
-});
+);
 
 
 /* =========================================================
@@ -4394,13 +4426,11 @@ self.addEventListener("install", function(event) {
   );
 });
 
-
 self.addEventListener("activate", function(event) {
   event.waitUntil(
     self.clients.claim()
   );
 });
-
 
 self.addEventListener("push", function(event) {
 
@@ -4423,7 +4453,8 @@ self.addEventListener("push", function(event) {
   }
 
   const title =
-    data.title || "AliScore";
+    data.title ||
+    "AliScore";
 
   const options = {
 
@@ -4432,24 +4463,25 @@ self.addEventListener("push", function(event) {
       data.message ||
       "Yeni bildiriş",
 
-    icon: "/icon-192.png",
+    icon:
+      "/icon-192.png",
 
-    badge: "/icon-192.png",
+    badge:
+      "/icon-192.png",
 
     data:
-      data.data || {},
+      data.data ||
+      {},
 
-    vibrate: [
-      200,
-      100,
-      200
-    ],
+    vibrate:
+      [200, 100, 200],
 
     tag:
       data.tag ||
       "aliscore",
 
-    renotify: true
+    renotify:
+      true
   };
 
   event.waitUntil(
@@ -4461,6 +4493,58 @@ self.addEventListener("push", function(event) {
 });
 
 
+self.addEventListener(
+  "notificationclick",
+  function(event) {
+
+    event.notification.close();
+
+    const target =
+      event.notification.data &&
+      event.notification.data.url
+        ? event.notification.data.url
+        : "/";
+
+    event.waitUntil(
+
+      self.clients
+        .matchAll({
+          type: "window",
+          includeUncontrolled: true
+        })
+
+        .then(function(clientList) {
+
+          for (
+            const client of clientList
+          ) {
+
+            if (
+              "focus" in client
+            ) {
+
+              client
+                .navigate(target)
+                .catch(function() {});
+
+              return client.focus();
+            }
+          }
+
+          if (
+            self.clients.openWindow
+          ) {
+
+            return self.clients.openWindow(
+              target
+            );
+          }
+        })
+    );
+  }
+);
+  `);
+});
 self.addEventListener(
   "notificationclick",
   function(event) {
