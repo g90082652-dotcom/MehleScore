@@ -4174,7 +4174,40 @@ app.post(
     }
   }
 );
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
 
+app.get(
+  "/api/notifications",
+  async (req, res) => {
+    try {
+      const result = await query(`
+        SELECT *
+        FROM notifications
+        ORDER BY
+          created_at DESC,
+          id DESC
+        LIMIT 100
+      `);
+
+      res.json({
+        ok: true,
+        notifications: result.rows
+      });
+    } catch (err) {
+      console.error(
+        "NOTIFICATIONS ERROR:",
+        err
+      );
+
+      res.status(500).json({
+        ok: false,
+        error: err.message
+      });
+    }
+  }
+);
 /* =========================================================
    SERVICE WORKER
 ========================================================= */
