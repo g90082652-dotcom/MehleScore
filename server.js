@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const crypto = require("crypto");
 const webpush = require("web-push");
+const bcrypt = require("bcrypt");
 
 const app = express();
 
