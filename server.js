@@ -4,7 +4,17 @@ const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const webpush = require("web-push");
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_EMAIL = process.env.VAPID_EMAIL;
 
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_EMAIL) {
+  webpush.setVapidDetails(
+    VAPID_EMAIL,
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+}
 const app = express();
 
 app.set("trust proxy", 1);
@@ -1045,37 +1055,52 @@ async function seedData() {
 
 app.get("/api/health", async (req, res) => {
   try {
-    await query("SELECT 1");
+    let database = false;
+
+    try {
+      await pool.query("SELECT 1");
+      database = true;
+    } catch (dbErr) {
+      database = false;
+    }
+
+    const pushConfigured = !!(
+      VAPID_PUBLIC_KEY &&
+      VAPID_PRIVATE_KEY &&
+      VAPID_EMAIL
+    );
+
+    let subscriptions = 0;
+
+    if (database) {
+      try {
+        const result = await pool.query(
+          "SELECT COUNT(*)::int AS count FROM push_subscriptions"
+        );
+
+        subscriptions = result.rows[0]?.count || 0;
+      } catch (pushErr) {
+        subscriptions = 0;
+      }
+    }
 
     res.json({
       ok: true,
-      database: "connected"
+      server: true,
+      database,
+      push: {
+        configured: pushConfigured,
+        subscriptions
+      },
+      time: new Date().toISOString()
     });
   } catch (err) {
+    console.error("HEALTH ERROR:", err);
+
     res.status(500).json({
       ok: false,
-      database: "error",
-      error: err.message
-    });
-  }
-});
-
-app.get("/api", async (req, res) => {
-  try {
-    await query("SELECT 1");
-
-    res.json({
-      ok: true,
-      api: "AliScore API",
-      database: "connected",
-      push: pushEnabled
-    });
-  } catch (err) {
-    res.status(500).json({
-      ok: false,
-      api: "AliScore API",
-      database: "error",
-            error: err.message
+      server: true,
+      error: "Health check failed"
     });
   }
 });
@@ -2989,3 +3014,577 @@ app.put("/api/players/:id/market-value", admin, async (req, res) => {
     });
   }
 });
+/* =========================
+   PLAYER MARKET VALUE GET
+========================= */
+
+app.get("/api/players/:id/market-value", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        error: "Неверный ID игрока"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        p.id,
+        p.name,
+        p.photo,
+        p.position,
+        p.rating,
+        p.market_value,
+        t.id AS team_id,
+        t.name AS team_name,
+        t.logo AS team_logo
+      FROM players p
+      LEFT JOIN teams t ON t.id = p.team_id
+      WHERE p.id = $1
+      `,
+      [id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Игрок не найден"
+      });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("GET MARKET VALUE ERROR:", err);
+
+    res.status(500).json({
+      error: "Ошибка получения трансферной стоимости"
+    });
+  }
+});
+/* =========================
+   CARDS
+========================= */
+
+app.get("/api/cards", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        p.id,
+        p.name,
+        p.photo,
+        p.yellow_cards,
+        p.red_cards,
+        t.name AS team_name,
+        t.logo AS team_logo
+      FROM players p
+      LEFT JOIN teams t ON t.id = p.team_id
+      WHERE
+        COALESCE(p.yellow_cards, 0) > 0
+        OR COALESCE(p.red_cards, 0) > 0
+      ORDER BY
+        COALESCE(p.red_cards, 0) DESC,
+        COALESCE(p.yellow_cards, 0) DESC,
+        p.name ASC
+    `);
+
+        const matchInfo = await pool.query(
+      `
+      SELECT
+        m.*,
+        ht.name AS home_team_name,
+        at.name AS away_team_name,
+        p.name AS player_name
+      FROM matches m
+      LEFT JOIN teams ht
+        ON ht.id = m.home_team_id
+      LEFT JOIN teams at
+        ON at.id = m.away_team_id
+      LEFT JOIN players p
+        ON p.id = $2
+      WHERE m.id = $1
+      `,
+      [matchId, playerId]
+    );
+
+    const match = matchInfo.rows[0];
+
+    if (match) {
+      let notificationTitle = "AliScore";
+      let notificationMessage = "";
+
+      if (type === "goal") {
+        notificationTitle = "⚽ QOL!";
+        notificationMessage =
+          `${match.player_name} qol vurdu — ${match.home_team_name} ${match.home_score}:${match.away_score} ${match.away_team_name}`;
+      }
+
+      if (type === "own_goal") {
+        notificationTitle = "⚽ Avtoqol!";
+        notificationMessage =
+          `${match.player_name} avtoqol etdi — ${match.home_team_name} ${match.home_score}:${match.away_score} ${match.away_team_name}`;
+      }
+
+      if (type === "assist") {
+        notificationTitle = "🎯 Assist!";
+        notificationMessage =
+          `${match.player_name} assist etdi.`;
+      }
+
+      if (type === "save") {
+        notificationTitle = "🧤 Seyv!";
+        notificationMessage =
+          `${match.player_name} vacib seyf etdi.`;
+      }
+
+      if (type === "yellow") {
+        notificationTitle = "🟨 Sarı kart!";
+        notificationMessage =
+          `${match.player_name} sarı kart aldı.`;
+      }
+
+      if (type === "red") {
+        notificationTitle = "🟥 Qırmızı kart!";
+        notificationMessage =
+          `${match.player_name} qırmızı kart aldı.`;
+      }
+
+      if (notificationMessage) {
+        await createAndSendNotification(
+          notificationTitle,
+          notificationMessage,
+          type,
+          {
+            match_id: matchId,
+            player_id: playerId,
+            minute
+          }
+        );
+      }
+    }
+
+        const matchInfo = await pool.query(
+      `
+      SELECT
+        m.*,
+        ht.name AS home_team_name,
+        at.name AS away_team_name,
+        p.name AS player_name
+      FROM matches m
+      LEFT JOIN teams ht
+        ON ht.id = m.home_team_id
+      LEFT JOIN teams at
+        ON at.id = m.away_team_id
+      LEFT JOIN players p
+        ON p.id = $2
+      WHERE m.id = $1
+      `,
+      [matchId, playerId]
+    );
+
+    const match = matchInfo.rows[0];
+
+    if (match) {
+      let notificationTitle = "AliScore";
+      let notificationMessage = "";
+
+      if (type === "goal") {
+        notificationTitle = "⚽ QOL!";
+        notificationMessage =
+          `${match.player_name} qol vurdu — ${match.home_team_name} ${match.home_score}:${match.away_score} ${match.away_team_name}`;
+      }
+
+      if (type === "own_goal") {
+        notificationTitle = "⚽ Avtoqol!";
+        notificationMessage =
+          `${match.player_name} avtoqol etdi — ${match.home_team_name} ${match.home_score}:${match.away_score} ${match.away_team_name}`;
+      }
+
+      if (type === "assist") {
+        notificationTitle = "🎯 Assist!";
+        notificationMessage =
+          `${match.player_name} assist etdi.`;
+      }
+
+      if (type === "save") {
+        notificationTitle = "🧤 Seyv!";
+        notificationMessage =
+          `${match.player_name} vacib seyf etdi.`;
+      }
+
+      if (type === "yellow") {
+        notificationTitle = "🟨 Sarı kart!";
+        notificationMessage =
+          `${match.player_name} sarı kart aldı.`;
+      }
+
+      if (type === "red") {
+        notificationTitle = "🟥 Qırmızı kart!";
+        notificationMessage =
+          `${match.player_name} qırmızı kart aldı.`;
+      }
+
+      if (notificationMessage) {
+        await createAndSendNotification(
+          notificationTitle,
+          notificationMessage,
+          type,
+          {
+            match_id: matchId,
+            player_id: playerId,
+            minute
+          }
+        );
+      }
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("GET CARDS ERROR:", err);
+
+    res.status(500).json({
+      error: "Ошибка загрузки карточек"
+    });
+  }
+});
+/* =========================
+   NOTIFICATIONS
+========================= */
+
+app.get("/api/notifications", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT *
+      FROM notifications
+      ORDER BY id DESC
+      LIMIT 100
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("GET NOTIFICATIONS ERROR:", err);
+
+    res.status(500).json({
+      error: "Ошибка загрузки уведомлений"
+    });
+  }
+});
+
+app.post("/api/notifications", admin, async (req, res) => {
+  try {
+    const title = cleanString(req.body.title);
+    const message = cleanString(req.body.message);
+    const type = cleanString(req.body.type) || "general";
+
+    if (!title || !message) {
+      return res.status(400).json({
+        error: "Укажите заголовок и текст уведомления"
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO notifications (
+        title,
+        message,
+        type
+      )
+      VALUES ($1, $2, $3)
+      RETURNING *
+      `,
+      [
+        title,
+        message,
+        type
+      ]
+    );
+
+    res.json({
+      ok: true,
+      notification: result.rows[0]
+    });
+  } catch (err) {
+    console.error("CREATE NOTIFICATION ERROR:", err);
+
+    res.status(500).json({
+      error: "Ошибка создания уведомления"
+    });
+  }
+});
+/* =========================
+   PUSH SUBSCRIPTIONS
+========================= */
+app.get("/api/push/public-key", (req, res) => {
+  if (!VAPID_PUBLIC_KEY) {
+    return res.status(500).json({
+      ok: false,
+      error: "VAPID_PUBLIC_KEY не настроен"
+    });
+  }
+
+  res.json({
+    ok: true,
+    publicKey: VAPID_PUBLIC_KEY
+  });
+});
+app.post("/api/push/subscribe", async (req, res) => {
+  try {
+    const subscription = req.body.subscription || req.body;
+
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({
+        error: "Неверная push-подписка"
+      });
+    }
+
+    const endpoint = subscription.endpoint;
+
+    const p256dh =
+      subscription.keys && subscription.keys.p256dh
+        ? subscription.keys.p256dh
+        : null;
+
+    const auth =
+      subscription.keys && subscription.keys.auth
+        ? subscription.keys.auth
+        : null;
+
+    await pool.query(
+      `
+      INSERT INTO push_subscriptions (
+        endpoint,
+        p256dh,
+        auth
+      )
+      VALUES ($1, $2, $3)
+      ON CONFLICT (endpoint)
+      DO UPDATE SET
+        p256dh = EXCLUDED.p256dh,
+        auth = EXCLUDED.auth
+      `,
+      [
+        endpoint,
+        p256dh,
+        auth
+      ]
+    );
+
+    res.json({
+      ok: true,
+      message: "Push subscription saved"
+    });
+  } catch (err) {
+    console.error("PUSH SUBSCRIBE ERROR:", err);
+
+    res.status(500).json({
+      error: "Ошибка сохранения push-подписки"
+    });
+  }
+});
+
+app.delete("/api/push/unsubscribe", async (req, res) => {
+  try {
+    const endpoint =
+      req.body && req.body.endpoint
+        ? req.body.endpoint
+        : "";
+
+    if (!endpoint) {
+      return res.status(400).json({
+        error: "Endpoint не указан"
+      });
+    }
+
+    await pool.query(
+      `
+      DELETE FROM push_subscriptions
+      WHERE endpoint = $1
+      `,
+      [endpoint]
+    );
+
+    res.json({
+      ok: true
+    });
+  } catch (err) {
+    console.error("PUSH UNSUBSCRIBE ERROR:", err);
+
+    res.status(500).json({
+      error: "Ошибка удаления push-подписки"
+    });
+  }
+});
+async function sendPushNotification(title, message, data = {}) {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        endpoint,
+        p256dh,
+        auth
+      FROM push_subscriptions
+    `);
+
+    if (!result.rows.length) {
+      console.log("PUSH: нет активных подписок");
+      return {
+        sent: 0,
+        removed: 0
+      };
+    }
+
+    const payload = JSON.stringify({
+      title: title || "AliScore",
+      body: message || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: data || {}
+    });
+
+    let sent = 0;
+    let removed = 0;
+
+    for (const subscription of result.rows) {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.p256dh,
+              auth: subscription.auth
+            }
+          },
+          payload
+        );
+
+        sent++;
+      } catch (pushError) {
+        console.error(
+          "PUSH SEND ERROR:",
+          pushError.statusCode,
+          pushError.message
+        );
+
+        /*
+          404/410 обычно означает,
+          что подписка больше не существует.
+        */
+        if (
+          pushError.statusCode === 404 ||
+          pushError.statusCode === 410
+        ) {
+          await pool.query(
+            `
+            DELETE FROM push_subscriptions
+            WHERE id = $1
+            `,
+            [subscription.id]
+          );
+
+          removed++;
+        }
+      }
+    }
+
+    console.log(
+      `PUSH RESULT: sent=${sent}, removed=${removed}`
+    );
+
+    return {
+      sent,
+      removed
+    };
+  } catch (err) {
+    console.error("SEND PUSH ERROR:", err);
+
+    return {
+      sent: 0,
+      removed: 0,
+      error: err.message
+    };
+  }
+}
+
+
+/* =========================
+   TEST PUSH
+========================= */
+
+app.post("/api/push/test", admin, async (req, res) => {
+  try {
+    const title =
+      cleanString(req.body.title) ||
+      "AliScore";
+
+    const message =
+      cleanString(req.body.message) ||
+      "Тестовое уведомление работает!";
+
+    const result = await sendPushNotification(
+      title,
+      message,
+      {
+        type: "test"
+      }
+    );
+
+    res.json({
+      ok: true,
+      ...result
+    });
+  } catch (err) {
+    console.error("TEST PUSH ERROR:", err);
+
+    res.status(500).json({
+      error: "Ошибка отправки тестового уведомления"
+    });
+  }
+});
+/* =========================
+   ALISCORE EVENT NOTIFICATION
+========================= */
+
+async function createAndSendNotification(
+  title,
+  message,
+  type = "general",
+  data = {}
+) {
+  try {
+    const notification = await pool.query(
+      `
+      INSERT INTO notifications (
+        title,
+        message,
+        type
+      )
+      VALUES ($1, $2, $3)
+      RETURNING *
+      `,
+      [
+        title,
+        message,
+        type
+      ]
+    );
+
+    await sendPushNotification(
+      title,
+      message,
+      {
+        type,
+        notification_id: notification.rows[0].id,
+        ...data
+      }
+    );
+
+    return notification.rows[0];
+  } catch (err) {
+    console.error(
+      "CREATE AND SEND NOTIFICATION ERROR:",
+      err
+    );
+
+    return null;
+  }
+}
