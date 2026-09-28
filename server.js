@@ -5809,7 +5809,74 @@ app.use(
     });
   }
 );
+/* =========================================================
+   USER REGISTRATION
+========================================================= */
 
+function hashUserPassword(password) {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+app.post("/api/users/register", async (req, res) => {
+  try {
+    const username = String(req.body.username || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        ok: false,
+        error: "Заполните все поля"
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        ok: false,
+        error: "Пароль минимум 6 символов"
+      });
+    }
+
+    const exists = await pool.query(
+      `SELECT id FROM users
+       WHERE username = $1 OR email = $2
+       LIMIT 1`,
+      [username, email]
+    );
+
+    if (exists.rows.length > 0) {
+      return res.status(409).json({
+        ok: false,
+        error: "Пользователь уже существует"
+      });
+    }
+
+    const passwordHash = hashUserPassword(password);
+
+    const result = await pool.query(
+      `INSERT INTO users
+       (username, email, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id, username, email, created_at`,
+      [username, email, passwordHash]
+    );
+
+    res.json({
+      ok: true,
+      user: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error("USER REGISTER ERROR:", err);
+
+    res.status(500).json({
+      ok: false,
+      error: "Ошибка регистрации"
+    });
+  }
+});
 /* =========================================================
    START
 ========================================================= */
