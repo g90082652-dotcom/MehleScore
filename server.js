@@ -4167,7 +4167,6 @@ app.delete("/api/lineups/:id/:playerId", requireAdmin, async (req, res) => {
     res.status(400).json({ ok: false, error: err.message });
   }
 });
-
 /* =========================================================
    PUSH
 ========================================================= */
@@ -4187,6 +4186,7 @@ app.get("/api/push/public-key", (req, res) => {
   });
 });
 
+
 app.get("/api/push/status", async (req, res) => {
   try {
     const result = await query(`
@@ -4201,16 +4201,12 @@ app.get("/api/push/status", async (req, res) => {
         VAPID_PUBLIC_KEY &&
         VAPID_PRIVATE_KEY
       ),
-      subscriptions:
-        result.rows[0]?.count || 0,
-      publicKey:
-        VAPID_PUBLIC_KEY || null
+      subscriptions: result.rows[0]?.count || 0,
+      publicKey: VAPID_PUBLIC_KEY || null
     });
+
   } catch (err) {
-    console.error(
-      "PUSH STATUS ERROR:",
-      err
-    );
+    console.error("PUSH STATUS ERROR:", err);
 
     res.status(500).json({
       ok: false,
@@ -4225,187 +4221,179 @@ app.get("/api/push/status", async (req, res) => {
   }
 });
 
-app.post(
-  "/api/push/subscribe",
-  async (req, res) => {
-    try {
-      if (!pushEnabled) {
-        return res.status(503).json({
-          ok: false,
-          error:
-            "Web Push serveri aktiv deyil. Render ENV-də VAPID açarlarını əlavə et."
-        });
-      }
 
-      const subscription =
-        req.body?.subscription ||
-        req.body;
+app.post("/api/push/subscribe", async (req, res) => {
+  try {
 
-      if (
-        !subscription ||
-        !subscription.endpoint ||
-        !subscription.keys ||
-        !subscription.keys.p256dh ||
-        !subscription.keys.auth
-      ) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Invalid push subscription"
-        });
-      }
-
-      await query(
-        `
-          INSERT INTO push_subscriptions
-            (
-              endpoint,
-              p256dh,
-              auth
-            )
-          VALUES
-            ($1, $2, $3)
-          ON CONFLICT (endpoint)
-          DO UPDATE SET
-            p256dh = EXCLUDED.p256dh,
-            auth = EXCLUDED.auth
-        `,
-        [
-          subscription.endpoint,
-          subscription.keys.p256dh,
-          subscription.keys.auth
-        ]
-      );
-
-      const countResult =
-        await query(`
-          SELECT COUNT(*)::int AS count
-          FROM push_subscriptions
-        `);
-
-      res.json({
-        ok: true,
-        subscribed: true,
-        subscriptions:
-          countResult.rows[0]?.count || 0
-      });
-    } catch (err) {
-      console.error(
-        "PUSH SUBSCRIBE ERROR:",
-        err
-      );
-
-      res.status(400).json({
+    if (!pushEnabled) {
+      return res.status(503).json({
         ok: false,
         error:
-          err.message
+          "Web Push serveri aktiv deyil. Render ENV-də VAPID açarlarını əlavə et."
       });
     }
+
+    const subscription =
+      req.body?.subscription || req.body;
+
+    if (
+      !subscription ||
+      !subscription.endpoint ||
+      !subscription.keys ||
+      !subscription.keys.p256dh ||
+      !subscription.keys.auth
+    ) {
+      return res.status(400).json({
+        ok: false,
+        error: "Invalid push subscription"
+      });
+    }
+
+    await query(
+      `
+      INSERT INTO push_subscriptions
+        (endpoint, p256dh, auth)
+      VALUES
+        ($1, $2, $3)
+      ON CONFLICT (endpoint)
+      DO UPDATE SET
+        p256dh = EXCLUDED.p256dh,
+        auth = EXCLUDED.auth
+      `,
+      [
+        subscription.endpoint,
+        subscription.keys.p256dh,
+        subscription.keys.auth
+      ]
+    );
+
+    const result = await query(`
+      SELECT COUNT(*)::int AS count
+      FROM push_subscriptions
+    `);
+
+    res.json({
+      ok: true,
+      subscribed: true,
+      subscriptions:
+        result.rows[0]?.count || 0
+    });
+
+  } catch (err) {
+
+    console.error(
+      "PUSH SUBSCRIBE ERROR:",
+      err
+    );
+
+    res.status(400).json({
+      ok: false,
+      error: err.message
+    });
   }
-);
+});
 
-app.delete(
-  "/api/push/unsubscribe",
-  async (req, res) => {
-    try {
-      const endpoint =
-        cleanString(
-          req.body?.endpoint ||
-          req.body?.subscription?.endpoint
-        );
 
-      if (!endpoint) {
-        return res.status(400).json({
-          ok: false,
-          error:
-            "Push endpoint tələb olunur"
-        });
+app.delete("/api/push/unsubscribe", async (req, res) => {
+  try {
+
+    const endpoint = cleanString(
+      req.body?.endpoint ||
+      req.body?.subscription?.endpoint
+    );
+
+    if (!endpoint) {
+      return res.status(400).json({
+        ok: false,
+        error: "Push endpoint tələb olunur"
+      });
+    }
+
+    await query(
+      `
+      DELETE FROM push_subscriptions
+      WHERE endpoint = $1
+      `,
+      [endpoint]
+    );
+
+    res.json({
+      ok: true,
+      unsubscribed: true
+    });
+
+  } catch (err) {
+
+    console.error(
+      "PUSH UNSUBSCRIBE ERROR:",
+      err
+    );
+
+    res.status(400).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
+
+
+app.post("/api/push/test", requireAdmin, async (req, res) => {
+  try {
+
+    const result = await sendPush(
+      "AliScore",
+      "Push bildirişləri işləyir! ⚽",
+      {
+        type: "test",
+        url: "/"
       }
+    );
 
-      await query(
-        `
-          DELETE FROM push_subscriptions
-          WHERE endpoint = $1
-        `,
-        [endpoint]
-      );
+    res.json({
+      ok: result.ok,
+      pushEnabled,
+      ...result
+    });
 
-      res.json({
-        ok: true,
-        unsubscribed: true
-      });
-    } catch (err) {
-      console.error(
-        "PUSH UNSUBSCRIBE ERROR:",
-        err
-      );
+  } catch (err) {
 
-      res.status(400).json({
-        ok: false,
-        error: err.message
-      });
-    }
+    console.error(
+      "PUSH TEST ERROR:",
+      err
+    );
+
+    res.status(500).json({
+      ok: false,
+      pushEnabled,
+      error: err.message
+    });
   }
-);
+});
 
-app.post(
-  "/api/push/test",
-  requireAdmin,
-  async (req, res) => {
-    try {
-      const result =
-        await sendPush(
-          "AliScore",
-          "Push bildirişləri işləyir! ⚽",
-          {
-            type: "test",
-            url: "/"
-          }
-        );
-
-      res.json({
-        ok: result.ok,
-        pushEnabled,
-        ...result
-      });
-    } catch (err) {
-      console.error(
-        "PUSH TEST ERROR:",
-        err
-      );
-
-      res.status(500).json({
-        ok: false,
-        pushEnabled,
-        error: err.message
-      });
-    }
-  }
-);
 
 /* =========================================================
    SERVICE WORKER
 ========================================================= */
 
-app.get(
-  "/service-worker.js",
-  (req, res) => {
-    res.setHeader(
-      "Content-Type",
-      "application/javascript; charset=utf-8"
-    );
+app.get("/service-worker.js", (req, res) => {
 
-    res.setHeader(
-      "Cache-Control",
-      "no-cache, no-store, must-revalidate"
-    );
+  res.setHeader(
+    "Content-Type",
+    "application/javascript; charset=utf-8"
+  );
 
-    res.send(`
+  res.setHeader(
+    "Cache-Control",
+    "no-cache, no-store, must-revalidate"
+  );
+
+  res.send(`
 self.addEventListener("install", function(event) {
   event.waitUntil(
     self.skipWaiting()
   );
 });
+
 
 self.addEventListener("activate", function(event) {
   event.waitUntil(
@@ -4413,14 +4401,19 @@ self.addEventListener("activate", function(event) {
   );
 });
 
+
 self.addEventListener("push", function(event) {
+
   let data = {};
 
   try {
+
     data = event.data
       ? event.data.json()
       : {};
+
   } catch (e) {
+
     data = {
       title: "AliScore",
       body: event.data
@@ -4430,10 +4423,10 @@ self.addEventListener("push", function(event) {
   }
 
   const title =
-    data.title ||
-    "AliScore";
+    data.title || "AliScore";
 
   const options = {
+
     body:
       data.body ||
       data.message ||
@@ -4444,8 +4437,7 @@ self.addEventListener("push", function(event) {
     badge: "/icon-192.png",
 
     data:
-      data.data ||
-      {},
+      data.data || {},
 
     vibrate: [
       200,
@@ -4468,9 +4460,11 @@ self.addEventListener("push", function(event) {
   );
 });
 
+
 self.addEventListener(
   "notificationclick",
   function(event) {
+
     event.notification.close();
 
     const target =
@@ -4480,25 +4474,25 @@ self.addEventListener(
         : "/";
 
     event.waitUntil(
+
       self.clients
         .matchAll({
           type: "window",
           includeUncontrolled: true
         })
+
         .then(function(clientList) {
 
           for (
             const client
             of clientList
           ) {
-            if (
-              "focus" in client
-            ) {
+
+            if ("focus" in client) {
+
               client
                 .navigate(target)
-                .catch(
-                  function() {}
-                );
+                .catch(function() {});
 
               return client.focus();
             }
@@ -4507,6 +4501,7 @@ self.addEventListener(
           if (
             self.clients.openWindow
           ) {
+
             return self.clients.openWindow(
               target
             );
@@ -4515,11 +4510,9 @@ self.addEventListener(
     );
   }
 );
-    `);
-  }
-);
-
-/* =========================================================
+  `);
+});
+/* ==========================================/*
    UNKNOWN API
 ========================================================= */
 
