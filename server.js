@@ -2,7 +2,6 @@ const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 const webpush = require("web-push");
 const { Pool } = require("pg");
 
@@ -21,38 +20,32 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: DATABASE_URL
-    ? { rejectUnauthorized: false }
-    : false
+  ssl: DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-/* =========================================================
+/* =====================================================
    WEB PUSH
-========================================================= */
+===================================================== */
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_EMAIL = process.env.VAPID_EMAIL;
 
-if (
-  VAPID_PUBLIC_KEY &&
-  VAPID_PRIVATE_KEY &&
-  VAPID_EMAIL
-) {
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY && VAPID_EMAIL) {
   webpush.setVapidDetails(
     VAPID_EMAIL,
     VAPID_PUBLIC_KEY,
     VAPID_PRIVATE_KEY
   );
 
-  console.log("Web Push: configured");
+  console.log("✅ Web Push configured");
 } else {
-  console.log("Web Push: VAPID variables are missing");
+  console.log("⚠️ Web Push VAPID variables are missing");
 }
 
-/* =========================================================
+/* =====================================================
    HEALTH
-========================================================= */
+===================================================== */
 
 app.get("/api/health", async (req, res) => {
   try {
@@ -61,13 +54,11 @@ app.get("/api/health", async (req, res) => {
     res.json({
       ok: true,
       database: "connected",
-      push: {
-        configured: !!(
-          VAPID_PUBLIC_KEY &&
-          VAPID_PRIVATE_KEY &&
-          VAPID_EMAIL
-        )
-      }
+      push: !!(
+        VAPID_PUBLIC_KEY &&
+        VAPID_PRIVATE_KEY &&
+        VAPID_EMAIL
+      )
     });
   } catch (error) {
     console.error(error);
@@ -80,36 +71,27 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    PUSH PUBLIC KEY
-========================================================= */
+===================================================== */
 
 app.get("/api/push/public-key", (req, res) => {
-  try {
-    if (!VAPID_PUBLIC_KEY) {
-      return res.status(500).json({
-        ok: false,
-        error: "VAPID_PUBLIC_KEY is missing"
-      });
-    }
-
-    res.json({
-      ok: true,
-      publicKey: VAPID_PUBLIC_KEY
-    });
-  } catch (error) {
-    console.error("Push public key:", error);
-
-    res.status(500).json({
+  if (!VAPID_PUBLIC_KEY) {
+    return res.status(500).json({
       ok: false,
-      error: error.message
+      error: "VAPID_PUBLIC_KEY is missing"
     });
   }
+
+  res.json({
+    ok: true,
+    publicKey: VAPID_PUBLIC_KEY
+  });
 });
 
-/* =========================================================
-   DATABASE INITIALIZATION
-========================================================= */
+/* =====================================================
+   DATABASE
+===================================================== */
 
 async function initDatabase() {
   await pool.query(`
@@ -210,12 +192,12 @@ async function initDatabase() {
     )
   `);
 
-  console.log("Database initialized");
+  console.log("✅ Database initialized");
 }
 
-/* =========================================================
-   ADMIN
-========================================================= */
+/* =====================================================
+   ADMIN AUTH
+===================================================== */
 
 function adminAuth(req, res, next) {
   try {
@@ -229,15 +211,18 @@ function adminAuth(req, res, next) {
     }
 
     jwt.verify(token, JWT_SECRET);
-
     next();
   } catch {
-    return res.status(401).json({
+    res.status(401).json({
       ok: false,
       error: "Unauthorized"
     });
   }
 }
+
+/* =====================================================
+   ADMIN LOGIN
+===================================================== */
 
 app.post("/api/admin/login", (req, res) => {
   const password = String(req.body.password || "");
@@ -301,20 +286,21 @@ app.post("/api/admin/logout", (req, res) => {
   });
 });
 
-/* =========================================================
+/* =====================================================
    TEAMS
-========================================================= */
+===================================================== */
 
 app.get("/api/teams", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT *,
-      (goals_for - goals_against) AS goal_difference
+      goals_for - goals_against AS goal_difference
       FROM teams
-      ORDER BY points DESC,
-               (goals_for - goals_against) DESC,
-               goals_for DESC,
-               name ASC
+      ORDER BY
+        points DESC,
+        goal_difference DESC,
+        goals_for DESC,
+        name ASC
     `);
 
     res.json(result.rows);
@@ -342,7 +328,7 @@ app.post("/api/teams", adminAuth, async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO teams
-      (name, points, played, wins, draws, losses, goals_for, goals_against)
+      (name,points,played,wins,draws,losses,goals_for,goals_against)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       RETURNING *
       `,
@@ -369,8 +355,6 @@ app.post("/api/teams", adminAuth, async (req, res) => {
 
 app.put("/api/teams/:id", adminAuth, async (req, res) => {
   try {
-    const id = req.params.id;
-
     const fields = [
       "name",
       "points",
@@ -388,7 +372,7 @@ app.put("/api/teams/:id", adminAuth, async (req, res) => {
     for (const field of fields) {
       if (req.body[field] !== undefined) {
         values.push(req.body[field]);
-        updates.push(`${field} = $${values.length}`);
+        updates.push(`${field}=$${values.length}`);
       }
     }
 
@@ -399,13 +383,13 @@ app.put("/api/teams/:id", adminAuth, async (req, res) => {
       });
     }
 
-    values.push(id);
+    values.push(req.params.id);
 
     const result = await pool.query(
       `
       UPDATE teams
-      SET ${updates.join(", ")}
-      WHERE id = $${values.length}
+      SET ${updates.join(",")}
+      WHERE id=$${values.length}
       RETURNING *
       `,
       values
@@ -436,9 +420,9 @@ app.delete("/api/teams/:id", adminAuth, async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    PLAYERS
-========================================================= */
+===================================================== */
 
 app.get("/api/players", async (req, res) => {
   try {
@@ -447,8 +431,8 @@ app.get("/api/players", async (req, res) => {
         p.*,
         t.name AS team_name
       FROM players p
-      LEFT JOIN teams t ON t.id = p.team_id
-      ORDER BY p.name ASC
+      LEFT JOIN teams t ON t.id=p.team_id
+      ORDER BY p.name
     `);
 
     res.json(result.rows);
@@ -481,18 +465,9 @@ app.post("/api/players", adminAuth, async (req, res) => {
       `
       INSERT INTO players
       (
-        name,
-        team_id,
-        number,
-        position,
-        photo,
-        goals,
-        assists,
-        saves,
-        yellow_cards,
-        red_cards,
-        own_goals,
-        rating
+        name,team_id,number,position,photo,
+        goals,assists,saves,yellow_cards,
+        red_cards,own_goals,rating
       )
       VALUES
       ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
@@ -525,9 +500,7 @@ app.post("/api/players", adminAuth, async (req, res) => {
 
 app.put("/api/players/:id", adminAuth, async (req, res) => {
   try {
-    const id = req.params.id;
-
-    const allowed = [
+    const fields = [
       "name",
       "team_id",
       "number",
@@ -545,7 +518,7 @@ app.put("/api/players/:id", adminAuth, async (req, res) => {
     const updates = [];
     const values = [];
 
-    for (const field of allowed) {
+    for (const field of fields) {
       if (req.body[field] !== undefined) {
         values.push(req.body[field]);
         updates.push(`${field}=$${values.length}`);
@@ -559,12 +532,12 @@ app.put("/api/players/:id", adminAuth, async (req, res) => {
       });
     }
 
-    values.push(id);
+    values.push(req.params.id);
 
     const result = await pool.query(
       `
       UPDATE players
-      SET ${updates.join(", ")}
+      SET ${updates.join(",")}
       WHERE id=$${values.length}
       RETURNING *
       `,
@@ -596,9 +569,9 @@ app.delete("/api/players/:id", adminAuth, async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    MATCHES
-========================================================= */
+===================================================== */
 
 app.get("/api/matches", async (req, res) => {
   try {
@@ -612,7 +585,7 @@ app.get("/api/matches", async (req, res) => {
       LEFT JOIN teams ht ON ht.id=m.home_team_id
       LEFT JOIN teams at ON at.id=m.away_team_id
       LEFT JOIN players p ON p.id=m.player_of_match_id
-      ORDER BY m.date DESC, m.id DESC
+      ORDER BY m.date DESC,m.id DESC
     `);
 
     res.json(result.rows);
@@ -705,7 +678,7 @@ app.put("/api/matches/:id", adminAuth, async (req, res) => {
     const result = await pool.query(
       `
       UPDATE matches
-      SET ${updates.join(", ")}
+      SET ${updates.join(",")}
       WHERE id=$${values.length}
       RETURNING *
       `,
@@ -737,9 +710,9 @@ app.delete("/api/matches/:id", adminAuth, async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    MATCH EVENTS
-========================================================= */
+===================================================== */
 
 app.get("/api/matches/:id/events", async (req, res) => {
   try {
@@ -752,7 +725,7 @@ app.get("/api/matches/:id/events", async (req, res) => {
       FROM match_events e
       LEFT JOIN players p ON p.id=e.player_id
       WHERE e.match_id=$1
-      ORDER BY e.minute ASC, e.id ASC
+      ORDER BY e.minute,e.id
       `,
       [req.params.id]
     );
@@ -794,7 +767,7 @@ app.post("/api/matches/:id/events", adminAuth, async (req, res) => {
     const event = await client.query(
       `
       INSERT INTO match_events
-      (match_id, player_id, type, minute)
+      (match_id,player_id,type,minute)
       VALUES ($1,$2,$3,$4)
       RETURNING *
       `,
@@ -807,32 +780,37 @@ app.post("/api/matches/:id/events", adminAuth, async (req, res) => {
     );
 
     if (player_id) {
-      let column = null;
-      let delta = 1;
+      const columns = {
+        goal: "goals",
+        assist: "assists",
+        save: "saves",
+        yellow: "yellow_cards",
+        red: "red_cards",
+        own_goal: "own_goals"
+      };
 
-      if (type === "goal") column = "goals";
-      if (type === "assist") column = "assists";
-      if (type === "save") column = "saves";
-      if (type === "yellow") column = "yellow_cards";
-      if (type === "red") column = "red_cards";
-      if (type === "own_goal") column = "own_goals";
+      const column = columns[type];
 
       if (column) {
         await client.query(
           `
           UPDATE players
-          SET ${column} = COALESCE(${column},0) + $1
-          WHERE id=$2
+          SET ${column}=COALESCE(${column},0)+1
+          WHERE id=$1
           `,
-          [delta, player_id]
+          [player_id]
         );
       }
 
-      if (type === "goal" || type === "assist" || type === "save") {
+      if (
+        type === "goal" ||
+        type === "assist" ||
+        type === "save"
+      ) {
         await client.query(
           `
           UPDATE players
-          SET rating = COALESCE(rating,0) + 1
+          SET rating=COALESCE(rating,0)+1
           WHERE id=$1
           `,
           [player_id]
@@ -843,7 +821,7 @@ app.post("/api/matches/:id/events", adminAuth, async (req, res) => {
         await client.query(
           `
           UPDATE players
-          SET rating = COALESCE(rating,0) - 1
+          SET rating=COALESCE(rating,0)-1
           WHERE id=$1
           `,
           [player_id]
@@ -854,7 +832,7 @@ app.post("/api/matches/:id/events", adminAuth, async (req, res) => {
         await client.query(
           `
           UPDATE players
-          SET rating = COALESCE(rating,0) - 2
+          SET rating=COALESCE(rating,0)-2
           WHERE id=$1
           `,
           [player_id]
@@ -865,11 +843,8 @@ app.post("/api/matches/:id/events", adminAuth, async (req, res) => {
     await client.query("COMMIT");
 
     res.json(event.rows[0]);
-
   } catch (error) {
     await client.query("ROLLBACK");
-
-    console.error("Event error:", error);
 
     res.status(400).json({
       ok: false,
@@ -880,62 +855,70 @@ app.post("/api/matches/:id/events", adminAuth, async (req, res) => {
   }
 });
 
-app.put("/api/matches/:matchId/events/:eventId", adminAuth, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `
-      UPDATE match_events
-      SET
-        player_id=COALESCE($1,player_id),
-        type=COALESCE($2,type),
-        minute=COALESCE($3,minute)
-      WHERE id=$4
-      AND match_id=$5
-      RETURNING *
-      `,
-      [
-        req.body.player_id,
-        req.body.type,
-        req.body.minute,
-        req.params.eventId,
-        req.params.matchId
-      ]
-    );
+app.put(
+  "/api/matches/:matchId/events/:eventId",
+  adminAuth,
+  async (req, res) => {
+    try {
+      const result = await pool.query(
+        `
+        UPDATE match_events
+        SET
+          player_id=COALESCE($1,player_id),
+          type=COALESCE($2,type),
+          minute=COALESCE($3,minute)
+        WHERE id=$4
+        AND match_id=$5
+        RETURNING *
+        `,
+        [
+          req.body.player_id,
+          req.body.type,
+          req.body.minute,
+          req.params.eventId,
+          req.params.matchId
+        ]
+      );
 
-    res.json(result.rows[0]);
-  } catch (error) {
-    res.status(500).json({
-      ok: false,
-      error: error.message
-    });
+      res.json(result.rows[0]);
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
   }
-});
+);
 
-app.delete("/api/matches/:matchId/events/:eventId", adminAuth, async (req, res) => {
-  try {
-    await pool.query(
-      `
-      DELETE FROM match_events
-      WHERE id=$1 AND match_id=$2
-      `,
-      [
-        req.params.eventId,
-        req.params.matchId
-      ]
-    );
+app.delete(
+  "/api/matches/:matchId/events/:eventId",
+  adminAuth,
+  async (req, res) => {
+    try {
+      await pool.query(
+        `
+        DELETE FROM match_events
+        WHERE id=$1 AND match_id=$2
+        `,
+        [
+          req.params.eventId,
+          req.params.matchId
+        ]
+      );
 
-    res.json({ ok: true });
-  } catch (error) {
-    res.status(500).json({
-      ok: false,
-      error: error.message
-    });
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        error: error.message
+      });
+    }
   }
-});
+);
 
-/* =========================================================
+/* =====================================================
    STATISTICS
-========================================================= */
+===================================================== */
 
 app.get("/api/statistics", async (req, res) => {
   try {
@@ -960,9 +943,9 @@ app.get("/api/statistics", async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    CARDS
-========================================================= */
+===================================================== */
 
 app.get("/api/cards", async (req, res) => {
   try {
@@ -976,8 +959,8 @@ app.get("/api/cards", async (req, res) => {
       FROM players p
       LEFT JOIN teams t ON t.id=p.team_id
       WHERE
-        COALESCE(p.yellow_cards,0) > 0
-        OR COALESCE(p.red_cards,0) > 0
+        COALESCE(p.yellow_cards,0)>0
+        OR COALESCE(p.red_cards,0)>0
       ORDER BY
         p.red_cards DESC,
         p.yellow_cards DESC
@@ -992,9 +975,9 @@ app.get("/api/cards", async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    LINEUPS
-========================================================= */
+===================================================== */
 
 app.get("/api/lineups", async (req, res) => {
   try {
@@ -1045,9 +1028,9 @@ app.post("/api/lineups", adminAuth, async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    TRANSFERS
-========================================================= */
+===================================================== */
 
 app.get("/api/transfers", async (req, res) => {
   try {
@@ -1081,7 +1064,7 @@ app.post("/api/transfers", adminAuth, async (req, res) => {
 
     const {
       player_id,
-      from_team_id,
+      from_team_id = null,
       to_team_id,
       fee = 0
     } = req.body;
@@ -1095,7 +1078,7 @@ app.post("/api/transfers", adminAuth, async (req, res) => {
       `,
       [
         player_id,
-        from_team_id || null,
+        from_team_id,
         to_team_id,
         fee
       ]
@@ -1119,7 +1102,6 @@ app.post("/api/transfers", adminAuth, async (req, res) => {
       ok: true,
       transfer: transfer.rows[0]
     });
-
   } catch (error) {
     await client.query("ROLLBACK");
 
@@ -1132,9 +1114,9 @@ app.post("/api/transfers", adminAuth, async (req, res) => {
   }
 });
 
-/* =========================================================
-   PUSH SUBSCRIPTIONS
-========================================================= */
+/* =====================================================
+   PUSH SUBSCRIBE
+===================================================== */
 
 app.post("/api/push/subscribe", async (req, res) => {
   try {
@@ -1150,7 +1132,7 @@ app.post("/api/push/subscribe", async (req, res) => {
     await pool.query(
       `
       INSERT INTO push_subscriptions
-      (endpoint, subscription)
+      (endpoint,subscription)
       VALUES ($1,$2)
       ON CONFLICT (endpoint)
       DO UPDATE SET subscription=$2
@@ -1165,8 +1147,6 @@ app.post("/api/push/subscribe", async (req, res) => {
       ok: true
     });
   } catch (error) {
-    console.error("Subscribe error:", error);
-
     res.status(500).json({
       ok: false,
       error: error.message
@@ -1174,9 +1154,9 @@ app.post("/api/push/subscribe", async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    SEND PUSH
-========================================================= */
+===================================================== */
 
 async function sendPush(title, message, data = {}) {
   if (
@@ -1189,7 +1169,7 @@ async function sendPush(title, message, data = {}) {
   }
 
   const result = await pool.query(
-    "SELECT id, subscription FROM push_subscriptions"
+    "SELECT id,subscription FROM push_subscriptions"
   );
 
   for (const row of result.rows) {
@@ -1203,7 +1183,11 @@ async function sendPush(title, message, data = {}) {
         })
       );
     } catch (error) {
-      console.error("Push error:", error.statusCode);
+      console.error(
+        "Push error:",
+        error.statusCode,
+        error.message
+      );
 
       if (
         error.statusCode === 404 ||
@@ -1221,11 +1205,9 @@ async function sendPush(title, message, data = {}) {
 app.post("/api/push/test", adminAuth, async (req, res) => {
   try {
     await sendPush(
-      "AliScore",
-      "Тестовое уведомление работает! ⚽",
-      {
-        type: "test"
-      }
+      "AliScore ⚽",
+      "Тестовое уведомление работает!",
+      { type: "test" }
     );
 
     res.json({
@@ -1239,9 +1221,9 @@ app.post("/api/push/test", adminAuth, async (req, res) => {
   }
 });
 
-/* =========================================================
+/* =====================================================
    NOTIFICATIONS
-========================================================= */
+===================================================== */
 
 app.get("/api/notifications", async (req, res) => {
   try {
@@ -1275,10 +1257,7 @@ app.post("/api/notifications", adminAuth, async (req, res) => {
       VALUES ($1,$2)
       RETURNING *
       `,
-      [
-        title,
-        message
-      ]
+      [title, message]
     );
 
     await sendPush(
@@ -1295,9 +1274,9 @@ app.post("/api/notifications", adminAuth, async (req, res) => {
   }
 });
 
-/* =========================================================
-   TEAM OF WEEK / DREAM TEAM
-========================================================= */
+/* =====================================================
+   DREAM TEAM
+===================================================== */
 
 app.get("/api/team-of-week", async (req, res) => {
   try {
@@ -1323,43 +1302,54 @@ app.get("/api/team-of-week", async (req, res) => {
   }
 });
 
-/* =========================================================
-   ROOT / SPA
-========================================================= */
+/* =====================================================
+   404 API
+===================================================== */
+
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    ok: false,
+    error: "API route not found",
+    path: req.path
+  });
+});
+
+/* =====================================================
+   FRONTEND
+===================================================== */
 
 app.get("*", (req, res) => {
-  if (req.path.startsWith("/api/")) {
-    return res.status(404).json({
-      ok: false,
-      error: "API route not found",
-      path: req.path
-    });
-  }
-
   res.sendFile(
     path.join(__dirname, "public", "index.html")
   );
 });
 
-/* =========================================================
+/* =====================================================
    START
-========================================================= */
+===================================================== */
 
 async function start() {
   try {
-    if (!DATABASE_URL) {
-      console.error("DATABASE_URL is missing");
-    } else {
+    if (DATABASE_URL) {
       await initDatabase();
+    } else {
+      console.log("⚠️ DATABASE_URL is missing");
     }
 
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`AliScore server running on port ${PORT}`);
-      console.log(`Push API: /api/push/public-key`);
-      console.log(`Health API: /api/health`);
+      console.log(
+        `🚀 AliScore running on port ${PORT}`
+      );
+      console.log(
+        `🔑 Push API: /api/push/public-key`
+      );
     });
   } catch (error) {
-    console.error("START ERROR:", error);
+    console.error(
+      "❌ START ERROR:",
+      error
+    );
+
     process.exit(1);
   }
 }
