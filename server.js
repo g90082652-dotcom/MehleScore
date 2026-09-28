@@ -5010,7 +5010,721 @@ app.post("/api/ai/confirm", requireAdmin, async (req, res) => {
   }
 });
 
+/* =========================================================
+   ALI AI COMMANDS
+   Natural language commands for AliScore
+   ========================================================= */
 
+function aliNormalizeText(value) {
+  return String(value || "")
+    .toLocaleLowerCase("az-AZ")
+    .replace(/[’'`]/g, "")
+    .replace(/[‐-‒–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function aliNormalizeName(value) {
+  return aliNormalizeText(value)
+    .replace(/[-–—]/g, " ")
+    .replace(/\b(nin|nın|nun|nün|in|ın|un|ün|nin|nın|nun|nün)\b/g, "")
+    .replace(/\b(yə|ya|a|ə)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function aliCleanPlayerName(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^[,.:;!?]+/, "")
+    .replace(/[,.:;!?]+$/, "")
+    .replace(/^(?:oyuncu|player|oyunçu)\s+/iu, "")
+    .trim();
+}
+
+function aliExtractMinute(text) {
+  const s = aliNormalizeText(text);
+
+  let m =
+    s.match(/(\d{1,3})\s*(?:-?ci|-?cü|-?cu|-?cü|-?cı|-?cu)?\s*(?:dəqiqə|deqiqe|dəq|deq|minute|min)\b/i) ||
+    s.match(/(?:at|on|na|в)\s*(\d{1,3})\s*(?:-?ci|-?cü|-?cu|-?cı)?\s*(?:dəqiqə|deqiqe|dəq|deq|minute|min|минут[аеы]?)?/i) ||
+    s.match(/\b(\d{1,3})\s*(?:-ci|-cü|-cu|-cı)?\s*(?:minute|min|минут[аеы]?)\b/i);
+
+  if (!m) return null;
+
+  const minute = Number(m[1]);
+
+  if (!Number.isInteger(minute) || minute < 0 || minute > 150) {
+    return null;
+  }
+
+  return minute;
+}
+
+/*
+  Converts different natural phrases into one action.
+
+  Supported examples:
+
+  Ali-nin qolunu sil
+  Alinin qolunu sil
+  Ali-nin 25-ci dəqiqədəki qolunu sil
+
+  удали гол Али
+  удали гол Али на 25 минуте
+
+  delete Ali's goal
+  delete Ali goal at 25 minute
+*/
+
+function parseAliCommand(input) {
+  const original = String(input || "").trim();
+  const text = aliNormalizeText(original);
+
+  if (!text) {
+    return {
+      type: "unknown",
+      original
+    };
+  }
+
+  const minute = aliExtractMinute(text);
+
+  /* =========================
+     DELETE GOAL
+     ========================= */
+
+  const deleteGoal =
+    /\b(qolunu|qolunu|qolun|qolu)\s+sil\b/i.test(text) ||
+    /\b(qol)\s+sil\b/i.test(text) ||
+    /\b(udali|удалить|удали|убери|убрать)\b.*\b(гол|qol|goal)\b/i.test(text) ||
+    /\b(delete|remove)\b.*\b(goal|qol)\b/i.test(text) ||
+    /\b(goal|qol)\b.*\b(delete|remove|sil)\b/i.test(text);
+
+  if (deleteGoal) {
+    let player = null;
+
+    let m =
+      original.match(/^(.+?)(?:-nin|-nın|-nun|-nün|-in|-ın|-un|-ün)?\s+qol(?:unu|un|u)?\s+sil/i) ||
+      original.match(/^(.+?)\s+(?:qolunu|qolunu)\s+sil/i) ||
+      original.match(/(?:удали|удалить|убери|убрать)\s+(?:гол)\s+(.+?)(?:\s+(?:на|в)\s+\d+)/i) ||
+      original.match(/(?:delete|remove)\s+(?:the\s+)?goal\s+(?:of\s+)?(.+?)(?:\s+(?:at|on)\s+\d+)/i) ||
+      original.match(/(?:delete|remove)\s+(.+?)\s+(?:goal)/i);
+
+    if (m) {
+      player = aliCleanPlayerName(m[1]);
+    }
+
+    /*
+      Special Azerbaijani forms:
+      Ali-nin qolunu sil
+      Alinin qolunu sil
+      Ali qolunu sil
+    */
+    if (!player) {
+      let m2 = original.match(
+        /^(.+?)(?:-nin|-nın|-nun|-nün|-in|-ın|-un|-ün)?\s+qol(?:unu|un|u)?\s+sil/i
+      );
+
+      if (m2) {
+        player = aliCleanPlayerName(m2[1]);
+      }
+    }
+
+    /*
+      Remove minute words accidentally captured in player name.
+    */
+    if (player) {
+      player = player
+        .replace(/\s+(?:at|on|na|в)\s+\d+.*$/i, "")
+        .replace(/\s+\d+\s*(?:-ci|-cü|-cu|-cı)?\s*(?:dəqiqə|deqiqe|dəq|deq|minute|min|минут.*)$/i, "")
+        .trim();
+    }
+
+    return {
+      type: "delete_goal",
+      player_name: player || null,
+      minute,
+      original
+    };
+  }
+
+  /* =========================
+     ADD GOAL
+     ========================= */
+
+  const addGoal =
+    /\b(qol\s+(?:əlavə et|ver|vur))\b/i.test(text) ||
+    /\b(?:goal|qol)\s+(?:add|əlavə|vur)\b/i.test(text) ||
+    /\b(?:add|əlavə et)\b.*\b(?:goal|qol)\b/i.test(text) ||
+    /\b(?:забей|добавь|добавить)\b.*\b(?:гол)\b/i.test(text);
+
+  if (addGoal) {
+    let player = null;
+
+    let m =
+      original.match(/^(.+?)(?:-yə|-ya|-yə|-a|-ə)?\s+qol(?:u)?\s+(?:əlavə et|ver|vur)/i) ||
+      original.match(/(?:добавь|добавить|забей)\s+(?:гол)\s+(.+)/i) ||
+      original.match(/(?:add)\s+(?:goal)\s+(?:for\s+)?(.+)/i);
+
+    if (m) player = aliCleanPlayerName(m[1]);
+
+    return {
+      type: "add_goal",
+      player_name: player || null,
+      minute,
+      original
+    };
+  }
+
+  /* =========================
+     DELETE ASSIST
+     ========================= */
+
+  const deleteAssist =
+    /\b(assist(?:i|ini|in|ni)?|assist)\s+sil\b/i.test(text) ||
+    /\b(assist)\b.*\b(delete|remove)\b/i.test(text) ||
+    /\b(?:удали|удалить|убери)\b.*\bассист\b/i.test(text);
+
+  if (deleteAssist) {
+    let player = null;
+
+    let m =
+      original.match(/^(.+?)(?:-nin|-nın|-nun|-nün|-in|-ın|-un|-ün)?\s+assist(?:i|ini|in|ni)?\s+sil/i) ||
+      original.match(/(?:удали|удалить|убери)\s+(?:ассист)\s+(.+)/i) ||
+      original.match(/(?:delete|remove)\s+(?:assist)\s+(?:of\s+)?(.+)/i);
+
+    if (m) player = aliCleanPlayerName(m[1]);
+
+    return {
+      type: "delete_assist",
+      player_name: player || null,
+      minute,
+      original
+    };
+  }
+
+  /* =========================
+     ADD YELLOW CARD
+     ========================= */
+
+  const addYellow =
+    /\b(?:sarı\s+kart|sari\s+kart)\s+(?:ver|əlavə et)\b/i.test(text) ||
+    /\b(?:give|add)\b.*\b(?:yellow\s+card)\b/i.test(text) ||
+    /\b(?:дай|добавь)\b.*\b(?:желтую|жёлтую)\s+карточку\b/i.test(text);
+
+  if (addYellow) {
+    let player = null;
+
+    let m =
+      original.match(/^(.+?)(?:-yə|-ya|-ə|-a)?\s+(?:sarı|sari)\s+kart\s+(?:ver|əlavə et)/i) ||
+      original.match(/(?:give|add)\s+(?:a\s+)?yellow\s+card\s+(?:to\s+)?(.+)/i) ||
+      original.match(/(?:дай|добавь)\s+(?:желтую|жёлтую)\s+карточку\s+(.+)/i);
+
+    if (m) player = aliCleanPlayerName(m[1]);
+
+    return {
+      type: "add_yellow",
+      player_name: player || null,
+      minute,
+      original
+    };
+  }
+
+  /* =========================
+     DELETE YELLOW CARD
+     ========================= */
+
+  const deleteYellow =
+    /\b(?:sarı|sari)\s+kart(?:ı|i|ini|ını)?\s+sil\b/i.test(text) ||
+    /\b(?:yellow\s+card)\b.*\b(?:delete|remove)\b/i.test(text) ||
+    /\b(?:удали|удалить|убери)\b.*\b(?:желтую|жёлтую)\s+карточку\b/i.test(text);
+
+  if (deleteYellow) {
+    let player = null;
+
+    let m =
+      original.match(/^(.+?)(?:-nin|-nın|-nun|-nün|-in|-ın|-un|-ün)?\s+(?:sarı|sari)\s+kart(?:ı|i|ini|ını)?\s+sil/i) ||
+      original.match(/(?:удали|удалить|убери)\s+(?:желтую|жёлтую)\s+карточку\s+(.+)/i) ||
+      original.match(/(?:delete|remove)\s+(?:yellow\s+card)\s+(?:of\s+)?(.+)/i);
+
+    if (m) player = aliCleanPlayerName(m[1]);
+
+    return {
+      type: "delete_yellow",
+      player_name: player || null,
+      minute,
+      original
+    };
+  }
+
+  /* =========================
+     SET RATING
+     ========================= */
+
+  const ratingMatch =
+    original.match(/(.+?)(?:-nin|-nın|-nun|-nün|-in|-ın|-un|-ün)?\s+(?:reytinqini|reytingini|ratingini)\s+(\d+)\s*(?:et|etmək|qoy|ver)/i) ||
+    original.match(/(?:set|make|change)\s+(.+?)\s+(?:rating)\s+(?:to)\s+(\d+)/i) ||
+    original.match(/(?:установи|поставь|измени)\s+(?:рейтинг)\s+(.+?)\s+(?:на)\s+(\d+)/i);
+
+  if (ratingMatch) {
+    return {
+      type: "set_rating",
+      player_name: aliCleanPlayerName(ratingMatch[1]),
+      rating: Number(ratingMatch[2]),
+      original
+    };
+  }
+
+  /* =========================
+     TRANSFER PLAYER
+     ========================= */
+
+  const transferMatch =
+    original.match(/(.+?)\s+(?:-ni|-nı|-nu|-nü)?\s*(?:Xirdalan\s+United|Xirdalan\s+Wolves|Neweli\s+FK|MSN\s+FK|Lotu\s+pişiklər)\s*(?:-a|-ə|-ya|-yə)?\s+keçir/i) ||
+    original.match(/(?:transfer|move)\s+(.+?)\s+(?:to)\s+(.+)/i);
+
+  if (transferMatch) {
+    return {
+      type: "transfer_player",
+      player_name: aliCleanPlayerName(transferMatch[1]),
+      team_name: String(transferMatch[2] || "").trim(),
+      original
+    };
+  }
+
+  return {
+    type: "unknown",
+    original
+  };
+}
+
+
+/* =========================================================
+   PLAYER FINDER FOR ALI AI
+   ========================================================= */
+
+async function aliFindPlayerByName(playerName) {
+  if (!playerName) return null;
+
+  const wanted = aliNormalizeName(playerName);
+
+  const result = await pool.query(`
+    SELECT
+      id,
+      name,
+      team_id,
+      goals,
+      assists,
+      saves,
+      yellow_cards,
+      red_cards,
+      rating
+    FROM players
+    ORDER BY id
+  `);
+
+  const players = result.rows || [];
+
+  /*
+    1. Exact normalized match
+  */
+  let player = players.find(p =>
+    aliNormalizeName(p.name) === wanted
+  );
+
+  if (player) return player;
+
+  /*
+    2. Contains match
+  */
+  player = players.find(p => {
+    const n = aliNormalizeName(p.name);
+    return n.includes(wanted) || wanted.includes(n);
+  });
+
+  return player || null;
+}
+
+
+/* =========================================================
+   FIND GOALS OF PLAYER
+   ========================================================= */
+
+async function aliFindPlayerGoals(playerId, minute = null) {
+  let sql = `
+    SELECT
+      e.id,
+      e.match_id,
+      e.player_id,
+      e.team_id,
+      e.type,
+      e.minute,
+      p.name AS player_name
+    FROM match_events e
+    LEFT JOIN players p ON p.id = e.player_id
+    WHERE e.type = 'goal'
+      AND e.player_id = $1
+  `;
+
+  const params = [playerId];
+
+  if (minute !== null && minute !== undefined) {
+    sql += ` AND e.minute = $2`;
+    params.push(minute);
+  }
+
+  sql += ` ORDER BY e.minute DESC NULLS LAST, e.id DESC`;
+
+  const result = await pool.query(sql, params);
+
+  return result.rows || [];
+}
+
+
+/* =========================================================
+   DELETE REAL MATCH EVENT
+   This mirrors AliScore's normal event deletion behavior.
+   ========================================================= */
+
+async function aliDeleteGoalEvent(matchId, eventId) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const matchResult = await client.query(
+      `
+      SELECT id, home_team_id, away_team_id, home_score, away_score
+      FROM matches
+      WHERE id = $1
+      FOR UPDATE
+      `,
+      [matchId]
+    );
+
+    if (!matchResult.rows.length) {
+      throw new Error("Matç tapılmadı.");
+    }
+
+    const match = matchResult.rows[0];
+
+    const eventResult = await client.query(
+      `
+      SELECT *
+      FROM match_events
+      WHERE id = $1
+        AND match_id = $2
+        AND type = 'goal'
+      FOR UPDATE
+      `,
+      [eventId, matchId]
+    );
+
+    if (!eventResult.rows.length) {
+      throw new Error("Qol hadisəsi tapılmadı.");
+    }
+
+    const event = eventResult.rows[0];
+
+    /*
+      Decrease player's goal statistic.
+    */
+    if (event.player_id) {
+      await client.query(
+        `
+        UPDATE players
+        SET goals = GREATEST(COALESCE(goals, 0) - 1, 0)
+        WHERE id = $1
+        `,
+        [event.player_id]
+      );
+    }
+
+    /*
+      Decrease score of the correct team.
+    */
+    if (Number(event.team_id) === Number(match.home_team_id)) {
+      await client.query(
+        `
+        UPDATE matches
+        SET home_score = GREATEST(COALESCE(home_score, 0) - 1, 0)
+        WHERE id = $1
+        `,
+        [matchId]
+      );
+    } else if (Number(event.team_id) === Number(match.away_team_id)) {
+      await client.query(
+        `
+        UPDATE matches
+        SET away_score = GREATEST(COALESCE(away_score, 0) - 1, 0)
+        WHERE id = $1
+        `,
+        [matchId]
+      );
+    }
+
+    /*
+      Delete actual event.
+    */
+    await client.query(
+      `
+      DELETE FROM match_events
+      WHERE id = $1
+        AND match_id = $2
+      `,
+      [eventId, matchId]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      ok: true,
+      match_id: matchId,
+      event_id: eventId
+    };
+
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+
+/* =========================================================
+   EXECUTE ALI AI COMMAND
+   ========================================================= */
+
+async function executeAliAICommand(commandText) {
+  const action = parseAliCommand(commandText);
+
+  if (action.type === "unknown") {
+    return {
+      ok: false,
+      type: "unknown",
+      message:
+        "Ali AI bu əmri başa düşmədi. Məsələn: «Ali-nin qolunu sil»."
+    };
+  }
+
+
+  /* =======================================================
+     DELETE GOAL
+     ======================================================= */
+
+  if (action.type === "delete_goal") {
+
+    if (!action.player_name) {
+      return {
+        ok: false,
+        type: "delete_goal",
+        message:
+          "Qolunu silmək istədiyin oyunçunun adını yaz. Məsələn: Ali-nin qolunu sil."
+      };
+    }
+
+    const player = await aliFindPlayerByName(action.player_name);
+
+    if (!player) {
+      return {
+        ok: false,
+        type: "delete_goal",
+        message:
+          `Oyunçu tapılmadı: ${action.player_name}`
+      };
+    }
+
+    const goals = await aliFindPlayerGoals(
+      player.id,
+      action.minute
+    );
+
+    if (!goals.length) {
+      return {
+        ok: false,
+        type: "delete_goal",
+        message:
+          action.minute !== null
+            ? `${player.name} üçün ${action.minute}-cı dəqiqədə qol tapılmadı.`
+            : `${player.name} üçün silinəcək qol tapılmadı.`
+      };
+    }
+
+    /*
+      If there are several goals and no minute was specified,
+      don't randomly delete one.
+    */
+    if (goals.length > 1 && action.minute === null) {
+      return {
+        ok: false,
+        type: "delete_goal",
+        multiple: true,
+        player: player.name,
+        choices: goals.map(g => ({
+          goal_id: g.id,
+          match_id: g.match_id,
+          minute: g.minute
+        })),
+        message:
+          `${player.name} üçün ${goals.length} qol tapıldı. Hansını silmək istədiyini dəqiqəsi ilə yaz.`
+      };
+    }
+
+    const goal = goals[0];
+
+    await aliDeleteGoalEvent(
+      goal.match_id,
+      goal.id
+    );
+
+    return {
+      ok: true,
+      type: "delete_goal",
+      player: player.name,
+      goal_id: goal.id,
+      match_id: goal.match_id,
+      minute: goal.minute,
+      message:
+        `${player.name} adlı oyunçunun ${goal.minute ?? "?"}-ci dəqiqədəki qolu silindi.`
+    };
+  }
+
+
+  /* =======================================================
+     SET RATING
+     ======================================================= */
+
+  if (action.type === "set_rating") {
+
+    if (!action.player_name) {
+      return {
+        ok: false,
+        message: "Oyunçunun adını yaz."
+      };
+    }
+
+    const player = await aliFindPlayerByName(action.player_name);
+
+    if (!player) {
+      return {
+        ok: false,
+        message: `Oyunçu tapılmadı: ${action.player_name}`
+      };
+    }
+
+    const rating = Number(action.rating);
+
+    if (!Number.isFinite(rating)) {
+      return {
+        ok: false,
+        message: "Rating düzgün rəqəm deyil."
+      };
+    }
+
+    await pool.query(
+      `
+      UPDATE players
+      SET rating = $1
+      WHERE id = $2
+      `,
+      [rating, player.id]
+    );
+
+    return {
+      ok: true,
+      type: "set_rating",
+      player: player.name,
+      rating,
+      message:
+        `${player.name} oyunçusunun reytinqi ${rating} edildi.`
+    };
+  }
+
+
+  /*
+    These commands are recognized now.
+    Their database actions can be connected next to the
+    existing AliScore event/transfer handlers.
+  */
+
+  if (action.type === "add_goal") {
+    return {
+      ok: false,
+      type: "add_goal",
+      player_name: action.player_name,
+      minute: action.minute,
+      message:
+        "Qol əlavə etmə əmri tanındı. Mövcud matçı seçmək lazımdır."
+    };
+  }
+
+  if (action.type === "delete_assist") {
+    return {
+      ok: false,
+      type: "delete_assist",
+      player_name: action.player_name,
+      minute: action.minute,
+      message:
+        "Assist silmə əmri tanındı."
+    };
+  }
+
+  if (action.type === "add_yellow") {
+    return {
+      ok: false,
+      type: "add_yellow",
+      player_name: action.player_name,
+      minute: action.minute,
+      message:
+        "Sarı kart əmri tanındı."
+    };
+  }
+
+  if (action.type === "delete_yellow") {
+    return {
+      ok: false,
+      type: "delete_yellow",
+      player_name: action.player_name,
+      minute: action.minute,
+      message:
+        "Sarı kart silmə əmri tanındı."
+    };
+  }
+
+  if (action.type === "transfer_player") {
+    return {
+      ok: false,
+      type: "transfer_player",
+      player_name: action.player_name,
+      team_name: action.team_name,
+      message:
+        "Transfer əmri tanındı."
+    };
+  }
+
+  return {
+    ok: false,
+    type: action.type,
+    message: "Əmr tanındı, amma icra funksiyası hələ qoşulmayıb."
+  };
+}
+
+
+/* =========================================================
+   OPTIONAL TEST
+   =========================================================
+
+   Bunları server.js-ə əlavə etməyə ehtiyac yoxdur.
+   Console-da test etmək üçün:
+
+   parseAliCommand("Ali-nin qolunu sil")
+   parseAliCommand("Ali-nin 25-ci dəqiqədəki qolunu sil")
+   parseAliCommand("удали гол Али на 25 минуте")
+   parseAliCommand("delete Ali goal at 25 minute")
+
+   ========================================================= */
 /* =========================================================
    UNKNOWN API
 ========================================================= */
