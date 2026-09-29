@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const crypto = require("crypto");
 const webpush = require("web-push");
+const bcrypt = require("bcryptjs");
 
 const app = express();
 
@@ -5983,7 +5984,214 @@ app.post("/api/users/logout", (req, res) => {
 async function start() {
   try {
     await initDatabase();
+// ===============================
+// 👤 USER ACCOUNT SYSTEM
+// ===============================
 
+const bcrypt = require("bcryptjs");
+
+// Создание таблицы пользователей
+(async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        email VARCHAR(150) UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log("✅ Users cədvəli hazırdır");
+  } catch (err) {
+    console.error("❌ Users cədvəli xətası:", err.message);
+  }
+})();
+
+// Qeydiyyat
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+
+    if (!username || !email || !password) {
+      return res.status(400).json({
+        error: "Bütün xanaları doldurun."
+      });
+    }
+
+    if (username.length < 3) {
+      return res.status(400).json({
+        error: "İstifadəçi adı ən azı 3 simvol olmalıdır."
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: "Şifrə ən azı 6 simvol olmalıdır."
+      });
+    }
+
+    const existing = await pool.query(
+      "SELECT id FROM users WHERE LOWER(username)=LOWER($1) OR LOWER(email)=LOWER($2)",
+      [username.trim(), email.trim()]
+    );
+
+    if (existing.rows.length) {
+      return res.status(409).json({
+        error: "Bu istifadəçi adı və ya email artıq istifadə olunur."
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const result = await pool.query(
+      `INSERT INTO users (username, email, password_hash)
+       VALUES ($1, $2, $3)
+       RETURNING id, username, email, created_at`,
+      [username.trim(), email.trim().toLowerCase(), passwordHash]
+    );
+
+    const user = result.rows[0];
+
+    req.session = req.session || {};
+    
+    return res.json({
+      ok: true,
+      message: "Qeydiyyat uğurla tamamlandı.",
+      user
+    });
+
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    return res.status(500).json({
+      error: "Qeydiyyat zamanı server xətası baş verdi."
+    });
+  }
+});
+
+// Giriş
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "Email və şifrəni daxil edin."
+      });
+    }
+
+    const result = await pool.query(
+      "SELECT * FROM users WHERE LOWER(email)=LOWER($1)",
+      [email.trim().toLowerCase()]
+    );
+
+    if (!result.rows.length) {
+      return res.status(401).json({
+        error: "Email və ya şifrə yanlışdır."
+      });
+    }
+
+    const user = result.rows[0];
+
+    const validPassword = await bcrypt.compare(
+      password,
+      user.password_hash
+    );
+
+    if (!validPassword) {
+      return res.status(401).json({
+        error: "Email və ya şifrə yanlışdır."
+      });
+    }
+
+    // Sadə JWT istifadə edirik
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        username: user.username,
+        email: user.email
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "30d"
+      }
+    );
+
+    res.cookie("aliscore_user", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    return res.json({
+      ok: true,
+      message: "Uğurla daxil oldunuz.",
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        created_at: user.created_at
+      }
+    });
+
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    return res.status(500).json({
+      error: "Giriş zamanı server xətası baş verdi."
+    });
+  }
+});
+
+// Hazırkı istifadəçini yoxla
+app.get("/api/auth/me", async (req, res) => {
+  try {
+    const token = req.cookies?.aliscore_user;
+
+    if (!token) {
+      return res.json({
+        loggedIn: false
+      });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    const result = await pool.query(
+      "SELECT id, username, email, created_at FROM users WHERE id=$1",
+      [decoded.userId]
+    );
+
+    if (!result.rows.length) {
+      return res.json({
+        loggedIn: false
+      });
+    }
+
+    return res.json({
+      loggedIn: true,
+      user: result.rows[0]
+    });
+
+  } catch (err) {
+    return res.json({
+      loggedIn: false
+    });
+  }
+});
+
+// Çıxış
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie("aliscore_user");
+
+  return res.json({
+    ok: true,
+    message: "Hesabdan çıxış edildi."
+  });
+});
     app.listen(
       PORT,
       "0.0.0.0",
