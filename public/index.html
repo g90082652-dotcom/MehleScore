@@ -280,18 +280,19 @@ async function changeCard(id,type,amount){try{await api("/cards/change",{method:
 function addNotificationBox(){$("notificationBox").innerHTML=`<div class="card"><h3>🔔 AliScore bildirişləri</h3><p class="muted">Qol, kart, transfer və Xəyal komandası bildirişləri.</p></div>`}
 (async()=>{await loadAll();go("home");setInterval(loadAll,30000)})();
 </script></body><script>
+<script>
+let authRegister = false;
+
 function openAuth() {
   const modal = document.getElementById("auth-modal");
-  if (modal) {
-    modal.style.display = "flex";
-  }
+  if (!modal) return;
+  modal.style.display = "flex";
 }
 
 function closeAuth() {
   const modal = document.getElementById("auth-modal");
-  if (modal) {
-    modal.style.display = "none";
-  }
+  if (!modal) return;
+  modal.style.display = "none";
 }
 
 function switchAuth() {
@@ -300,11 +301,11 @@ function switchAuth() {
   const submit = document.getElementById("auth-submit");
   const switchBtn = document.getElementById("auth-switch");
 
-  if (!username) return;
+  if (!title || !username || !submit || !switchBtn) return;
 
-  const registering = username.style.display === "none";
+  authRegister = !authRegister;
 
-  if (registering) {
+  if (authRegister) {
     username.style.display = "block";
     title.textContent = "Qeydiyyat";
     submit.textContent = "Qeydiyyatdan keç";
@@ -316,14 +317,42 @@ function switchAuth() {
     switchBtn.textContent = "Qeydiyyatdan keç";
   }
 }
-</script><script>
-document.addEventListener("DOMContentLoaded", () => {
+
+async function submitAuth() {
+  const email = document.getElementById("auth-email")?.value.trim();
+  const password = document.getElementById("auth-password")?.value;
+  const username = document.getElementById("auth-username")?.value.trim();
+
+  if (!email || !password) {
+    alert("Email və şifrəni daxil edin.");
+    return;
+  }
+
+  if (authRegister && !username) {
+    alert("İstifadəçi adını daxil edin.");
+    return;
+  }
+
+  alert("Hesab sistemi serverə qoşulmalıdır.");
+}
+
+document.addEventListener("click", function(e) {
+  const modal = document.getElementById("auth-modal");
+
+  if (modal && e.target === modal) {
+    closeAuth();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
   document.querySelectorAll(
-    ".card, .match-card, .team-card, .player-card, .stat-card"
-  ).forEach((el, index) => {
-    el.style.animationDelay = `${Math.min(index * 0.05, 0.4)}s`;
+    ".card, .match, .stat, .player, .team-card"
+  ).forEach(function(el, index) {
+    el.style.animationDelay =
+      Math.min(index * 0.05, 0.4) + "s";
   });
 });
-</script></script>
 </script>
+
+</body>
 </html>
