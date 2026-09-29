@@ -47,7 +47,9 @@ header{padding:10px 12px}.logo{font-size:22px}.menuToggle{display:block;backgrou
   right:15px;
   z-index:9999;
 ">
-<button onclick="openAuth()">👤 Daxil ol</button>
+<button id="open-auth-btn" type="button">
+  👤 Daxil ol
+</button>
 </div>
 
 <div id="auth-modal" style="
@@ -94,7 +96,27 @@ header{padding:10px 12px}.logo{font-size:22px}.menuToggle{display:block;backgrou
       Bağla
     </button>
   </div>
-</div>  
+</div>
+<script>
+(function () {
+  function initAuthButton() {
+    const button = document.getElementById("open-auth-btn");
+    const modal = document.getElementById("auth-modal");
+
+    if (!button || !modal) return;
+
+    button.addEventListener("click", function () {
+      modal.style.display = "flex";
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAuthButton);
+  } else {
+    initAuthButton();
+  }
+})();
+</script>  
 <header>
 <div class="logo">⚽ AliScore</div><div class="muted">Azərbaycan futbol statistikası</div>
 <nav><div class="menuToggle" id="menuToggle">☰ Menyu</div><div class="navLinks">
