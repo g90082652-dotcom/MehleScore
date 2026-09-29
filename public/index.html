@@ -280,6 +280,43 @@ async function changeCard(id,type,amount){try{await api("/cards/change",{method:
 function addNotificationBox(){$("notificationBox").innerHTML=`<div class="card"><h3>🔔 AliScore bildirişləri</h3><p class="muted">Qol, kart, transfer və Xəyal komandası bildirişləri.</p></div>`}
 (async()=>{await loadAll();go("home");setInterval(loadAll,30000)})();
 </script></body><script>
+function openAuth() {
+  const modal = document.getElementById("auth-modal");
+  if (modal) {
+    modal.style.display = "flex";
+  }
+}
+
+function closeAuth() {
+  const modal = document.getElementById("auth-modal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
+
+function switchAuth() {
+  const title = document.getElementById("auth-title");
+  const username = document.getElementById("auth-username");
+  const submit = document.getElementById("auth-submit");
+  const switchBtn = document.getElementById("auth-switch");
+
+  if (!username) return;
+
+  const registering = username.style.display === "none";
+
+  if (registering) {
+    username.style.display = "block";
+    title.textContent = "Qeydiyyat";
+    submit.textContent = "Qeydiyyatdan keç";
+    switchBtn.textContent = "Daxil ol";
+  } else {
+    username.style.display = "none";
+    title.textContent = "Daxil ol";
+    submit.textContent = "Daxil ol";
+    switchBtn.textContent = "Qeydiyyatdan keç";
+  }
+}
+</script><script>
 document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(
     ".card, .match-card, .team-card, .player-card, .stat-card"
