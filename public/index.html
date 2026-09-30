@@ -1,0 +1,1201 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123b63">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="AliScore">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>AliScore</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#071426;color:#eef5ff}
+header{position:sticky;top:0;z-index:10;background:#0b1d35;border-bottom:1px solid #183553;padding:14px}
+.logo{font-size:25px;font-weight:800}.muted{color:#91a6bd;font-size:13px}
+nav{padding:10px 0}.navLinks{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding:2px 1px 4px}
+.navLinks::-webkit-scrollbar{display:none}
+nav button,.btn{border:0;border-radius:11px;padding:10px 13px;background:#173250;color:#fff;cursor:pointer;white-space:nowrap;transition:.18s}
+nav button:hover{background:#24476e}nav button.active{background:#1f75ff;box-shadow:0 4px 14px #1f75ff33}
+.menuToggle{display:none}.btn.green{background:#159447}.btn.red{background:#d63d4c}.btn.yellow{background:#b88700}.btn.gray{background:#53657a}
+main{max-width:1100px;margin:auto;padding:15px}.page{display:none}.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.card,.match{box-shadow:0 5px 18px #00000018}.card{background:#0d213a;border:1px solid #1b3a5d;border-radius:15px;padding:15px;margin:10px 0}
+input,select{width:100%;padding:11px;border-radius:9px;border:1px solid #294766;background:#08182b;color:#fff;margin:5px 0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{background:#0d213a;padding:15px;border-radius:14px;text-align:center}.stat b{font-size:25px}
+table{width:100%;border-collapse:collapse;background:#0d213a;border-radius:12px;overflow:hidden}
+th,td{padding:9px;border-bottom:1px solid #1c3957;text-align:center}th{color:#8fb3dc}
+.player{display:flex;gap:12px;align-items:center}.avatar{width:58px;height:58px;border-radius:50%;object-fit:cover;background:#1a3452}
+.rating{margin-left:auto;font-weight:800;font-size:18px}.pill{display:inline-block;padding:5px 8px;border-radius:8px;background:#183a61}
+.captain-badge{display:inline-block;padding:6px 9px;border-radius:9px;background:#6b4b00;color:#ffd76a;font-weight:800;margin-top:9px}
+.derby-badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#3b1d52;color:#f0c7ff;font-weight:800;margin:8px auto 2px}
+.match{padding:15px;border-radius:15px;background:#0d213a;border:1px solid #1b3a5d;margin:10px 0}
+.score{font-size:30px;font-weight:800;text-align:center;margin:8px}.teams{display:flex;justify-content:space-between;gap:10px;text-align:center}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.empty{text-align:center;color:#91a6bd;padding:25px}
+.notice{padding:10px;border-radius:9px;background:#12304e;margin-top:8px}.error{background:#4b1820}
+.event{display:flex;gap:10px;padding:9px;border-bottom:1px solid #1c3957}.event-icon{width:25px}
+.rating-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #1c3957}
+.detail-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:15px;align-items:center;text-align:center}
+.detail-score{font-size:38px;font-weight:900}.detail-team{font-weight:800;font-size:18px}.detail-status{text-align:center;margin:8px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.detail-admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.goal-video{width:100%;max-height:420px;border-radius:12px;background:#000}
+.vote-bar{height:8px;border-radius:99px;background:#183250;overflow:hidden;margin-top:8px}
+.vote-bar span{display:block;height:100%;background:#1f75ff}
+@media(max-width:700px){
+ header{padding:10px 12px}.logo{font-size:22px}
+ .menuToggle{display:block;background:#173250;border:1px solid #294766;border-radius:11px;padding:11px 13px;font-weight:700;text-align:center;cursor:pointer;margin-top:9px}
+ .navLinks{display:none;flex-direction:column;gap:6px;margin-top:7px;overflow:visible}
+ nav.open .navLinks{display:flex}nav button{width:100%;text-align:left;padding:12px 14px;font-size:14px}
+ main{padding:11px}.card{border-radius:13px;padding:13px}.stats{gap:7px}.stat{padding:12px 7px}.stat b{font-size:21px}
+ .teams{align-items:center}.score{font-size:27px}.player{align-items:flex-start}.rating{font-size:16px}
+}
+@media(max-width:600px){.row,.detail-grid,.detail-admin-grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}th,td{font-size:11px;padding:6px}.card{padding:12px}}
+
+/* AliScore modern light theme */
+body{background:#f6fbf8;color:#17352a}
+header{background:#ffffff;border-bottom:1px solid #dcebe3;box-shadow:0 4px 18px rgba(31,92,66,.08)}
+.logo{color:#17352a}
+.muted{color:#71857b}
+nav button,.btn{background:#e8f4ee;color:#155b3b;border:1px solid #cfe7da}
+nav button:hover,.btn:hover{background:#d9eee3}
+nav button.active{background:#79c99b;color:#0d3d28;box-shadow:0 4px 14px rgba(64,164,108,.22)}
+.btn.green{background:#72c894;color:#0d3d28;border-color:#64bd88}
+.btn.red{background:#f6dfe0;color:#8b2931;border-color:#e8c4c7}
+.btn.yellow{background:#f5e9bd;color:#765900;border-color:#e5d58e}
+.btn.gray{background:#edf1ef;color:#455950;border-color:#d6dfdb}
+.card,.match,.stat{background:#ffffff;border:1px solid #dcebe3;box-shadow:0 5px 18px rgba(31,92,66,.08)}
+input,select{background:#fff;color:#17352a;border-color:#cfe0d7}
+table{background:#fff}th,td{border-bottom:1px solid #e5eee9}th{color:#4b7764}
+.avatar{background:#e5f0eb}.pill{background:#e8f4ee;color:#155b3b}
+.match{background:#fff;border-color:#dcebe3}.notice{background:#e8f4ee;color:#245a43}.error{background:#fae7e8;color:#8b2931}
+.event{border-bottom-color:#e5eee9}.vote-bar{background:#e3eee8}.vote-bar span{background:#72c894}
+.captain-badge{background:#fff1bd;color:#765900}.derby-badge{background:#eee2f3;color:#694278}
+/* 🔴 LIVE VIDEO */
+.live-video-card{position:relative;overflow:hidden;background:#071426;border:1px solid #183553;border-radius:15px;padding:10px;margin:10px 0}
+.live-video-wrap{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:16/9}
+.live-video-wrap video{width:100%;height:100%;display:block;object-fit:contain;background:#000;transform:none}.live-video-wrap:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;padding:0;background:#000;display:flex;align-items:center;justify-content:center}.live-video-wrap:-webkit-full-screen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0;padding:0;background:#000;display:flex;align-items:center;justify-content:center}.live-video-wrap:fullscreen video,.live-video-wrap:-webkit-full-screen video{width:100%;height:100%;object-fit:contain}.live-fullscreen-btn{position:absolute;right:10px;bottom:10px;z-index:3;background:#000b;color:#fff;border:0;border-radius:10px;padding:9px 11px;font-weight:800;cursor:pointer}.live-orientation-hint{font-size:12px;color:#b8c7d8;text-align:center;margin-top:6px}
+.live-badge{position:absolute;top:10px;left:10px;z-index:2;background:#d63d4c;color:#fff;padding:6px 10px;border-radius:999px;font-weight:800;font-size:12px;box-shadow:0 4px 12px #0008}
+.live-viewers{position:absolute;top:10px;right:10px;z-index:2;background:#0009;color:#fff;padding:6px 9px;border-radius:999px;font-size:12px}
+.live-video-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.live-waiting{padding:18px;text-align:center;color:#b8c7d8}
+.live-local-preview{margin-top:10px}
+@media(max-width:650px){.live-video-card{padding:7px}.live-video-actions .btn{flex:1}}
+#splash{position:fixed;inset:0;z-index:5000;background:#fff;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease,visibility .45s ease}
+#splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.splash-inner{text-align:center;animation:aliscoreIn .75s cubic-bezier(.2,.8,.2,1)}
+.splash-ball{font-size:62px;display:block;filter:drop-shadow(0 8px 18px rgba(64,164,108,.22))}
+.splash-title{font-size:32px;font-weight:900;color:#17352a;margin-top:8px}
+.splash-sub{color:#71857b;margin-top:5px}
+@keyframes aliscoreIn{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:none}}
+.page.active{animation:pageIn .28s ease}
+@keyframes pageIn{from{opacity:.35;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.splash-inner,.page.active{animation:none}#splash{transition:none}}
+
+/* ⚽ LIVE MATCH TV SCOREBOARD */
+.live-scoreboard{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:4;width:min(92%,760px);color:#fff;pointer-events:none;font-family:Arial,sans-serif;filter:drop-shadow(0 5px 14px rgba(0,0,0,.45))}
+.live-scoreboard-top{display:flex;align-items:center;justify-content:center;min-height:25px;background:rgba(7,20,38,.92);border:1px solid rgba(255,255,255,.12);border-bottom:0;border-radius:10px 10px 0 0;padding:4px 9px}
+.live-scoreboard-live{position:absolute;left:8px;display:flex;align-items:center;gap:5px;font-size:10px;font-weight:900;letter-spacing:.5px}
+.live-scoreboard-dot{width:7px;height:7px;border-radius:50%;background:#ff3048;box-shadow:0 0 0 3px rgba(255,48,72,.16);animation:liveDot 1.1s infinite}
+.live-scoreboard-title{font-size:9px;font-weight:800;letter-spacing:1px;opacity:.78}
+.live-scoreboard-main{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;min-height:58px;background:rgba(7,20,38,.94);border:1px solid rgba(255,255,255,.12);padding:6px 10px}
+.live-score-team{min-width:0;text-align:right;padding-right:12px}.live-score-team.away{text-align:left;padding-right:0;padding-left:12px}
+.live-team-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(12px,2.2vw,17px);font-weight:900;text-shadow:0 2px 4px #000}
+.live-score-center{min-width:92px;text-align:center}
+.live-score-number{font-size:clamp(25px,5vw,39px);line-height:.95;font-weight:950;letter-spacing:1px}
+.live-score-time{margin-top:4px;font-size:10px;font-weight:800;opacity:.8}
+.live-score-events{min-height:23px;display:flex;align-items:center;justify-content:center;background:rgba(7,20,38,.9);border:1px solid rgba(255,255,255,.12);border-top:0;border-radius:0 0 10px 10px;padding:3px 8px}
+.live-score-event{font-size:10px;font-weight:800;opacity:.9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes liveDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.78)}}
+.live-video-wrap:fullscreen .live-scoreboard,.live-video-wrap:-webkit-full-screen .live-scoreboard{top:18px}
+@media(max-width:650px){.live-scoreboard{top:7px;width:96%}.live-scoreboard-main{min-height:50px;padding:5px 7px}.live-score-team{padding-right:7px}.live-score-team.away{padding-left:7px}.live-score-center{min-width:74px}.live-score-number{font-size:27px}.live-team-name{font-size:11px}.live-scoreboard-title{font-size:8px}}
+
+
+/* ===== AliScore UX Pack 1001-1100 ===== */
+.as-ux-fab{position:fixed;right:16px;bottom:82px;z-index:9999;width:54px;height:54px;border:0;border-radius:50%;background:#123b63;color:#fff;font-size:24px;box-shadow:0 8px 24px #0003;cursor:pointer}.as-ux-panel{position:fixed;right:12px;bottom:145px;width:min(360px,calc(100vw - 24px));max-height:70vh;overflow:auto;background:#fff;border:1px solid #dce4ec;border-radius:18px;box-shadow:0 16px 45px #0003;z-index:9998;padding:14px;display:none}.as-ux-panel.open{display:block}.as-ux-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.as-ux-head b{font-size:18px}.as-ux-close{border:0;background:#eef3f7;border-radius:10px;padding:7px 10px}.as-ux-search{width:100%;padding:12px;border:1px solid #d5dde6;border-radius:12px;font-size:15px;margin-bottom:10px}.as-ux-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.as-ux-action{border:1px solid #dbe3eb;background:#f7f9fb;border-radius:12px;padding:11px;text-align:left;font-weight:700;cursor:pointer}.as-ux-action:hover{background:#edf3f8}.as-ux-mini{position:fixed;left:10px;right:10px;bottom:10px;z-index:9997;background:#071426;color:#fff;border-radius:15px;padding:9px 12px;display:none;box-shadow:0 10px 30px #0004}.as-ux-mini.show{display:block}.as-ux-mini-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.as-ux-live{color:#ff5364;font-weight:900}.as-ux-toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,120px);z-index:10000;background:#123b63;color:#fff;padding:11px 16px;border-radius:12px;font-weight:700;transition:.25s;max-width:90vw;text-align:center}.as-ux-toast.show{transform:translate(-50%,0)}.as-ux-overlay{position:fixed;inset:0;background:#0008;z-index:9996;display:none}.as-ux-overlay.show{display:block}.as-ux-settings{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #edf1f4}.as-ux-settings:last-child{border-bottom:0}.as-ux-switch{appearance:none;width:42px;height:24px;border-radius:20px;background:#cbd5df;position:relative;cursor:pointer}.as-ux-switch:checked{background:#123b63}.as-ux-switch:after{content:"";position:absolute;width:18px;height:18px;top:3px;left:3px;background:#fff;border-radius:50%;transition:.2s}.as-ux-switch:checked:after{left:21px}.as-ux-empty{padding:18px;text-align:center;color:#687789}.as-ux-pulse{animation:asUxPulse 1.2s infinite}@keyframes asUxPulse{50%{opacity:.45;transform:scale(.98)}}
+@media(max-width:650px){.as-ux-fab{bottom:76px}.as-ux-panel{bottom:138px}.as-ux-grid{grid-template-columns:1fr}.as-ux-action{padding:13px}}
+
+
+/* ===== AliScore UX 1026-1100 ===== */
+.as26-wrap{margin:10px 0}.as26-toolbar{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.as26-toolbar input{flex:1;min-width:180px;margin:0}.as26-chip{border:0;border-radius:999px;padding:8px 11px;background:#173250;color:#fff;font-weight:800;cursor:pointer}.as26-chip.active{background:#1f75ff}.as26-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.as26-card{background:#fff;color:#14243a;border:1px solid #dce5ee;border-radius:14px;padding:12px;box-shadow:0 4px 14px #00000010}.as26-card h4{margin:0 0 6px}.as26-muted{font-size:12px;color:#68788b}.as26-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.as26-btn{border:0;border-radius:9px;padding:8px 10px;background:#123b63;color:#fff;font-weight:800;cursor:pointer}.as26-btn.light{background:#e8eef5;color:#123b63}.as26-star{font-size:22px;cursor:pointer;border:0;background:none}.as26-hidden{display:none!important}.as26-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:99999;background:#123b63;color:#fff;padding:11px 15px;border-radius:12px;font-weight:800;box-shadow:0 8px 25px #0004}.as26-progress{height:7px;background:#e8edf2;border-radius:99px;overflow:hidden}.as26-progress span{display:block;height:100%;background:#123b63;width:0}.as26-kbd{font-family:monospace;background:#edf1f5;border:1px solid #d5dde5;border-radius:5px;padding:2px 5px}.as26-drawer{position:fixed;inset:0;z-index:99990;background:#0007;display:flex;justify-content:flex-end}.as26-drawer>div{width:min(390px,94vw);height:100%;background:#fff;color:#14243a;padding:18px;overflow:auto}.as26-list{display:grid;gap:7px}.as26-item{display:flex;align-items:center;gap:9px;padding:9px;border:1px solid #e0e7ee;border-radius:10px}.as26-item b{flex:1}.as26-badge{font-size:10px;border-radius:999px;padding:4px 7px;background:#edf3f8;color:#123b63;font-weight:900}.as26-skeleton{height:12px;border-radius:6px;background:linear-gradient(90deg,#eef2f6,#dfe7ee,#eef2f6);background-size:200% 100%;animation:as26sh 1.2s infinite}@keyframes as26sh{to{background-position:-200% 0}}
+@media(max-width:650px){.as26-toolbar{position:sticky;top:0;z-index:8;background:inherit;padding:5px 0}.as26-toolbar input{min-width:100%;}.as26-grid{grid-template-columns:1fr}.as26-drawer>div{width:100%}}
+
+/* ===== AliScore VIRTUAL ODDS / PROQNOZLAR ===== */
+.odds-hero{background:linear-gradient(135deg,#ffffff,#eef8f2);border:1px solid #cfe7da;border-radius:18px;padding:16px;margin:10px 0;box-shadow:0 8px 25px rgba(31,92,66,.08)}
+.odds-hero h2{margin:0 0 6px}.odds-tabs{display:flex;gap:7px;overflow:auto;padding:3px 0 8px}.odds-tab{border:1px solid #cfe0d7;background:#fff;color:#155b3b;border-radius:999px;padding:9px 13px;font-weight:800;white-space:nowrap;cursor:pointer}.odds-tab.active{background:#72c894;color:#0d3d28;border-color:#64bd88}.odds-match{background:#fff;border:1px solid #dcebe3;border-radius:16px;padding:14px;margin:10px 0;box-shadow:0 5px 18px rgba(31,92,66,.07)}
+.odds-match-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.odds-status{font-size:11px;font-weight:900;border-radius:999px;padding:5px 8px;background:#e8f4ee;color:#155b3b}.odds-status.done{background:#edf1ef;color:#53645c}.odds-teams{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;text-align:center;margin:14px 0}.odds-team{font-weight:900}.odds-vs{font-weight:900;color:#71857b}.odds-options{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.odds-option{border:1px solid #d5e4dc;background:#f8fbf9;border-radius:11px;padding:10px;text-align:center;cursor:pointer;font-weight:900;color:#155b3b}.odds-option.selected{background:#72c894;border-color:#64bd88;color:#0d3d28;box-shadow:0 3px 10px rgba(64,164,108,.18)}.odds-extra{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}.odds-extra label{font-size:11px;font-weight:800;color:#4b7764}.odds-extra input,.odds-extra select{margin-top:3px}.odds-submit{width:100%;margin-top:9px}.odds-points{font-size:12px;color:#4b7764;margin-top:7px}.odds-table{width:100%;margin-top:8px}.odds-empty{padding:20px;text-align:center;color:#71857b}.odds-badge{display:inline-block;padding:5px 8px;border-radius:999px;background:#e8f4ee;color:#155b3b;font-weight:900;font-size:11px}.odds-result{margin-top:9px;padding:10px;border-radius:11px;background:#f1f7f3}.odds-scoreline{font-size:22px;font-weight:950}.odds-lock{opacity:.72}
+@media(max-width:650px){.odds-options{grid-template-columns:1fr 1fr 1fr}.odds-extra{grid-template-columns:1fr}.odds-teams{gap:5px}.odds-team{font-size:13px}}
+
+</style>
+</head>
+<body>
+<div id="splash" aria-hidden="true"><div class="splash-inner"><span class="splash-ball">⚽</span><div class="splash-title">AliScore</div><div class="splash-sub">Futbolun rəqəmsal dünyası</div></div></div>
+
+<header>
+<div class="logo">⚽ AliScore</div>
+<div class="muted">Azərbaycan futbol statistikası</div>
+<nav>
+<div class="menuToggle" id="menuToggle">☰ Menyu</div>
+<div class="navLinks">
+<button data-page="home">🏠 Ana səhifə</button>
+<button data-page="matches">⚽ Matçlar</button>
+<button data-page="table">🏆 Turnir</button>
+<button data-page="teams">👥 Komandalar</button>
+<button data-page="players">🧑‍💼 Oyunçular</button>
+<button data-page="lineups">📋 Heyətlər</button>
+<button data-page="stats">📊 Statistika</button>
+<button data-page="cards">🟨 Kartlar</button>
+<button data-page="dream">🌟 Xəyal komandası</button>
+<button data-page="goalweek">⚽ Həftənin qolu</button>
+<button data-page="transfers">🔄 Transferlər</button>
+<button data-page="odds">🔮 Proqnozlar</button>
+<button data-page="admin">⚙️ İdarəetmə</button>
+</div>
+</nav>
+</header>
+
+<div id="user-auth" style="max-width:1100px;margin:10px auto;padding:0 15px;text-align:right">
+<button id="open-auth-btn" class="btn" type="button" onclick="openAuth()">👤 Daxil ol</button>
+</div>
+
+<div id="auth-modal" style="display:none;position:fixed;inset:0;background:#0008;z-index:1000;padding:20px;align-items:center;justify-content:center">
+<div class="card" style="width:min(420px,100%);position:relative">
+<h2 id="auth-title">Daxil ol</h2>
+<input id="auth-username" placeholder="İstifadəçi adı" style="display:none">
+<input id="auth-email" type="email" placeholder="Email">
+<input id="auth-password" type="password" placeholder="Şifrə">
+<button class="btn green" type="button" onclick="submitAuth()" id="auth-submit">Daxil ol</button>
+<button class="btn gray" type="button" onclick="switchAuth()" id="auth-switch">📝 Qeydiyyatdan keç</button>
+<button class="btn red" type="button" onclick="closeAuth()">Bağla</button>
+<div id="auth-message" class="notice" style="display:none"></div>
+</div>
+</div>
+
+<main>
+<div id="notice"></div>
+
+<section id="home" class="page">
+<h2>Ana səhifə</h2>
+<div class="stats">
+<div class="stat"><b id="cTeams">0</b><div>Komanda</div></div>
+<div class="stat"><b id="cPlayers">0</b><div>Oyunçu</div></div>
+<div class="stat"><b id="cMatches">0</b><div>Matç</div></div>
+<div class="stat"><b id="cGoals">0</b><div>Qol</div></div>
+</div>
+<h3>Qarşıdakı matçlar</h3><div id="homeUpcoming"></div>
+<h3>Son nəticələr</h3><div id="homeResults"></div>
+<div id="notificationBox"></div>
+</section>
+
+<section id="matches" class="page"><h2>Matçlar</h2><div id="matchesList"></div></section>
+<section id="matchDetail" class="page"><div id="matchDetailContent"></div></section>
+
+<section id="table" class="page"><h2>Turnir cədvəli</h2>
+<div style="overflow:auto"><table><thead><tr><th>#</th><th>Komanda</th><th>O</th><th>Q</th><th>H</th><th>M</th><th>GF</th><th>GA</th><th>GD</th><th>Xal</th></tr></thead><tbody id="tableBody"></tbody></table></div>
+</section>
+
+<section id="teams" class="page"><h2>Komandalar</h2><div id="teamsList" class="grid"></div></section>
+
+<section id="players" class="page"><h2>Oyunçular</h2>
+<input id="playerSearch" placeholder="Oyunçu və ya komanda axtar..."><div id="playersList"></div>
+</section>
+
+<section id="lineups" class="page"><h2>Heyətlər</h2>
+<select id="lineupMatch"></select><div id="lineupList"></div>
+</section>
+
+<section id="stats" class="page">
+<h2>📊 Statistika</h2>
+<div class="stats">
+<div class="stat"><b id="statGoals">0</b><div>Qollar</div></div>
+<div class="stat"><b id="statAssists">0</b><div>Assistlər</div></div>
+<div class="stat"><b id="statSaves">0</b><div>Seyvlər</div></div>
+<div class="stat"><b id="statMvp">0</b><div>MVP</div></div>
+</div>
+<div id="statsList"></div>
+</section>
+<section id="cards" class="page"><h2>Kartlar</h2><div id="cardsList"></div></section>
+
+<section id="dream" class="page"><h2>🌟 Xəyal komandası</h2><div id="dreamList"></div></section>
+
+<section id="goalweek" class="page">
+<h2>⚽ Həftənin qolu</h2>
+<div id="goalWeekList"></div>
+<div id="goalWeekAdmin"></div>
+</section>
+
+<section id="transfers" class="page"><h2>🔄 Transferlər</h2>
+<div class="card"><h3>💰 Transfer bazarı</h3><div class="muted">Oyunçuların cari transfer dəyəri manatla göstərilir.</div><div id="marketList"></div></div>
+<div id="transferList"></div><div id="transferAdmin"></div>
+</section>
+
+
+<section id="odds" class="page">
+<div class="odds-hero">
+  <h2>🔮 AliScore Proqnozlar</h2>
+  <div class="muted">Virtual proqnozlar — real pul, mərc və ödəniş yoxdur. Düzgün proqnozlara AliScore xal qazan.</div>
+</div>
+<div class="odds-tabs">
+ <button class="odds-tab active" data-odds-tab="upcoming">📅 Qarşıdakı matçlar</button>
+ <button class="odds-tab" data-odds-tab="my">🎯 Mənim proqnozlarım</button>
+ <button class="odds-tab" data-odds-tab="ranking">🏆 Reytinq</button>
+</div>
+<div id="oddsContent"></div>
+</section>
+
+<section id="admin" class="page"><h2>İdarəetmə</h2>
+<div id="adminLogin" class="card">
+<h3>Admin giriş</h3><input id="adminPassword" type="password" placeholder="Admin şifrəsi">
+<button class="btn green" onclick="login()">Daxil ol</button>
+</div>
+<div id="adminPanel" style="display:none">
+<div class="card"><h3>Komanda əlavə et</h3><input id="newTeam" placeholder="Komanda adı"><button class="btn green" onclick="addTeam()">Əlavə et</button></div>
+<div class="card"><h3>Oyunçu əlavə et</h3>
+<div class="row"><input id="newPlayer" placeholder="Ad"><input id="newNumber" type="number" placeholder="Nömrə"></div>
+<select id="newPlayerTeam"></select><select id="newPosition"><option>Qapıçı</option><option>Müdafiəçi</option><option>Yarımmüdafiəçi</option><option>Hücumçu</option></select>
+<input id="newPhoto" placeholder="Şəkil URL"><input id="newTransferValue" type="number" min="0" step="1" placeholder="💰 Transfer dəyəri (₼)"><input id="newRating" type="number" step="0.01" placeholder="⭐ Reytinq (limitsiz)">
+<button class="btn green" onclick="addPlayer()">Əlavə et</button></div>
+<div class="card"><h3>Matç əlavə et</h3>
+<select id="homeTeam"></select><select id="awayTeam"></select>
+<div class="row"><input id="homeScore" type="number" value="0"><input id="awayScore" type="number" value="0"></div>
+<input id="matchDate" type="datetime-local"><select id="matchStatus"><option value="scheduled">Planlaşdırılıb</option><option value="live">Canlı</option><option value="finished">Bitib</option></select>
+<button class="btn green" onclick="addMatch()">Matç əlavə et</button></div>
+<div class="card">
+<h3>🤖 Ali AI — admin köməkçisi</h3>
+<div class="muted">Məsələn: “Aliyə 2 qol əlavə et”, “Ramilin avtoqolunu 1 artır”, “Eminə 3 assist əlavə et”.</div>
+<input id="aiCommand" placeholder="Ali AI-yə yaz...">
+<button class="btn green" type="button" onclick="askAliAI()">🤖 Göndər</button>
+<div id="aiReply" class="notice" style="display:none"></div>
+</div>
+<div class="card">
+<h3>🔔 Push bildiriş testi</h3>
+<div class="muted">Admin olaraq telefonuna test push göndərir.</div>
+<button class="btn green" type="button" onclick="sendPushTest()">📲 Test bildirişi</button>
+</div>
+<div id="adminLists"></div>
+<button class="btn red" onclick="logout()">Çıxış</button>
+</div></section>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const A="/api";
+let teams=[],players=[],matches=[],isAdmin=false,currentUser=null,authMode="login";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function api(url,opt={}){
+ const r=await fetch(A+url,{...opt,credentials:"include",headers:{"Content-Type":"application/json",...(opt.headers||{})}});
+ let d={};try{d=await r.json()}catch{}
+ if(!r.ok)throw Error(d.error||("HTTP "+r.status));
+ return d;
+}
+function openAuth(){$("auth-modal").style.display="flex";showAuthMessage("")}
+function closeAuth(){$("auth-modal").style.display="none"}
+function switchAuth(){
+ authMode=authMode==="login"?"register":"login";
+ $("auth-title").textContent=authMode==="login"?"Daxil ol":"Qeydiyyat";
+ $("auth-username").style.display=authMode==="register"?"block":"none";
+ $("auth-submit").textContent=authMode==="login"?"Daxil ol":"Qeydiyyatdan keç";
+ $("auth-switch").textContent=authMode==="login"?"📝 Qeydiyyatdan keç":"👤 Daxil ol";
+ showAuthMessage("");
+}
+function showAuthMessage(msg,ok=false){const el=$("auth-message");el.style.display=msg?"block":"none";el.className=ok?"notice":"notice error";el.textContent=msg||""}
+async function submitAuth(){
+ try{
+  const email=$("auth-email").value.trim(),password=$("auth-password").value;
+  if(authMode==="register"){
+   const username=$("auth-username").value.trim();
+   const d=await api("/auth/register",{method:"POST",body:JSON.stringify({username,email,password})});
+   currentUser=d.user;updateUserAuth();closeAuth();alert("Qeydiyyat uğurla tamamlandı.");
+  }else{
+   const d=await api("/auth/login",{method:"POST",body:JSON.stringify({email,password})});
+   currentUser=d.user;updateUserAuth();closeAuth();alert("Xoş gəlmisiniz, "+(currentUser.username||"")+"!");
+  }
+  $("auth-password").value="";
+ }catch(e){showAuthMessage(e.message)}
+}
+async function userLogout(){try{await api("/auth/logout",{method:"POST"});currentUser=null;updateUserAuth()}catch(e){alert(e.message)}}
+function updateUserAuth(){
+ const box=$("user-auth");if(!box)return;
+ box.innerHTML=currentUser
+ ?`<span class="muted" style="margin-right:8px">👤 ${esc(currentUser.username||currentUser.email||"")}</span><button class="btn red" type="button" onclick="userLogout()">Çıxış</button>`
+ :`<button id="open-auth-btn" class="btn" type="button" onclick="openAuth()">👤 Daxil ol</button>`;
+}
+async function loadUserAuth(){try{const d=await api("/auth/me");currentUser=d.loggedIn?d.user:null}catch{currentUser=null}updateUserAuth()}
+function team(id){return teams.find(x=>String(x.id)===String(id))?.name||"—"}
+function playerNameById(id){return players.find(x=>String(x.id)===String(id))?.name||"—"}
+function rating(p){const v=Number(p?.rating);if(!Number.isFinite(v))return"0";return Number.isInteger(v)?String(v):v.toFixed(2).replace(/0+$/,"").replace(/\.$/,"")}
+function go(page){
+ document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+ if($(page))$(page).classList.add("active");
+ document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+ if(page==="dream")renderDreamTeam();
+ if(page==="goalweek")loadGoalWeek();
+ if(page==="transfers")loadTransfers();
+ if(page==="lineups")loadLineup();
+ document.querySelector("nav")?.classList.remove("open");
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>go(b.dataset.page));
+$("menuToggle").onclick=()=>document.querySelector("nav").classList.toggle("open");
+
+async function loadAll(){
+ try{
+  const [td,pd,md]=await Promise.all([api("/teams"),api("/players"),api("/matches")]);
+  teams=Array.isArray(td)?td:(Array.isArray(td?.teams)?td.teams:[]);
+  players=Array.isArray(pd)?pd:(Array.isArray(pd?.players)?pd.players:[]);
+  matches=Array.isArray(md)?md:(Array.isArray(md?.matches)?md.matches:[]);
+  try{const me=await api("/admin/me");isAdmin=!!(me.admin||me.loggedIn)}catch{isAdmin=false}
+  renderAll();
+ }catch(e){console.error(e);$("notice").innerHTML='<div class="card error">API xətası: '+esc(e.message)+'</div>'}
+}
+function renderAll(){
+ renderHome();renderMatches();renderTable();renderTeams();renderPlayers();renderStats();renderCards();fillSelects();renderAdmin();updateLogin();renderDreamTeam();
+ if($("goalweek")?.classList.contains("active"))loadGoalWeek();
+}
+function renderHome(){
+ $("cTeams").textContent=teams.length;$("cPlayers").textContent=players.length;$("cMatches").textContent=matches.length;
+ $("cGoals").textContent=players.reduce((a,p)=>a+(+p.goals||0),0);
+ $("homeUpcoming").innerHTML=matches.filter(m=>m.status!=="finished").slice(0,5).map(matchCard).join("")||'<div class="empty">Matç yoxdur.</div>';
+ $("homeResults").innerHTML=matches.filter(m=>m.status==="finished").slice(-5).reverse().map(matchCard).join("")||'<div class="empty">Nəticə yoxdur.</div>';
+ addNotificationBox();
+}
+function isDerby(m){
+ const a=(m.home_team_name||team(m.home_team_id)||"").trim().toLowerCase(),b=(m.away_team_name||team(m.away_team_id)||"").trim().toLowerCase();
+ return(a==="xirdalan wolves"&&b==="xirdalan united")||(a==="xirdalan united"&&b==="xirdalan wolves");
+}
+function derbyBadge(m){return isDerby(m)?'<div style="text-align:center"><span class="derby-badge">🔥 Xirdalan Derbisi</span></div>':""}
+function matchCard(m){
+ return `<div class="match" onclick="openMatch(${m.id})"><div class="muted">${m.match_date?new Date(m.match_date).toLocaleString("az-AZ"):"Tarix yoxdur"} · ${m.status==="live"?"🔴 CANLI":m.status==="finished"?"✅ BİTİB":"📅 PLANLAŞDIRILIB"}</div>${derbyBadge(m)}<div class="teams"><b>${esc(m.home_team_name||team(m.home_team_id))}</b><div class="score">${m.home_score??0}:${m.away_score??0}</div><b>${esc(m.away_team_name||team(m.away_team_id))}</b></div><div class="muted" style="text-align:center">Detallara bax →</div></div>`;
+}
+async function openMatch(id){
+ go("matchDetail");const box=$("matchDetailContent");box.innerHTML='<div class="card">Yüklənir...</div>';
+ const m=matches.find(x=>String(x.id)===String(id));if(!m){box.innerHTML='<div class="card error">Matç tapılmadı.</div>';return}
+ let events=[],lineups=[];
+ try{const d=await api(`/matches/${id}/events`);events=Array.isArray(d)?d:(d.events||[])}catch{}
+ try{const d=await api(`/lineups/${id}`);lineups=Array.isArray(d)?d:(d.lineups||[])}catch{}
+ const homeName=m.home_team_name||team(m.home_team_id),awayName=m.away_team_name||team(m.away_team_id);
+ const getTeam=x=>String(x.team_id||x.player_team_id||players.find(p=>String(p.id)===String(x.player_id))?.team_id||"");
+ const homePlayers=lineups.filter(x=>getTeam(x)===String(m.home_team_id)),awayPlayers=lineups.filter(x=>getTeam(x)===String(m.away_team_id));
+ const eventIcon=t=>t==="goal"?"⚽":t==="yellow"?"🟨":t==="red"?"🟥":t==="save"?"🧤":t==="assist"?"🅰️":"•";
+ const eventHtml=events.length?events.map(e=>{const type=String(e.type||e.event_type||"").toLowerCase(),player=e.player_name||e.name||(e.player_id?playerNameById(e.player_id):"Oyunçu"),minute=e.minute??e.time,label=type==="assist"?"Assist":type==="save"?"Seyv":type==="yellow"?"Sarı kart":type==="red"?"Qırmızı kart":type==="goal"?"Qol":type;return `<div class="event"><span class="event-icon">${eventIcon(type)}</span><div><b>${minute!=null?esc(minute)+"'":""}</b> ${esc(player)} <span class="muted">${esc(e.team_name||"")} · ${esc(label)}</span></div></div>`}).join(""):'<div class="empty">Hadisə yoxdur.</div>';
+ const lineupHtml=arr=>arr.length?arr.map(x=>`<div class="rating-row"><span>#${x.number||players.find(p=>String(p.id)===String(x.player_id))?.number||""} ${esc(x.name||x.player_name||players.find(p=>String(p.id)===String(x.player_id))?.name||"")} <span class="muted">${esc(x.position||"")}</span></span><b>⭐ ${rating(players.find(p=>String(p.id)===String(x.player_id))||x)}</b></div>`).join(""):'<div class="empty">Heyət yoxdur.</div>';
+ const playerOptions=players.filter(p=>String(p.team_id)===String(m.home_team_id)||String(p.team_id)===String(m.away_team_id)).map(p=>`<option value="${p.id}" ${String(p.id)===String(m.player_of_match_id||"")?"selected":""}>${esc(p.name)} — ${esc(p.team_name||"")}</option>`).join("");
+ const teamOptions=`<option value="${m.home_team_id}">${esc(homeName)}</option><option value="${m.away_team_id}">${esc(awayName)}</option>`;
+ const liveVideoHtml=String(m.status).toLowerCase()==="live"?`
+<div class="live-video-card">
+  <div class="live-video-wrap">
+    <video id="liveRemoteVideo" autoplay playsinline webkit-playsinline muted></video>
+    <div class="live-scoreboard" id="liveScoreboard">
+      <div class="live-scoreboard-top">
+        <div class="live-scoreboard-live"><span class="live-scoreboard-dot"></span>LIVE</div>
+        <div class="live-scoreboard-title">ALISCORE MATCH</div>
+      </div>
+      <div class="live-scoreboard-main">
+        <div class="live-score-team"><span class="live-team-name" id="liveHomeTeam">${esc(homeName)}</span></div>
+        <div class="live-score-center">
+          <div class="live-score-number"><span id="liveHomeScore">${m.home_score??0}</span>:<span id="liveAwayScore">${m.away_score??0}</span></div>
+          <div class="live-score-time" id="liveMatchTime">00:00</div>
+        </div>
+        <div class="live-score-team away"><span class="live-team-name" id="liveAwayTeam">${esc(awayName)}</span></div>
+      </div>
+      <div class="live-score-events"><span class="live-score-event" id="liveLastEvent">🔴 CANLI MATÇ</span></div>
+    </div>
+    <button class="live-fullscreen-btn" onclick="toggleLiveFullscreen()" aria-label="Tam ekran">⛶</button>
+    <div class="live-badge">🔴 LIVE</div>
+    <div id="liveViewerCount" class="live-viewers">👥 0</div>
+  </div>
+  <div id="liveVideoMessage" class="live-waiting">Canlı yayım gözlənilir...</div>
+  <div class="live-video-actions">
+    <button id="liveSoundBtn" class="btn gray" onclick="toggleLiveSound()" style="display:none">🔊 Səsi aç</button>
+    <button class="btn gray" onclick="retryLiveVideo(${m.id})">🔄 Yenilə</button>
+    <button class="btn gray" onclick="toggleLiveFullscreen()">⛶ Tam ekran</button>
+  </div>
+</div>`:"";
+ const adminHtml=isAdmin?`<div class="card"><h3>🛠 Matçı idarə et</h3><div class="detail-admin-grid"><div><label>Ev sahibi hesabı</label><input id="detailHomeScore" type="number" min="0" value="${m.home_score??0}"></div><div><label>Qonaq hesabı</label><input id="detailAwayScore" type="number" min="0" value="${m.away_score??0}"></div><div><label>Status</label><select id="detailStatus"><option value="scheduled" ${m.status==="scheduled"?"selected":""}>📅 Planlaşdırılıb</option><option value="live" ${m.status==="live"?"selected":""}>🔴 Canlı</option><option value="finished" ${m.status==="finished"?"selected":""}>✅ Bitib</option></select></div><div><label>Tarix</label><input id="detailDate" type="datetime-local" value="${m.match_date?new Date(m.match_date).toISOString().slice(0,16):""}"></div><div style="grid-column:1/-1"><label>🏆 Oyunçu matçı</label><select id="detailPlayerOfMatch"><option value="">Seçilməyib</option>${playerOptions}</select></div></div><button class="btn green" onclick="saveMatchDetails(${m.id})">💾 Yadda saxla</button>
+<div class="live-video-actions" style="margin-top:10px">
+  <button id="liveStartBtn" class="btn red" onclick="startLiveVideo(${m.id})">📹 🔴 LIVE videonu başlat</button>
+  <button id="liveStopBtn" class="btn gray" onclick="stopLiveVideo(${m.id})" style="display:none">⏹️ Canlı yayımı bitir</button>
+</div>
+<div id="liveAdminMessage" class="muted" style="margin-top:8px">Telefon kamerasını açıb matçı canlı göstərə bilərsən.</div>
+<div class="live-local-preview live-video-wrap" id="liveLocalWrap" style="display:none"><video id="liveLocalVideo" autoplay muted playsinline webkit-playsinline></video><div class="live-badge">🔴 SƏNİN KAMERAN</div><div class="live-orientation-hint">📱 Telefonu üfüqi (landşaft) saxla</div></div>
+</div>
+<div class="card"><h3>➕ Hadisə əlavə et</h3><div class="detail-admin-grid"><div><label>Komanda</label><select id="detailEventTeam">${teamOptions}</select></div><div><label>Oyunçu</label><select id="detailEventPlayer">${playerOptions}</select></div><div><label>Hadisə</label><select id="detailEventType"><option value="goal">⚽ Qol</option><option value="assist">🅰️ Assist</option><option value="yellow">🟨 Sarı kart</option><option value="red">🟥 Qırmızı kart</option><option value="save">🧤 Seyv</option><option value="own_goal">🥅 Avtoqol</option></select></div><div><label>Dəqiqə</label><input id="detailEventMinute" type="number" min="0" placeholder="Məs: 25"></div></div><button class="btn green" onclick="addDetailedEvent(${m.id})">➕ Hadisəni əlavə et</button></div>`:"";
+ box.innerHTML=`<button class="btn gray" onclick="go('matches')">← Matçlara qayıt</button><div class="card"><div class="muted" style="text-align:center">${m.match_date?new Date(m.match_date).toLocaleString("az-AZ"):"Tarix yoxdur"}</div><div class="detail-status">${m.status==="live"?"🔴 CANLI":m.status==="finished"?"✅ BİTİB":"📅 PLANLAŞDIRILIB"}</div>${derbyBadge(m)}<div class="detail-teams"><div class="detail-team">${esc(homeName)}</div><div class="detail-score">${m.home_score??0}:${m.away_score??0}</div><div class="detail-team">${esc(awayName)}</div></div></div>${liveVideoHtml}${adminHtml}<div class="card"><h3>⚽ Hadisələr</h3>${eventHtml}</div><div class="detail-grid"><div class="card"><h3>🏠 ${esc(homeName)} — Heyət</h3>${lineupHtml(homePlayers)}</div><div class="card"><h3>✈️ ${esc(awayName)} — Heyət</h3>${lineupHtml(awayPlayers)}</div></div><div class="card"><h3>🏆 Oyunçu matçı</h3>${m.player_of_match_id?`⭐ ${esc(playerNameById(m.player_of_match_id))}`:'<div class="empty">Seçilməyib.</div>'}</div></div>`;
+  if(String(m.status).toLowerCase()==="live"){startLiveScoreboard(m);updateLiveLastEvent(events);}
+ if(String(m.status).toLowerCase()==="live" && !liveIsBroadcaster){
+   liveCurrentMatchId=Number(m.id);
+   ensureLiveSocket();
+   setTimeout(()=>retryLiveVideo(Number(m.id)),50);
+ }
+}
+
+/* =========================================================
+   ⚽ LIVE MATCH TV SCOREBOARD
+========================================================= */
+let liveScoreTimer=null,liveScoreRefreshTimer=null,liveScoreMatchId=null,liveScoreStartedAt=null;
+
+function startLiveScoreboard(match){
+  if(!match)return;
+  const id=Number(match.id);
+  if(liveScoreMatchId!==id){liveScoreMatchId=id;liveScoreStartedAt=Date.now();}
+  updateLiveScoreboard(match);
+  clearInterval(liveScoreTimer);
+  liveScoreTimer=setInterval(()=>{
+    const el=$("liveMatchTime");if(!el||!liveScoreStartedAt)return;
+    const sec=Math.max(0,Math.floor((Date.now()-liveScoreStartedAt)/1000));
+    el.textContent=String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
+  },1000);
+  clearInterval(liveScoreRefreshTimer);
+  liveScoreRefreshTimer=setInterval(()=>refreshLiveScoreboard(id),5000);
+}
+
+function updateLiveScoreboard(match){
+  if(!match)return;
+  const hs=$("liveHomeScore"),as=$("liveAwayScore"),home=$("liveHomeTeam"),away=$("liveAwayTeam");
+  if(hs)hs.textContent=Number(match.home_score||0);
+  if(as)as.textContent=Number(match.away_score||0);
+  if(home)home.textContent=match.home_team_name||team(match.home_team_id)||"HOME";
+  if(away)away.textContent=match.away_team_name||team(match.away_team_id)||"AWAY";
+}
+
+async function refreshLiveScoreboard(matchId){
+  try{
+    const d=await api("/matches");
+    const list=Array.isArray(d)?d:(Array.isArray(d?.matches)?d.matches:[]);
+    const m=list.find(x=>String(x.id)===String(matchId));
+    if(!m)return;
+    if(String(m.status).toLowerCase()==="live")updateLiveScoreboard(m);
+    else stopLiveScoreboard();
+  }catch(_){}
+}
+
+function updateLiveLastEvent(events){
+  const el=$("liveLastEvent");if(!el||!Array.isArray(events)||!events.length)return;
+  const e=events[events.length-1],type=String(e.type||e.event_type||"").toLowerCase();
+  const icon=type==="goal"?"⚽":type==="yellow"?"🟨":type==="red"?"🟥":type==="save"?"🧤":type==="assist"?"🅰️":type==="own_goal"?"🥅":"🔴";
+  const player=e.player_name||e.name||(e.player_id?playerNameById(e.player_id):"");
+  const minute=e.minute!=null?String(e.minute)+"'":"";
+  el.textContent=(icon+" "+minute+(player?" "+player:" CANLI MATÇ")).trim();
+}
+
+function stopLiveScoreboard(){
+  clearInterval(liveScoreTimer);clearInterval(liveScoreRefreshTimer);
+  liveScoreTimer=null;liveScoreRefreshTimer=null;liveScoreMatchId=null;liveScoreStartedAt=null;
+}
+
+/* =========================================================
+   🔴 LIVE MATCH VIDEO
+   WebRTC camera broadcast: admin -> viewers.
+========================================================= */
+let liveSocket = null;
+let liveCurrentMatchId = null;
+let liveLocalStream = null;
+let liveViewerPeer = null;
+let liveViewerPendingCandidates = [];
+let liveBroadcastPeers = new Map();
+let liveBroadcasterPendingCandidates = new Map();
+let liveIsBroadcaster = false;
+let liveRemoteMuted = true;
+let liveJoinedMatch = null;
+let liveRetryTimer = null;
+window.__ALISCORE_TURN_SERVERS = [];
+
+fetch("/api/live/ice",{credentials:"same-origin",cache:"no-store"})
+  .then(r=>r.ok?r.json():null)
+  .then(d=>{
+    if(d && Array.isArray(d.servers)) window.__ALISCORE_TURN_SERVERS=d.servers;
+  })
+  .catch(()=>{});
+
+function ensureLiveSocket(){
+  if(liveSocket && liveSocket.connected) return liveSocket;
+
+  liveSocket = io({transports:["websocket","polling"],withCredentials:true});
+
+  liveSocket.on("connect",()=>{
+    liveJoinedMatch=null;
+    if(!liveCurrentMatchId) return;
+    const id=Number(liveCurrentMatchId);
+    if(liveIsBroadcaster){
+      liveSocket.emit("live:start",{matchId:id},result=>{
+        if(result?.ok){
+          const msg=$("liveAdminMessage");
+          if(msg) msg.textContent="🔴 Yayım aktivdir. İzləyicilər videoya qoşula bilər.";
+        }
+      });
+    }else{
+      joinLiveRoom(id);
+    }
+  });
+
+  liveSocket.on("disconnect",()=>{
+    liveJoinedMatch=null;
+    if(liveIsBroadcaster){
+      for(const pc of liveBroadcastPeers.values()){try{pc.close()}catch(_){} }
+      liveBroadcastPeers.clear();
+      updateLiveViewerCount();
+    }else{
+      cleanupViewerPeer();
+    }
+  });
+
+  liveSocket.on("live:viewer-joined",async ({matchId,viewerId})=>{
+    if(!liveIsBroadcaster || Number(matchId)!==Number(liveCurrentMatchId)) return;
+    try{await createBroadcasterPeer(Number(matchId),String(viewerId));}
+    catch(e){console.error("LIVE viewer peer error",e);}
+    updateLiveViewerCount();
+  });
+
+  liveSocket.on("live:viewer-left",({viewerId})=>{
+    const id=String(viewerId);
+    const pc=liveBroadcastPeers.get(id);
+    if(pc){try{pc.close()}catch(_){} }
+    liveBroadcastPeers.delete(id);
+    liveBroadcasterPendingCandidates.delete(id);
+    updateLiveViewerCount();
+  });
+
+  liveSocket.on("live:broadcaster",async ({matchId,broadcasterId})=>{
+    if(Number(matchId)!==Number(liveCurrentMatchId) || liveIsBroadcaster) return;
+    await createViewerPeer(Number(matchId),String(broadcasterId));
+  });
+
+  liveSocket.on("live:started",({matchId})=>{
+    if(Number(matchId)!==Number(liveCurrentMatchId)) return;
+    const msg=$("liveVideoMessage");
+    if(msg) msg.textContent="🔴 Canlı yayım başladı. Bağlanılır...";
+    if(!liveIsBroadcaster) joinLiveRoom(Number(matchId));
+  });
+
+  liveSocket.on("live:waiting",({matchId})=>{
+    if(Number(matchId)!==Number(liveCurrentMatchId) || liveIsBroadcaster) return;
+    cleanupViewerPeer();
+    const video=$("liveRemoteVideo");
+    if(video) video.srcObject=null;
+    const msg=$("liveVideoMessage");
+    if(msg) msg.textContent="🔴 Yayım aktivdir — kamera bağlantısı gözlənilir...";
+  });
+
+  liveSocket.on("live:ended",({matchId})=>{
+    if(Number(matchId)!==Number(liveCurrentMatchId)) return;
+    cleanupViewerPeer();
+    const video=$("liveRemoteVideo");
+    if(video){video.srcObject=null;video.muted=true;video.pause?.();}
+    const msg=$("liveVideoMessage");
+    if(msg) msg.textContent="Canlı yayım bitib.";
+    const sound=$("liveSoundBtn");
+    if(sound) sound.style.display="none";
+    liveJoinedMatch=null;
+  });
+
+  liveSocket.on("live:signal",async ({from,matchId,data})=>{
+    if(Number(matchId)!==Number(liveCurrentMatchId) || !data) return;
+    const peerId=String(from);
+    try{
+      if(liveIsBroadcaster){
+        const pc=liveBroadcastPeers.get(peerId);
+        if(!pc) return;
+        if(data.type==="answer"){
+          await pc.setRemoteDescription(data);
+          const q=liveBroadcasterPendingCandidates.get(peerId)||[];
+          for(const c of q){try{await pc.addIceCandidate(c)}catch(_){} }
+          liveBroadcasterPendingCandidates.set(peerId,[]);
+        }else if(data.type==="candidate" && data.candidate){
+          if(pc.remoteDescription?.type){
+            try{await pc.addIceCandidate(data.candidate)}catch(_){}
+          }else{
+            if(!liveBroadcasterPendingCandidates.has(peerId)) liveBroadcasterPendingCandidates.set(peerId,[]);
+            liveBroadcasterPendingCandidates.get(peerId).push(data.candidate);
+          }
+        }
+      }else{
+        if(data.type==="offer"){
+          if(!liveViewerPeer) await createViewerPeer(Number(matchId),peerId);
+          if(!liveViewerPeer) return;
+          await liveViewerPeer.setRemoteDescription(data);
+          for(const c of liveViewerPendingCandidates){try{await liveViewerPeer.addIceCandidate(c)}catch(_){} }
+          liveViewerPendingCandidates=[];
+          const answer=await liveViewerPeer.createAnswer();
+          await liveViewerPeer.setLocalDescription(answer);
+          liveSocket.emit("live:signal",{to:peerId,matchId:Number(matchId),data:liveViewerPeer.localDescription});
+        }else if(data.type==="candidate" && data.candidate){
+          if(liveViewerPeer?.remoteDescription?.type){
+            try{await liveViewerPeer.addIceCandidate(data.candidate)}catch(_){}
+          }else{
+            liveViewerPendingCandidates.push(data.candidate);
+          }
+        }
+      }
+    }catch(e){console.error("LIVE signaling error",e);}
+  });
+
+  return liveSocket;
+}
+
+function joinLiveRoom(matchId){
+  const id=Number(matchId);
+  if(!liveSocket || !liveSocket.connected || !id) return;
+  if(liveJoinedMatch===id) return;
+  liveJoinedMatch=id;
+  liveSocket.emit("live:join",{matchId:id},result=>{
+    if(result?.viewers!=null){
+      const el=$("liveViewerCount");
+      if(el) el.textContent="👥 "+Math.max(0,Number(result.viewers)||0);
+    }
+    const msg=$("liveVideoMessage");
+    if(result?.available===false){
+      if(msg) msg.textContent="🔴 CANLI — kamera bağlantısı gözlənilir...";
+    }else if(msg && !liveViewerPeer){
+      msg.textContent="🔴 Canlı yayım axtarılır...";
+    }
+  });
+}
+
+function liveIceServers(){
+  const servers=[
+    {urls:"stun:stun.l.google.com:19302"},
+    {urls:"stun:stun.cloudflare.com:3478"},
+    {urls:"stun:openrelay.metered.ca:80"},
+    {urls:"turn:openrelay.metered.ca:80",username:"openrelayproject",credential:"openrelayproject"},
+    {urls:"turn:openrelay.metered.ca:443",username:"openrelayproject",credential:"openrelayproject"},
+    {urls:"turn:openrelay.metered.ca:443?transport=tcp",username:"openrelayproject",credential:"openrelayproject"}
+  ];
+  try{
+    const extra=window.__ALISCORE_TURN_SERVERS;
+    if(Array.isArray(extra)) servers.push(...extra);
+  }catch(_){ }
+  return servers;
+}
+
+async function startLiveVideo(matchId){
+  if(!isAdmin) return alert("Admin Login required");
+  try{
+    const video=$("liveLocalVideo"),wrap=$("liveLocalWrap"),msg=$("liveAdminMessage");
+    if(!navigator.mediaDevices?.getUserMedia) throw Error("Bu brauzer kamera yayımını dəstəkləmir. HTTPS və Safari/Chrome istifadə et.");
+    if(liveLocalStream) stopLocalCamera();
+    try{
+      if(screen.orientation?.lock) await screen.orientation.lock("landscape");
+    }catch(_){ }
+    liveLocalStream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720},aspectRatio:{ideal:16/9},frameRate:{ideal:30,max:30}},audio:true
+    });
+    const liveTrack=liveLocalStream.getVideoTracks?.()[0];
+    if(liveTrack?.applyConstraints){
+      try{await liveTrack.applyConstraints({width:{ideal:1280},height:{ideal:720},aspectRatio:{ideal:16/9}})}catch(_){ }
+    }
+    if(video){video.srcObject=liveLocalStream;video.muted=true;video.playsInline=true;video.setAttribute("webkit-playsinline","true");await video.play().catch(()=>{});}
+    if(wrap) wrap.style.display="block";
+    await api(`/matches/${matchId}`,{method:"PATCH",body:JSON.stringify({status:"live"})});
+    liveCurrentMatchId=Number(matchId);
+    liveIsBroadcaster=true;
+    liveJoinedMatch=null;
+    ensureLiveSocket();
+    if(!liveSocket.connected) await new Promise(r=>liveSocket.once("connect",r));
+    const result=await new Promise(resolve=>liveSocket.emit("live:start",{matchId:Number(matchId)},resolve));
+    if(!result?.ok) throw Error(result?.error||"Canlı yayım başlatılmadı");
+    if(msg) msg.textContent="🔴 Yayım aktivdir. İzləyicilər videoya qoşula bilər.";
+    if($("liveStartBtn")) $("liveStartBtn").style.display="none";
+    if($("liveStopBtn")) $("liveStopBtn").style.display="inline-block";
+    const localMatch=matches.find(x=>String(x.id)===String(matchId));
+    if(localMatch) localMatch.status="live";
+  }catch(e){stopLocalCamera();liveIsBroadcaster=false;alert("❌ "+(e.message||e));}
+}
+
+async function stopLiveVideo(matchId){
+  try{
+    if(liveSocket?.connected && liveIsBroadcaster){
+      await new Promise(resolve=>liveSocket.emit("live:stop",{matchId:Number(matchId)},()=>resolve()));
+    }
+    for(const pc of liveBroadcastPeers.values()){try{pc.close()}catch(_){} }
+    liveBroadcastPeers.clear();
+    liveBroadcasterPendingCandidates.clear();
+    stopLocalCamera();
+    liveIsBroadcaster=false;
+    liveCurrentMatchId=null;
+    liveJoinedMatch=null;
+    await api(`/matches/${matchId}`,{method:"PATCH",body:JSON.stringify({status:"finished"})});
+    await loadAll();
+    openMatch(Number(matchId));
+  }catch(e){alert("❌ "+(e.message||e));}
+}
+
+function stopLocalCamera(){
+  if(liveLocalStream){for(const track of liveLocalStream.getTracks()) track.stop();liveLocalStream=null;}
+  const video=$("liveLocalVideo");if(video) video.srcObject=null;
+  const wrap=$("liveLocalWrap");if(wrap) wrap.style.display="none";
+}
+
+async function createBroadcasterPeer(matchId,viewerId){
+  if(!liveLocalStream || !liveSocket) return;
+  const old=liveBroadcastPeers.get(viewerId);if(old){try{old.close()}catch(_){} }
+  liveBroadcasterPendingCandidates.set(viewerId,[]);
+  const pc=new RTCPeerConnection({iceServers:liveIceServers(),iceCandidatePoolSize:10});
+  liveBroadcastPeers.set(viewerId,pc);
+  for(const track of liveLocalStream.getTracks()) pc.addTrack(track,liveLocalStream);
+  pc.onicecandidate=e=>{if(e.candidate) liveSocket.emit("live:signal",{to:viewerId,matchId,data:{type:"candidate",candidate:e.candidate}});};
+  pc.onconnectionstatechange=()=>{
+    if(["failed","closed","disconnected"].includes(pc.connectionState)){
+      if(liveBroadcastPeers.get(viewerId)===pc) liveBroadcastPeers.delete(viewerId);
+      liveBroadcasterPendingCandidates.delete(viewerId);
+      try{pc.close()}catch(_){}
+      updateLiveViewerCount();
+    }
+  };
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  liveSocket.emit("live:signal",{to:viewerId,matchId,data:pc.localDescription});
+  updateLiveViewerCount();
+}
+
+async function createViewerPeer(matchId,broadcasterId){
+  cleanupViewerPeer();
+  const pc=new RTCPeerConnection({iceServers:liveIceServers(),iceCandidatePoolSize:10});
+  liveViewerPeer=pc;
+  pc.ontrack=e=>{
+    const video=$("liveRemoteVideo");if(!video) return;
+    const stream=e.streams?.[0] || video.srcObject || new MediaStream();
+    if(!e.streams?.[0] && !stream.getTracks().includes(e.track)) stream.addTrack(e.track);
+    video.srcObject=stream;video.autoplay=true;video.playsInline=true;video.muted=liveRemoteMuted;
+    video.play().then(()=>{
+      const sound=$("liveSoundBtn");if(sound) sound.style.display="inline-block";
+      const msg=$("liveVideoMessage");if(msg) msg.textContent="🔴 Canlı yayım";
+    }).catch(()=>{
+      const msg=$("liveVideoMessage");if(msg) msg.textContent="▶️ Videonu başlatmaq üçün toxun.";
+      const sound=$("liveSoundBtn");if(sound) sound.style.display="inline-block";
+    });
+  };
+  pc.onicecandidate=e=>{if(e.candidate&&liveSocket) liveSocket.emit("live:signal",{to:broadcasterId,matchId,data:{type:"candidate",candidate:e.candidate}});};
+  pc.onconnectionstatechange=()=>{
+    if(["failed","closed","disconnected"].includes(pc.connectionState)){
+      if(liveViewerPeer===pc) liveViewerPeer=null;
+      const msg=$("liveVideoMessage");if(msg) msg.textContent="🔴 Yayım aktivdir, video bağlantısı yenilənir...";
+      if(liveCurrentMatchId&&!liveIsBroadcaster){
+        clearTimeout(liveRetryTimer);
+        liveRetryTimer=setTimeout(()=>retryLiveVideo(Number(liveCurrentMatchId)),1500);
+      }
+    }
+  };
+}
+
+function cleanupViewerPeer(){
+  if(liveViewerPeer){try{liveViewerPeer.close()}catch(_){} liveViewerPeer=null;}
+  liveViewerPendingCandidates=[];
+}
+
+async function toggleLiveFullscreen(){
+  const wrap=$("liveRemoteVideo")?.closest(".live-video-wrap");
+  const video=$("liveRemoteVideo");
+  try{
+    if(document.fullscreenElement===wrap || document.webkitFullscreenElement===wrap){
+      if(document.exitFullscreen) await document.exitFullscreen();
+      else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+      return;
+    }
+    if(wrap?.requestFullscreen){
+      await wrap.requestFullscreen({navigationUI:"hide"});
+      try{if(screen.orientation?.lock) await screen.orientation.lock("landscape")}catch(_){ }
+    }else if(wrap?.webkitRequestFullscreen){
+      wrap.webkitRequestFullscreen();
+    }else if(video?.webkitEnterFullscreen){
+      video.webkitEnterFullscreen();
+    }
+  }catch(e){
+    try{if(video?.webkitEnterFullscreen) video.webkitEnterFullscreen()}catch(_){ }
+  }
+}
+
+document.addEventListener("fullscreenchange",()=>{
+  const wrap=$("liveRemoteVideo")?.closest(".live-video-wrap");
+  if(!document.fullscreenElement && wrap) wrap.classList.remove("is-fullscreen");
+});
+
+function toggleLiveSound(){
+  const video=$("liveRemoteVideo");if(!video)return;
+  liveRemoteMuted=!liveRemoteMuted;video.muted=liveRemoteMuted;
+  const btn=$("liveSoundBtn");if(btn)btn.textContent=liveRemoteMuted?"🔊 Səsi aç":"🔇 Səsi söndür";
+  if(!liveRemoteMuted) video.play().catch(()=>{});
+}
+
+function retryLiveVideo(matchId){
+  liveCurrentMatchId=Number(matchId);liveIsBroadcaster=false;clearTimeout(liveRetryTimer);
+  cleanupViewerPeer();
+  const video=$("liveRemoteVideo");if(video){video.srcObject=null;video.muted=true;}
+  const msg=$("liveVideoMessage");if(msg)msg.textContent="🔴 Canlı yayım axtarılır...";
+  const socket=ensureLiveSocket();
+  if(socket.connected){liveJoinedMatch=null;joinLiveRoom(Number(matchId));}
+}
+
+window.addEventListener("orientationchange",()=>{
+  const video=$("liveRemoteVideo");
+  if(video) video.style.transform="none";
+});
+
+function updateLiveViewerCount(){
+  const el=$("liveViewerCount");if(el)el.textContent="👥 "+liveBroadcastPeers.size;
+}
+
+function leaveLiveMatch(){
+  if(liveSocket&&liveCurrentMatchId&&!liveIsBroadcaster) liveSocket.emit("live:leave",{matchId:Number(liveCurrentMatchId)});
+  cleanupViewerPeer();clearTimeout(liveRetryTimer);liveJoinedMatch=null;liveCurrentMatchId=null;stopLiveScoreboard();
+}
+
+async function saveMatchDetails(id){try{await api(`/matches/${id}`,{method:"PATCH",body:JSON.stringify({home_score:Number($("detailHomeScore").value)||0,away_score:Number($("detailAwayScore").value)||0,status:$("detailStatus").value,match_date:$("detailDate").value||undefined,player_of_match_id:$("detailPlayerOfMatch").value||null})});await loadAll();openMatch(id)}catch(e){alert("❌ "+e.message)}}
+async function addDetailedEvent(id){try{await api(`/matches/${id}/events`,{method:"POST",body:JSON.stringify({team_id:Number($("detailEventTeam").value),player_id:Number($("detailEventPlayer").value),type:$("detailEventType").value,minute:Math.max(0,Number($("detailEventMinute").value)||0)})});await loadAll();openMatch(id)}catch(e){alert("❌ "+e.message)}}
+
+function renderMatches(){$("matchesList").innerHTML=matches.map(matchCard).join("")||'<div class="empty">Matç yoxdur.</div>'}
+function renderTable(){
+ const rows=teams.map(t=>({t,played:0,wins:0,draws:0,losses:0,gf:0,ga:0,points:0}));
+ matches.filter(m=>String(m.status).toLowerCase()==="finished").forEach(m=>{
+  const h=rows.find(r=>String(r.t.id)===String(m.home_team_id)),a=rows.find(r=>String(r.t.id)===String(m.away_team_id));if(!h||!a)return;
+  const hs=Math.max(0,Number(m.home_score)||0),as=Math.max(0,Number(m.away_score)||0);h.played++;a.played++;h.gf+=hs;h.ga+=as;a.gf+=as;a.ga+=hs;
+  if(hs>as){h.wins++;h.points+=3;a.losses++}else if(as>hs){a.wins++;a.points+=3;h.losses++}else{h.draws++;a.draws++;h.points++;a.points++}
+ });
+ rows.sort((x,y)=>y.points-x.points||((y.gf-y.ga)-(x.gf-x.ga))||y.gf-x.gf||x.t.name.localeCompare(y.t.name));
+ $("tableBody").innerHTML=rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.t.name)}</td><td>${r.played}</td><td>${r.wins}</td><td>${r.draws}</td><td>${r.losses}</td><td>${r.gf}</td><td>${r.ga}</td><td>${r.gf-r.ga}</td><td><b>${r.points}</b></td></tr>`).join("");
+}
+function renderTeams(){$("teamsList").innerHTML=teams.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><span class="pill">Xal: ${t.points||0}</span> <span class="pill">Oyun: ${t.played||0}</span>${t.captain?`<div class="captain-badge">👑 Kapitan: ${esc(t.captain)}</div>`:""}</div>`).join("")}
+function renderPlayers(){
+ const q=($("playerSearch").value||"").toLowerCase(),arr=players.filter(p=>(p.name||"").toLowerCase().includes(q)||(p.team_name||"").toLowerCase().includes(q));
+ $("playersList").innerHTML=arr.map(p=>`<div class="card player"><img class="avatar" src="${esc(p.photo||"")}" onerror="this.style.visibility='hidden'"><div style="flex:1"><b>${esc(p.name)}</b><div class="muted">${esc(p.team_name||"Klubsuz")} · ${esc(p.position||"")} · #${p.number||0}</div><div>⚽ ${p.goals||0} · 🎯 ${p.assists||0} · 🧤 ${p.saves||0} · 🟨 ${p.yellow_cards||0} · 🟥 ${p.red_cards||0}</div>${isAdmin?`<div class="actions"><button class="btn green" onclick="changeStat(${p.id},'goals',1)">+ ⚽</button><button class="btn gray" onclick="changeStat(${p.id},'goals',-1)">− ⚽</button><button class="btn green" onclick="changeStat(${p.id},'assists',1)">+ 🎯</button><button class="btn gray" onclick="changeStat(${p.id},'assists',-1)">− 🎯</button><button class="btn green" onclick="changeStat(${p.id},'saves',1)">+ 🧤</button><button class="btn gray" onclick="changeStat(${p.id},'saves',-1)">− 🧤</button></div>`:""}</div><div class="rating">⭐ ${rating(p)}</div></div>`).join("")||'<div class="empty">Oyunçu tapılmadı.</div>';
+}
+$("playerSearch").oninput=renderPlayers;
+function renderStats(){
+ const sorted=[...players].sort((a,b)=>(+b.goals||0)-(+a.goals||0)||(+b.assists||0)-(+a.assists||0)||(+b.mvp_count||0)-(+a.mvp_count||0));
+ $("statGoals").textContent=players.reduce((n,p)=>n+(+p.goals||0),0);
+ $("statAssists").textContent=players.reduce((n,p)=>n+(+p.assists||0),0);
+ $("statSaves").textContent=players.reduce((n,p)=>n+(+p.saves||0),0);
+ $("statMvp").textContent=players.reduce((n,p)=>n+(+p.mvp_count||0),0);
+ $("statsList").innerHTML=sorted.map((p,i)=>`<div class="card player"><div style="flex:1"><b>#${i+1} ${esc(p.name)}</b><div class="muted">${esc(p.team_name||"")}</div><div class="actions"><span class="pill">⚽ ${p.goals||0}</span><span class="pill">🎯 ${p.assists||0}</span><span class="pill">🧤 ${p.saves||0}</span><span class="pill">🥅 ${p.own_goals||0}</span><span class="pill">🏆 MVP ${p.mvp_count||0}</span><span class="pill">🟨 ${p.yellow_cards||0}</span><span class="pill">🟥 ${p.red_cards||0}</span></div></div><div class="rating">⭐ ${rating(p)}</div></div>`).join("")||'<div class="empty">Statistika yoxdur.</div>';
+}
+function renderCards(){$("cardsList").innerHTML=players.map(p=>`<div class="card"><b>${esc(p.name)}</b> — ${esc(p.team_name||"")}<div>🟨 ${p.yellow_cards||0} · 🟥 ${p.red_cards||0}</div>${isAdmin?`<div class="actions"><button class="btn yellow" onclick="changeCard(${p.id},'yellow_cards',1)">+ 🟨</button><button class="btn yellow" onclick="changeCard(${p.id},'yellow_cards',-1)">− 🟨</button><button class="btn red" onclick="changeCard(${p.id},'red_cards',1)">+ 🟥</button><button class="btn red" onclick="changeCard(${p.id},'red_cards',-1)">− 🟥</button></div>`:""}</div>`).join("")||'<div class="empty">Kart yoxdur.</div>'}
+function fillSelects(){const opts=teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("");["newPlayerTeam","homeTeam","awayTeam"].forEach(id=>{if($(id))$(id).innerHTML=opts});$("lineupMatch").innerHTML=matches.map(m=>`<option value="${m.id}">${esc(m.home_team_name||team(m.home_team_id))} ${m.home_score??0}:${m.away_score??0} ${esc(m.away_team_name||team(m.away_team_id))}</option>`).join("")}
+async function loadLineup(){const id=$("lineupMatch").value;if(!id)return;try{const rows=await api("/lineups/"+id);$("lineupList").innerHTML=rows.length?rows.map(x=>`<div class="card"><b>${esc(x.name)}</b> — ${esc(x.position||"")}</div>`).join(""):'<div class="empty">Heyət boşdur.</div>'}catch(e){$("lineupList").innerHTML='<div class="card error">'+esc(e.message)+'</div>'}}
+$("lineupMatch").onchange=loadLineup;
+
+function dreamScore(p){return(Number(p.rating)||0)+(Number(p.goals)||0)*5+(Number(p.assists)||0)*3+(Number(p.saves)||0)*2-(Number(p.yellow_cards)||0)*2-(Number(p.red_cards)||0)*5-(Number(p.own_goals)||0)*5}
+function dreamPosition(p){const pos=String(p.position||"").toLowerCase();if(pos.includes("qapıçı")||pos.includes("qapici")||pos.includes("goalkeeper")||pos==="gk")return"GK";if(pos.includes("müdafi")||pos.includes("mudafi")||pos.includes("defender"))return"DEF";if(pos.includes("yarımmüdafi")||pos.includes("yarimmudafi")||pos.includes("midfielder"))return"MID";if(pos.includes("hücum")||pos.includes("hucum")||pos.includes("forward")||pos.includes("striker"))return"ATT";return""}
+function renderDreamTeam(){
+ const by=r=>players.filter(p=>dreamPosition(p)===r).sort((a,b)=>dreamScore(b)-dreamScore(a)),gk=by("GK").slice(0,1),def=by("DEF").slice(0,4),mid=by("MID").slice(0,3),att=by("ATT").slice(0,3),selected=[...gk,...def,...mid,...att];
+ const ids=new Set(selected.map(p=>String(p.id)));for(const p of players.filter(p=>!ids.has(String(p.id))).sort((a,b)=>dreamScore(b)-dreamScore(a))){if(selected.length>=11)break;selected.push(p)}
+ const card=p=>`<div class="card player"><img class="avatar" src="${esc(p.photo||"")}" onerror="this.style.visibility='hidden'"><div style="flex:1"><b>${esc(p.name)}</b><div class="muted">${esc(p.team_name||"")} · ${esc(p.position||"")} · #${p.number||0}</div><div>⚽ ${p.goals||0} · 🎯 ${p.assists||0} · 🧤 ${p.saves||0}</div></div><div class="rating">⭐ ${rating(p)}</div></div>`;
+ $("dreamList").innerHTML=`<div class="card"><h3>🏆 Xəyal komandası</h3><div class="muted">Statistikaya əsasən avtomatik seçilir · 1-4-3-3</div></div><div class="card"><h3>🧤 Qapıçı</h3>${gk.map(card).join("")||'<div class="empty">Tapılmadı.</div>'}</div><div class="card"><h3>🛡️ Müdafiə</h3>${def.map(card).join("")||'<div class="empty">Tapılmadı.</div>'}</div><div class="card"><h3>⚙️ Yarımmüdafiə</h3>${mid.map(card).join("")||'<div class="empty">Tapılmadı.</div>'}</div><div class="card"><h3>⚡ Hücum</h3>${att.map(card).join("")||'<div class="empty">Tapılmadı.</div>'}</div><div class="card"><h3>📋 Tam 11-lik</h3>${selected.map((p,i)=>`<div class="rating-row"><span><b>${i+1}. ${esc(p.name)}</b> <span class="muted">${esc(p.team_name||"")}</span></span><b>⭐ ${rating(p)}</b></div>`).join("")}</div>`;
+}
+
+/* HƏFTƏNİN QOLU */
+async function loadGoalWeek(){
+ const box=$("goalWeekList"),admin=$("goalWeekAdmin");if(!box)return;
+ box.innerHTML='<div class="card">Yüklənir...</div>';admin.innerHTML="";
+ try{
+  const d=await api("/goal-week");
+  const candidates=Array.isArray(d)?d:(Array.isArray(d?.candidates)?d.candidates:Array.isArray(d?.poll?.candidates)?d.poll.candidates:[]);
+  if(!candidates.length){box.innerHTML='<div class="card empty">⚽ Hələ Həftənin qolu üçün namizəd yoxdur.</div>'}
+  else{
+   const max=Math.max(1,...candidates.map(x=>Number(x.votes??x.vote_count)||0));
+   box.innerHTML=`<div class="card"><h3>🏆 Həftənin qolu</h3><div class="muted">Ən çox səs toplayan qol həftənin qalibi olur.</div></div>`+
+   candidates.map((x,i)=>{
+    const votes=Number(x.votes??x.vote_count)||0;
+    return `<div class="card"><h3>${i+1}. ${esc(x.player_name||x.name||"Oyunçu")}</h3><div class="muted">${esc(x.team_name||"")}</div>${x.description?`<p>${esc(x.description)}</p>`:""}${x.video_url?`<video class="goal-video" controls playsinline><source src="${esc(x.video_url)}"></video>`:""}<div class="notice">🗳️ Səslər: <b>${votes}</b><div class="vote-bar"><span style="width:${Math.min(100,votes/max*100)}%"></span></div></div><div class="actions"><button class="btn green" onclick="voteGoal(${x.id})">❤️ Səs ver</button>${isAdmin?`<button class="btn red" onclick="deleteGoalCandidate(${x.id})">Sil</button>`:""}</div></div>`;
+   }).join("");
+  }
+  if(isAdmin)admin.innerHTML=`<div class="card"><h3>🛠 Həftənin qolu — Admin</h3><select id="goalPlayer">${players.map(p=>`<option value="${p.id}">${esc(p.name)} — ${esc(p.team_name||"")}</option>`).join("")}</select><input id="goalVideo" placeholder="Video URL"><input id="goalDescription" placeholder="Qol haqqında qısa məlumat"><button class="btn green" onclick="addGoalCandidate()">➕ Namizəd əlavə et</button><button class="btn red" onclick="closeGoalPoll()">🔒 Səsverməni bağla</button></div>`;
+ }catch(e){box.innerHTML=`<div class="card error">❌ ${esc(e.message)}</div>`}
+}
+async function voteGoal(id){try{await api("/goal-week/vote",{method:"POST",body:JSON.stringify({candidate_id:id})});alert("✅ Səsiniz qəbul edildi.");loadGoalWeek()}catch(e){alert("❌ "+e.message)}}
+async function addGoalCandidate(){try{await api("/goal-week/candidates",{method:"POST",body:JSON.stringify({player_id:$("goalPlayer").value,video_url:$("goalVideo").value.trim(),description:$("goalDescription").value.trim()})});$("goalVideo").value="";$("goalDescription").value="";await loadGoalWeek();alert("✅ Namizəd əlavə edildi.")}catch(e){alert("❌ "+e.message)}}
+async function deleteGoalCandidate(id){if(!confirm("Namizəd silinsin?"))return;try{await api("/goal-week/candidates/"+id,{method:"DELETE"});loadGoalWeek()}catch(e){alert("❌ "+e.message)}}
+async function closeGoalPoll(){if(!confirm("Səsverməni bağlamaq istəyirsiniz?"))return;try{await api("/goal-week/close",{method:"POST"});await loadGoalWeek();alert("✅ Səsvermə bağlandı.")}catch(e){alert("❌ "+e.message)}}
+
+async function loadTransfers(){
+ try{
+  const rows=await api("/transfers");
+  $("marketList").innerHTML=[...players].sort((a,b)=>(+b.transfer_value||0)-(+a.transfer_value||0)).map(p=>`<div class="card player"><img class="avatar" src="${esc(p.photo||"")}" onerror="this.style.visibility='hidden'"><div style="flex:1"><b>${esc(p.name)}</b><div class="muted">${esc(p.team_name||"Klubsuz")} · ⭐ ${rating(p)}</div></div><strong>₼ ${Number(p.transfer_value||0).toLocaleString("az-AZ")}</strong></div>`).join("")||'<div class="empty">Oyunçu yoxdur.</div>';
+  $("transferList").innerHTML=rows.length?`<h3>Son transferlər</h3>`+rows.map(x=>`<div class="card"><b>${esc(x.player_name||"")}</b><br>${esc(x.from_team_name||"Klubsuz")} → <b>${esc(x.to_team_name||"")}</b><div>💰 ₼ ${Number(x.fee||0).toLocaleString("az-AZ")}</div><div class="muted">${x.created_at?new Date(x.created_at).toLocaleString("az-AZ"):""}</div></div>`).join(""):'<div class="empty">Transfer yoxdur.</div>';
+  if(isAdmin)$("transferAdmin").innerHTML=`<div class="card"><h3>🔄 Transfer et</h3><select id="tp">${players.map(p=>`<option value="${p.id}">${esc(p.name)} — ${esc(p.team_name||"")}</option>`).join("")}</select><select id="tt">${teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("")}</select><input id="transferFee" type="number" min="0" step="1" placeholder="💰 Transfer məbləği (₼)"><button class="btn green" onclick="transfer()">🔄 Transfer et</button></div>`;
+ }catch(e){$("transferList").innerHTML='<div class="card error">'+esc(e.message)+'</div>'}
+}
+async function transfer(){try{await api("/transfers",{method:"POST",body:JSON.stringify({player_id:$("tp").value,to_team_id:$("tt").value,fee:$("transferFee")?.value||0})});await loadAll();loadTransfers();alert("Transfer tamamlandı")}catch(e){alert(e.message)}}
+
+function renderAdmin(){$("adminLists").innerHTML=isAdmin?`<h3>Komandalar</h3>${teams.map(t=>`<div class="card"><b>${esc(t.name)}</b><button class="btn gray" onclick="editTeam(${t.id})">Redaktə</button><button class="btn red" onclick="deleteTeam(${t.id})">Sil</button></div>`).join("")}<h3>Oyunçular</h3>${players.map(p=>`<div class="card"><b>${esc(p.name)}</b> — ${esc(p.team_name||"")} · ⭐ ${rating(p)} <button class="btn gray" onclick="editPlayer(${p.id})">Redaktə</button><button class="btn red" onclick="deletePlayer(${p.id})">Sil</button></div>`).join("")}<h3>Matçlar</h3>${matches.map(m=>`<div class="card"><b>${esc(m.home_team_name||team(m.home_team_id))} ${m.home_score??0}:${m.away_score??0} ${esc(m.away_team_name||team(m.away_team_id))}</b><button class="btn gray" onclick="editMatch(${m.id})">Skoru</button><button class="btn red" onclick="deleteMatch(${m.id})">Sil</button></div>`).join("")}`:""}
+function updateLogin(){$("adminLogin").style.display=isAdmin?"none":"block";$("adminPanel").style.display=isAdmin?"block":"none"}
+async function login(){try{await api("/admin/login",{method:"POST",body:JSON.stringify({password:$("adminPassword").value})});$("adminPassword").value="";await loadAll();alert("Admin giriş uğurludur")}catch(e){alert(e.message)}}
+async function logout(){try{await api("/admin/logout",{method:"POST"});isAdmin=false;renderAll();updateLogin()}catch(e){alert(e.message)}}
+async function addTeam(){try{await api("/teams",{method:"POST",body:JSON.stringify({name:$("newTeam").value})});$("newTeam").value="";await loadAll()}catch(e){alert(e.message)}}
+async function addPlayer(){try{await api("/players",{method:"POST",body:JSON.stringify({name:$("newPlayer").value,team_id:$("newPlayerTeam").value,number:$("newNumber").value,position:$("newPosition").value,photo:$("newPhoto").value,rating:$("newRating").value,transfer_value:$("newTransferValue")?.value||0})});await loadAll();alert("Oyunçu əlavə edildi")}catch(e){alert(e.message)}}
+async function addMatch(){try{await api("/matches",{method:"POST",body:JSON.stringify({home_team_id:$("homeTeam").value,away_team_id:$("awayTeam").value,home_score:+$("homeScore").value,away_score:+$("awayScore").value,match_date:$("matchDate").value,status:$("matchStatus").value})});await loadAll();alert("Matç əlavə edildi")}catch(e){alert(e.message)}}
+async function editTeam(id){const t=teams.find(x=>x.id==id);const name=prompt("Komanda adı:",t.name);if(name===null)return;const captain=prompt("Kapitan:",t.captain||"");if(captain===null)return;const points=prompt("Xal:",t.points||0);if(points===null)return;try{await api("/teams/"+id,{method:"PATCH",body:JSON.stringify({name,captain,points:+points})});loadAll()}catch(e){alert(e.message)}}
+async function deleteTeam(id){if(!confirm("Komanda silinsin?"))return;try{await api("/teams/"+id,{method:"DELETE"});loadAll()}catch(e){alert(e.message)}}
+async function editPlayer(id){const p=players.find(x=>x.id==id);const name=prompt("Ad:",p.name);if(name===null)return;const number=prompt("Nömrə:",p.number||0);const photo=prompt("Şəkil URL:",p.photo||"");if(photo===null)return;const playerRating=prompt("Reytinq:",p.rating??0);if(playerRating===null)return;try{await api("/players/"+id,{method:"PATCH",body:JSON.stringify({name,number,photo,rating:Number(playerRating)})});loadAll()}catch(e){alert(e.message)}}
+async function deletePlayer(id){if(!confirm("Oyunçu silinsin?"))return;try{await api("/players/"+id,{method:"DELETE"});loadAll()}catch(e){alert(e.message)}}
+async function editMatch(id){const m=matches.find(x=>x.id==id),hs=prompt("Ev sahibi skoru:",m.home_score||0);if(hs===null)return;const as=prompt("Qonaq skoru:",m.away_score||0);if(as===null)return;const st=prompt("Status scheduled/live/finished:",m.status||"scheduled");if(st===null)return;try{await api("/matches/"+id,{method:"PATCH",body:JSON.stringify({home_score:+hs,away_score:+as,status:st})});loadAll()}catch(e){alert(e.message)}}
+async function deleteMatch(id){if(!confirm("Matç silinsin?"))return;try{await api("/matches/"+id,{method:"DELETE"});loadAll()}catch(e){alert(e.message)}}
+async function changeStat(id,type,amount){try{await api("/statistics/change",{method:"POST",body:JSON.stringify({player_id:id,stat:type,delta:amount})});await loadAll()}catch(e){alert(e.message)}}
+async function changeCard(id,type,amount){try{const cardType=type==="yellow_cards"?"yellow":type==="red_cards"?"red":type;await api("/cards/change",{method:"POST",body:JSON.stringify({player_id:id,card:cardType,delta:amount})});await loadAll()}catch(e){alert(e.message)}}
+
+async function askAliAI(){
+ const box=$("aiReply"),cmd=$("aiCommand").value.trim();
+ if(!cmd)return;
+ try{
+  const d=await api("/admin/ai",{method:"POST",body:JSON.stringify({message:cmd})});
+  box.style.display="block";box.textContent=d.reply||"Hazırdır.";
+  $("aiCommand").value="";
+  await loadAll();
+ }catch(e){box.style.display="block";box.className="notice error";box.textContent=e.message}
+}
+async function sendPushTest(){
+ try{
+  const d=await api("/push/test",{method:"POST"});
+  const p=d.push||{};
+  if(!d.ok || !p.sent) throw Error((d.error||"Push göndərilmədi.")+"\nGöndərildi: "+(p.sent||0)+" / "+(p.total||0)+"\n"+(p.errors?.[0]?.message||""));
+  alert(d.message||"Test push göndərildi.");
+ }catch(e){alert(e.message)}
+}
+
+function addNotificationBox(){$("notificationBox").innerHTML=`<div class="card"><h3>🔔 AliScore bildirişləri</h3><p class="muted">Qol, kart, transfer və Xəyal komandası bildirişləri.</p><button class="btn green" onclick="enablePush()">Bildirişləri aktiv et</button><div id="pushStatus"></div></div>`}
+function base64ToUint8Array(s){const p="=".repeat((4-s.length%4)%4),b=(s+p).replace(/-/g,"+").replace(/_/g,"/"),r=atob(b);return Uint8Array.from([...r].map(c=>c.charCodeAt(0)))}
+async function enablePush(){
+ try{
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
+  const standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone===true;
+  if(isIOS&&!standalone) throw Error("iPhone-da push üçün əvvəl AliScore-u Ana ekrana əlavə et: Safari → Paylaş → Ana ekrana əlavə et. Sonra AliScore-u həmin ikonadan aç və yenidən bas.");
+  if(!("Notification"in window)||!("serviceWorker"in navigator)||!("PushManager"in window)) throw Error("Bu cihazda push bildirişləri dəstəklənmir.");
+  const key=await api("/push/public-key");
+  if(!key.ok||!key.publicKey) throw Error(key.error||"VAPID açarı serverdə yoxdur.");
+  const permission=await Notification.requestPermission();
+  if(permission!=="granted") throw Error("Bildiriş icazəsi verilmədi. iPhone Settings → Notifications → AliScore bölməsini yoxla.");
+  const reg=await navigator.serviceWorker.register("/service-worker.js?v=4",{updateViaCache:"none"});
+  await reg.update();
+  let sub=await reg.pushManager.getSubscription();
+  if(sub){
+    const oldKey=sub.options&&sub.options.applicationServerKey;
+    if(!oldKey){ try{await sub.unsubscribe();sub=null;}catch(_){} }
+  }
+  if(!sub) sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:base64ToUint8Array(key.publicKey)});
+  const saved=await api("/push/subscribe",{method:"POST",body:JSON.stringify(sub.toJSON?sub.toJSON():sub)});
+  if(!saved.ok) throw Error(saved.error||"Push abunəliyi serverə yazılmadı.");
+  const status=await api("/push/status");
+  $("pushStatus").innerHTML='<div class="notice">✅ Bildirişlər aktivdir. Serverdə '+status.subscriptions+' cihaz qeydiyyatdadır.</div>';
+ }catch(e){$("pushStatus").innerHTML='<div class="notice error">❌ '+esc(e.message||e)+'<br><small>Əgər iPhone istifadə edirsənsə, AliScore-u Ana ekrandan açdığından əmin ol.</small></div>'}
+}
+
+window.addEventListener("beforeunload",()=>{ try{leaveLiveMatch()}catch(_){} });
+
+(async()=>{
+ await loadUserAuth();
+ await loadAll();
+ go("home");
+ setTimeout(()=>$("splash")?.classList.add("hide"),900);
+ setInterval(loadAll,30000);
+})();
+</script>
+<script>
+
+/* ===== AliScore UX Pack 1001-1100 ===== */
+(function(){
+ const KEY='aliscore_ux_1001_1100';
+ const state=Object.assign({lastPage:'home',lastMatch:null,lastPlayer:null,lastTeam:null,compact:false,largeText:false,animations:true,oneHand:false,economy:false,timezone:'local',dateFormat:'default',currency:'AZN',density:'normal',language:'az',recentSearches:[],savedSearches:[],pinnedPage:'home'},JSON.parse(localStorage.getItem(KEY)||'{}'));
+ const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
+ const toast=(m)=>{let t=document.querySelector('.as-ux-toast');if(!t){t=document.createElement('div');t.className='as-ux-toast';document.body.appendChild(t)}t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2200)};
+ const esc=x=>String(x??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+ const call=(name,...args)=>{try{if(typeof window[name]==='function')return window[name](...args)}catch(e){toast('⚠️ '+(e.message||e))}};
+ function page(){return document.querySelector('.page.active,[data-page].active')?.id||state.lastPage||'home'}
+ function goPage(p){state.lastPage=p;save();call('showPage',p);call('go',p);document.querySelectorAll('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===p));toast('Открыто: '+p)}
+ function remember(kind,id){if(id==null)return;state['last'+kind]=id;save()}
+ function getMatches(){return Array.isArray(window.matches)?window.matches:[]}
+ function findLive(){return getMatches().find(m=>String(m.status||'').toLowerCase()==='live')}
+ function applyPrefs(){document.documentElement.classList.toggle('as-large-text',!!state.largeText);document.documentElement.classList.toggle('as-compact',!!state.compact);document.documentElement.classList.toggle('as-no-animation',!state.animations);document.documentElement.classList.toggle('as-one-hand',!!state.oneHand);document.documentElement.classList.toggle('as-economy',!!state.economy)}
+ const prefCss=document.createElement('style');prefCss.textContent='.as-large-text body{font-size:calc(100% + 2px)}.as-compact .card{padding:10px!important}.as-no-animation *{animation:none!important;transition:none!important}.as-one-hand body{padding-bottom:45px}.as-economy img{content-visibility:auto}.as-economy video{background:#111}';document.head.appendChild(prefCss);
+ function build(){
+  if(document.querySelector('.as-ux-fab'))return;
+  const overlay=document.createElement('div');overlay.className='as-ux-overlay';overlay.onclick=()=>panel.classList.remove('open');document.body.appendChild(overlay);
+  const fab=document.createElement('button');fab.className='as-ux-fab';fab.textContent='⚡';fab.title='AliScore Quick Actions';document.body.appendChild(fab);
+  const panel=document.createElement('section');panel.className='as-ux-panel';panel.innerHTML=`<div class="as-ux-head"><b>⚡ AliScore Quick Center</b><button class="as-ux-close">✕</button></div><input class="as-ux-search" id="asUxSearch" placeholder="Axtar: oyunçu, komanda, matç..." autocomplete="off"><div id="asUxResults"></div><div class="as-ux-grid" id="asUxGrid"></div><div style="margin-top:12px"><b>⚙️ Görünüş</b><div class="as-ux-settings"><span>Böyük mətn</span><input class="as-ux-switch" type="checkbox" id="asLarge"></div><div class="as-ux-settings"><span>Kompakt görünüş</span><input class="as-ux-switch" type="checkbox" id="asCompact"></div><div class="as-ux-settings"><span>Animasiyalar</span><input class="as-ux-switch" type="checkbox" id="asAnim"></div><div class="as-ux-settings"><span>Enerjiyə qənaət</span><input class="as-ux-switch" type="checkbox" id="asEco"></div></div>`;document.body.appendChild(panel);
+  const grid=panel.querySelector('#asUxGrid');
+  const acts=[
+   ['🏠','Ana səhifə','home'],['🔴','LIVE','live'],['⚽','Matçlar','matches'],['🏆','Turnir','standings'],['👥','Oyunçular','players'],['🏟️','Komandalar','teams'],['📊','Statistika','stats'],['💰','Transferlər','transfers'],['🔔','Bildirişlər','notifications'],['⭐','Xəyal komandası','dream'],['🤖','Ali AI','ai'],['🔎','Axtar','search'],['📜','Tarixçə','history'],['❤️','İzlədiklərim','favorites'],['⚙️','Parametrlər','settings']
+  ];
+  acts.forEach(([i,t,p])=>{const b=document.createElement('button');b.className='as-ux-action';b.innerHTML=i+' '+t;b.onclick=()=>{if(p==='search'){panel.querySelector('#asUxSearch').focus();return}goPage(p)};grid.appendChild(b)});
+  fab.onclick=()=>{panel.classList.toggle('open');overlay.classList.toggle('show',panel.classList.contains('open'));if(panel.classList.contains('open'))panel.querySelector('#asUxSearch').focus()};panel.querySelector('.as-ux-close').onclick=()=>{panel.classList.remove('open');overlay.classList.remove('show')};
+  const set=(id,key)=>{const el=panel.querySelector(id);el.checked=!!state[key];el.onchange=()=>{state[key]=el.checked;save();applyPrefs();toast('Настройка сохранена')}};
+  set('#asLarge','largeText');set('#asCompact','compact');set('#asAnim','animations');set('#asEco','economy');panel.querySelector('#asAnim').checked=state.animations;
+  const inp=panel.querySelector('#asUxSearch');inp.oninput=()=>search(inp.value.trim(),panel.querySelector('#asUxResults'));inp.onkeydown=e=>{if(e.key==='Enter'){const q=inp.value.trim();if(q){state.recentSearches=[q,...state.recentSearches.filter(x=>x!==q)].slice(0,10);save();toast('Axtarış saxlanıldı')}}};
+  const mini=document.createElement('div');mini.className='as-ux-mini';mini.id='asUxMini';document.body.appendChild(mini);
+  updateMini();
+ }
+ function search(q,out){if(!q){out.innerHTML='';return}const low=q.toLowerCase();let rows=[];const ms=getMatches();ms.filter(m=>(`${m.home_team_name||m.homeTeam||''} ${m.away_team_name||m.awayTeam||''} ${m.id||''}`).toLowerCase().includes(low)).slice(0,5).forEach(m=>rows.push(`<button class="as-ux-action" style="width:100%;margin-bottom:6px" data-m="${esc(m.id)}">⚽ ${esc(m.home_team_name||m.homeTeam||'')} ${esc(m.home_score??0)}:${esc(m.away_score??0)} ${esc(m.away_team_name||m.awayTeam||'')}</button>`));out.innerHTML=rows.length?rows.join(''):`<div class="as-ux-empty">Nəticə tapılmadı</div>`;out.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{remember('Match',b.dataset.m);call('openMatch',Number(b.dataset.m));toast('Matç açıldı')})}
+ function updateMini(){const el=document.getElementById('asUxMini');if(!el)return;const m=findLive();if(m){el.classList.add('show');el.innerHTML=`<div class="as-ux-mini-row"><span class="as-ux-live as-ux-pulse">🔴 LIVE</span><b>${esc(m.home_team_name||m.homeTeam||'')} ${m.home_score??0}:${m.away_score??0} ${esc(m.away_team_name||m.awayTeam||'')}</b><button class="as-ux-close" id="asUxOpenLive">Aç</button></div>`;el.querySelector('#asUxOpenLive').onclick=()=>{remember('Match',m.id);call('openMatch',Number(m.id))}}else el.classList.remove('show')}
+ function patchClicks(){document.addEventListener('click',e=>{const a=e.target.closest('[data-match-id],[data-player-id],[data-team-id]');if(!a)return;if(a.dataset.matchId)remember('Match',a.dataset.matchId);if(a.dataset.playerId)remember('Player',a.dataset.playerId);if(a.dataset.teamId)remember('Team',a.dataset.teamId)},{passive:true})}
+ function startup(){applyPrefs();build();patchClicks();setInterval(updateMini,5000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateMini()});window.addEventListener('online',()=>toast('🟢 İnternet bağlantısı bərpa olundu'));window.addEventListener('offline',()=>toast('🔴 İnternet bağlantısı yoxdur'));setTimeout(()=>toast('⚡ AliScore hazırdır'),1200)}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startup);else startup();
+ window.AliScoreUX={state,save,toast,goPage,remember,updateMini};
+})();
+
+</script>
+
+<script id="aliscore-ux-1026-1100">
+(function(){
+ if(window.__AS1026) return; window.__AS1026=true;
+ const KEY='aliscore_ux_1026_1100';
+ let S={favorites:[],recent:[],savedSearches:[],matchFilter:'all',sort:'default',compact:false,installSeen:false,online:navigator.onLine};
+ try{S=Object.assign(S,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(_){ }
+ const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+ const toast=(m)=>{let x=document.querySelector('.as26-toast');if(!x){x=document.createElement('div');x.className='as26-toast';document.body.appendChild(x)}x.textContent=m;x.style.display='block';clearTimeout(x._t);x._t=setTimeout(()=>x.style.display='none',2200)};
+ const esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+ const get=(id)=>document.getElementById(id);
+ const arr=(x)=>Array.isArray(x)?x:[];
+ const data=()=>({matches:arr(window.matches),players:arr(window.players),teams:arr(window.teams)});
+ function remember(type,id,label){if(!id)return;S.recent=[{type,id:String(id),label:String(label||id),at:Date.now()},...S.recent.filter(x=>!(x.type===type&&String(x.id)===String(id)))].slice(0,20);save()}
+ function isFav(type,id){return S.favorites.some(x=>x.type===type&&String(x.id)===String(id))}
+ function fav(type,id,label){const i=S.favorites.findIndex(x=>x.type===type&&String(x.id)===String(id));if(i>=0){S.favorites.splice(i,1);toast('☆ Seçilmişlərdən çıxarıldı')}else{S.favorites.unshift({type,id:String(id),label:String(label||id)});toast('★ Seçilmişlərə əlavə edildi')}save();renderDrawer();}
+ function copyText(t){if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(()=>toast('Kopyalandı')).catch(()=>fallbackCopy(t));else fallbackCopy(t)}
+ function fallbackCopy(t){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();try{document.execCommand('copy');toast('Kopyalandı')}catch(_){toast('Kopyalama mümkün olmadı')}a.remove()}
+ async function share(t,u){try{if(navigator.share)await navigator.share({title:'AliScore',text:t,url:u||location.href});else copyText((t+' '+(u||location.href)).trim())}catch(_){}}
+ function go(p){try{if(typeof window.showPage==='function')window.showPage(p);else if(typeof window.go==='function')window.go(p)}catch(_){}}
+ function openMatch(id){remember('match',id,'Matç #'+id);try{if(typeof window.openMatch==='function')window.openMatch(Number(id))}catch(_){}}
+ function matchLabel(m){return (m.home_team_name||m.home_name||m.home_team||'Ev')+' — '+(m.away_team_name||m.away_name||m.away_team||'Qonaq')}
+ function inject(){
+  if(document.getElementById('as26Center'))return;
+  const host=document.querySelector('main')||document.body;
+  const box=document.createElement('div');box.id='as26Center';box.className='as26-wrap';
+  box.innerHTML=`<div class="card"><div class="as26-toolbar"><input id="as26Search" placeholder="🔎 AliScore-da axtar..."><button class="as26-chip" id="as26FavBtn">★ Seçilmişlər</button><button class="as26-chip" id="as26RecentBtn">🕘 Son baxılanlar</button><button class="as26-chip" id="as26ShareBtn">↗ Paylaş</button><button class="as26-chip" id="as26SettingsBtn">⚙️</button></div><div id="as26Results" class="as26-grid" style="margin-top:10px;display:none"></div></div>`;
+  host.insertBefore(box,host.firstChild);
+  get('as26Search').addEventListener('input',e=>search(e.target.value));
+  get('as26FavBtn').onclick=()=>renderDrawer('favorites');
+  get('as26RecentBtn').onclick=()=>renderDrawer('recent');
+  get('as26ShareBtn').onclick=()=>share('AliScore — futbol nəticələri və canlı matçlar');
+  get('as26SettingsBtn').onclick=()=>settings();
+ }
+ function search(q){q=q.trim().toLowerCase();const out=get('as26Results');if(!q){out.style.display='none';out.innerHTML='';return}const d=data(),res=[];
+  d.matches.forEach(m=>{const txt=JSON.stringify(m).toLowerCase();if(txt.includes(q))res.push({type:'match',id:m.id,title:matchLabel(m),sub:'⚽ Matç',m})});
+  d.players.forEach(p=>{const txt=JSON.stringify(p).toLowerCase();if(txt.includes(q))res.push({type:'player',id:p.id,title:p.name,sub:'👤 Oyunçu',p})});
+  d.teams.forEach(t=>{const txt=JSON.stringify(t).toLowerCase();if(txt.includes(q))res.push({type:'team',id:t.id,title:t.name,sub:'🛡️ Komanda',t})});
+  out.style.display='grid';out.innerHTML=res.slice(0,18).map(x=>`<div class="as26-card"><h4>${esc(x.title)}</h4><div class="as26-muted">${x.sub}</div><div class="as26-actions"><button class="as26-btn" data-a="open" data-t="${x.type}" data-id="${esc(x.id)}">Aç</button><button class="as26-btn light" data-a="fav" data-t="${x.type}" data-id="${esc(x.id)}">${isFav(x.type,x.id)?'★':'☆'}</button></div></div>`).join('')||'<div class="as26-card">Heç nə tapılmadı.</div>';
+  out.querySelectorAll('button').forEach(b=>b.onclick=()=>{const t=b.dataset.t,id=b.dataset.id,a=b.dataset.a; if(a==='fav'){fav(t,id);search(q);return}remember(t,id);if(t==='match')openMatch(id);else if(t==='player'){go('players');setTimeout(()=>document.querySelector(`[data-player-id="${CSS.escape(String(id))}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}),200)}else go('teams')});
+ }
+ function renderDrawer(mode){let d=document.querySelector('.as26-drawer');if(d)d.remove();d=document.createElement('div');d.className='as26-drawer';const items=mode==='recent'?S.recent:S.favorites;d.innerHTML=`<div><div style="display:flex;justify-content:space-between;align-items:center"><h2>${mode==='recent'?'🕘 Son baxılanlar':'★ Seçilmişlər'}</h2><button class="as26-btn light" id="as26Close">Bağla</button></div><div class="as26-list">${items.length?items.map((x,i)=>`<div class="as26-item"><span class="as26-badge">${esc(x.type)}</span><b>${esc(x.label)}</b><button class="as26-btn" data-i="${i}">Aç</button></div>`).join(''):'<div class="as26-muted">Hələ heç nə yoxdur.</div>'}</div><div class="as26-actions"><button class="as26-btn light" id="as26Clear">Təmizlə</button></div></div>`;document.body.appendChild(d);get('as26Close').onclick=()=>d.remove();d.addEventListener('click',e=>{if(e.target===d)d.remove()});get('as26Clear').onclick=()=>{if(mode==='recent')S.recent=[];else S.favorites=[];save();d.remove();toast('Siyahı təmizləndi')};d.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const x=items[Number(b.dataset.i)];if(x.type==='match')openMatch(x.id);else go(x.type==='player'?'players':'teams');d.remove()});}
+ function settings(){let d=document.createElement('div');d.className='as26-drawer';d.innerHTML=`<div><h2>⚙️ AliScore ayarları</h2><div class="as26-card"><b>Yaddaş</b><p class="as26-muted">Son baxılanlar və seçilmişlər yalnız bu cihazda saxlanılır.</p><button class="as26-btn light" id="as26Reset">UX məlumatlarını sıfırla</button></div><div class="as26-card"><b>⌨️ Sürətli düymələr</b><p class="as26-muted"><span class="as26-kbd">/</span> axtarış · <span class="as26-kbd">Esc</span> bağla</p></div><button class="as26-btn" id="as26SetClose">Bağla</button></div>`;document.body.appendChild(d);get('as26SetClose').onclick=()=>d.remove();get('as26Reset').onclick=()=>{S={favorites:[],recent:[],savedSearches:[],matchFilter:'all',sort:'default',compact:false,installSeen:false,online:navigator.onLine};save();d.remove();toast('Ayarlar sıfırlandı')};}
+ function keyboard(){document.addEventListener('keydown',e=>{if(e.key==='/'&&!/input|textarea|select/i.test(document.activeElement.tagName)){e.preventDefault();get('as26Search')?.focus()}if(e.key==='Escape'){document.querySelectorAll('.as26-drawer').forEach(x=>x.remove())}})}
+ function network(){const set=v=>{S.online=v;save();toast(v?'🟢 Online':'🔴 Offline')};window.addEventListener('online',()=>set(true));window.addEventListener('offline',()=>set(false))}
+ function decorate(){document.addEventListener('click',e=>{const m=e.target.closest('[data-match-id]');if(m)remember('match',m.dataset.matchId,m.dataset.label||'Matç');const p=e.target.closest('[data-player-id]');if(p)remember('player',p.dataset.playerId,p.dataset.label||'Oyunçu');const t=e.target.closest('[data-team-id]');if(t)remember('team',t.dataset.teamId,t.dataset.label||'Komanda')})}
+ function init(){inject();keyboard();network();decorate();}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+ window.AliScoreUX1026={search,share,fav,renderDrawer,settings,remember,state:S};
+})();
+</script>
+\n<script id="aliscore-virtual-odds">
+(function(){
+ if(window.__ASODDS) return; window.__ASODDS=true;
+ const KEY='aliscore_virtual_odds_v1';
+ let state={predictions:{},points:0,streak:0,bestStreak:0,correct:0,total:0};
+ try{state=Object.assign(state,JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(_){}
+ const save=()=>localStorage.setItem(KEY,JSON.stringify(state));
+ const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const el=id=>document.getElementById(id);
+ const arr=x=>Array.isArray(x)?x:[];
+ const getMatches=()=>arr(window.matches);
+ const getPlayers=()=>arr(window.players);
+ const teamName=m=>m.home_team_name||m.home_name||m.home_team||'Ev sahibi';
+ const awayName=m=>m.away_team_name||m.away_name||m.away_team||'Qonaq';
+ const finished=m=>String(m.status||'').toLowerCase()==='finished';
+ const scheduled=m=>!finished(m)&&String(m.status||'').toLowerCase()!=='live';
+ const outcome=(h,a)=>Number(h)>Number(a)?'home':Number(h)<Number(a)?'away':'draw';
+ const fmtDate=d=>{if(!d)return '';try{return new Date(d).toLocaleString('az-AZ',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch(_){return ''}};
+ const predKey=m=>String(m.id);
+ function playerOptions(){return getPlayers().map(p=>`<option value="${esc(p.id)}">${esc(p.name)} — ${esc(p.team_name||'')}</option>`).join('')}
+ function ensurePred(m){return state.predictions[predKey(m)]||null}
+ function render(){
+   const box=el('oddsContent'); if(!box)return;
+   const tab=document.querySelector('.odds-tab.active')?.dataset.oddsTab||'upcoming';
+   document.querySelectorAll('.odds-tab').forEach(b=>b.classList.toggle('active',b.dataset.oddsTab===tab));
+   if(tab==='ranking'){renderRanking(box);return}
+   if(tab==='my'){renderMine(box);return}
+   let ms=getMatches().filter(m=>scheduled(m)).sort((a,b)=>new Date(a.match_date||a.date||0)-new Date(b.match_date||b.date||0));
+   if(!ms.length){box.innerHTML='<div class="odds-match odds-empty">🔮 Hazırda proqnoz veriləcək qarşıdakı matç yoxdur.</div>';return}
+   box.innerHTML=ms.map(matchCard).join('');
+   bindCards();
+ }
+ function matchCard(m){
+   const p=ensurePred(m)||{};
+   return `<div class="odds-match" data-odds-match="${esc(m.id)}">
+    <div class="odds-match-head"><div><span class="odds-badge">🔮 VIRTUAL ODDS</span><div class="muted" style="margin-top:5px">${esc(fmtDate(m.match_date||m.date))}</div></div><span class="odds-status">📅 Proqnoz açıq</span></div>
+    <div class="odds-teams"><div class="odds-team">${esc(teamName(m))}</div><div class="odds-vs">VS</div><div class="odds-team">${esc(awayName(m))}</div></div>
+    <div class="muted" style="margin-bottom:6px">Nəticə</div>
+    <div class="odds-options">
+      <button class="odds-option ${p.outcome==='home'?'selected':''}" data-field="outcome" data-value="home">🏠 1</button>
+      <button class="odds-option ${p.outcome==='draw'?'selected':''}" data-field="outcome" data-value="draw">🤝 X</button>
+      <button class="odds-option ${p.outcome==='away'?'selected':''}" data-field="outcome" data-value="away">🚌 2</button>
+    </div>
+    <div class="odds-extra">
+      <label>🎯 Dəqiq hesab<input data-field="score" value="${esc(p.score||'')}" placeholder="Məs: 5:3" inputmode="numeric"></label>
+      <label>🔢 Ümumi qollar<input data-field="total" type="number" min="0" max="99" value="${p.total??''}" placeholder="Məs: 8"></label>
+      <label>⚽ İlk qol vuran<select data-field="firstScorer"><option value="">Seç</option>${playerOptions()}</select></label>
+      <label>⭐ MVP<select data-field="mvp"><option value="">Seç</option>${playerOptions()}</select></label>
+    </div>
+    <button class="btn green odds-submit" data-action="save">🔮 Proqnozu yadda saxla</button>
+    <div class="odds-points">Dəqiq hesab: +7 · Nəticə: +3 · İlk qol: +5 · Ümumi qollar: +2 · MVP: +5</div>
+   </div>`;
+ }
+ function bindCards(){
+   document.querySelectorAll('[data-odds-match]').forEach(card=>{
+     const id=String(card.dataset.oddsMatch);
+     const m=getMatches().find(x=>String(x.id)===id); if(!m)return;
+     const p=ensurePred(m)||{};
+     card.querySelectorAll('.odds-option').forEach(b=>b.onclick=()=>{card.querySelectorAll('.odds-option').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');card.dataset.outcome=b.dataset.value});
+     const first=card.querySelector('[data-field="firstScorer"]');if(first&&p.firstScorer)first.value=p.firstScorer;
+     const mv=card.querySelector('[data-field="mvp"]');if(mv&&p.mvp)mv.value=p.mvp;
+     if(p.outcome)card.dataset.outcome=p.outcome;
+     card.querySelector('[data-action="save"]').onclick=()=>savePrediction(m,card);
+   });
+ }
+ function savePrediction(m,card){
+   if(finished(m)||String(m.status||'').toLowerCase()==='live'){alert('Bu matç üçün proqnoz artıq bağlıdır.');return}
+   const outcomeValue=card.dataset.outcome||card.querySelector('.odds-option.selected')?.dataset.value;
+   const score=card.querySelector('[data-field="score"]')?.value.trim()||'';
+   const total=card.querySelector('[data-field="total"]')?.value;
+   const firstScorer=card.querySelector('[data-field="firstScorer"]')?.value||'';
+   const mvp=card.querySelector('[data-field="mvp"]')?.value||'';
+   if(!outcomeValue){alert('Əvvəl 1, X və ya 2 seç.');return}
+   if(score&&!/^\\d+\\s*:\\s*\\d+$/.test(score)){alert('Dəqiq hesabı 5:3 formatında yaz.');return}
+   state.predictions[predKey(m)]={matchId:m.id,outcome:outcomeValue,score,total:total===''?'':Number(total),firstScorer,mvp,savedAt:Date.now(),scored:false,earned:0};
+   save(); render(); alert('✅ Proqnoz yadda saxlanıldı.');
+ }
+ async function scorePrediction(m,p){
+   if(!finished(m)||p.scored)return p?.earned||0;
+   const h=Number(m.home_score??m.homeScore??0),a=Number(m.away_score??m.awayScore??0);
+   let earned=0;
+   if(p.outcome===outcome(h,a))earned+=3;
+   if(p.score){const norm=p.score.replace(/\\s/g,'');if(norm===`${h}:${a}`)earned+=7}
+   if(p.total!==''&&p.total!=null&&Number(p.total)===h+a)earned+=2;
+   if(p.mvp&&String(m.player_of_match_id||m.playerOfMatchId||'')===String(p.mvp))earned+=5;
+   if(p.firstScorer){
+     try{const d=await fetch('/api/matches/'+encodeURIComponent(m.id)+'/events',{credentials:'include'}).then(r=>r.ok?r.json():[]);const ev=Array.isArray(d)?d:(Array.isArray(d?.events)?d.events:[]);const goal=ev.filter(x=>String(x.type||x.event_type||'').toLowerCase()==='goal').sort((x,y)=>Number(x.minute||0)-Number(y.minute||0))[0];if(goal&&String(goal.player_id||goal.playerId||'')===String(p.firstScorer))earned+=5}catch(_){}
+   }
+   p.scored=true;p.earned=earned;return earned;
+ }
+ async function settle(){
+   let changed=false;
+   for(const m of getMatches()){const p=ensurePred(m);if(p&&!p.scored&&finished(m)){const pts=await scorePrediction(m,p);state.points=(Number(state.points)||0)+pts;state.total=(Number(state.total)||0)+1;if(pts>0){state.correct=(Number(state.correct)||0)+1;state.streak=(Number(state.streak)||0)+1;state.bestStreak=Math.max(Number(state.bestStreak)||0,state.streak)}else state.streak=0;changed=true}}
+   if(changed)save();
+ }
+ function renderMine(box){
+   const list=getMatches().filter(m=>ensurePred(m));
+   const done=list.filter(finished).length;
+   box.innerHTML=`<div class="card"><div class="stats"><div class="stat"><b>${Number(state.points)||0}</b><div>🔮 Xal</div></div><div class="stat"><b>${Number(state.correct)||0}</b><div>Düzgün matç</div></div><div class="stat"><b>${Number(state.streak)||0}</b><div>Seriya</div></div><div class="stat"><b>${Number(state.bestStreak)||0}</b><div>Ən yaxşı seriya</div></div></div></div>`+
+   (list.length?list.map(m=>{const p=ensurePred(m)||{};return `<div class="odds-match"><div class="odds-match-head"><b>${esc(teamName(m))} — ${esc(awayName(m))}</b><span class="odds-status ${finished(m)?'done':''}">${finished(m)?'✅ Bitib':'📅 Açıq'}</span></div><div class="muted">${esc(fmtDate(m.match_date||m.date))}</div><div class="odds-result"><div>Proqnoz: <b>${p.outcome==='home'?'1 — Ev':p.outcome==='away'?'2 — Qonaq':'X — Heç-heçə'}</b></div>${p.score?`<div>Dəqiq hesab: <b>${esc(p.score)}</b></div>`:''}${finished(m)?`<div style="margin-top:5px">Nəticə: <span class="odds-scoreline">${Number(m.home_score??0)}:${Number(m.away_score??0)}</span> · <b>+${Number(p.earned)||0} xal</b></div>`:''}</div></div>`}).join(''):'<div class="odds-match odds-empty">Hələ proqnoz verməmisən.</div>');
+   void done;
+ }
+ function renderRanking(box){
+   box.innerHTML=`<div class="card"><h3>🏆 Virtual proqnoz reytinqi</h3><div class="muted">Hazırda xal bu cihazda saxlanılır. Qlobal reytinq üçün serverə ayrıca proqnoz endpointi əlavə etmək lazımdır.</div><table class="odds-table"><thead><tr><th>#</th><th>Proqnozçu</th><th>Xal</th><th>Düzgün</th></tr></thead><tbody><tr><td>1</td><td>👤 Sən</td><td><b>${Number(state.points)||0}</b></td><td>${Number(state.correct)||0}</td></tr></tbody></table></div>`;
+ }
+ function bindTabs(){document.querySelectorAll('.odds-tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.odds-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');render()})}
+ function open(){settle().finally(render)}
+ window.AliScoreOdds={render,settle,open,state};
+ const oldGo=window.go;
+ if(typeof oldGo==='function'){window.go=function(page){oldGo(page);if(page==='odds')open()}}
+ document.addEventListener('DOMContentLoaded',()=>{bindTabs();setTimeout(()=>{if(document.getElementById('odds'))render()},400);});
+ setInterval(()=>{if(document.getElementById('odds')?.classList.contains('active'))open()},30000);
+})();
+</script>\n
+</body>
+</html>
