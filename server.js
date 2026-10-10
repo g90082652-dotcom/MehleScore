@@ -1169,8 +1169,9 @@ async function seedData() {
     ["Neweli FK", "Veli", 3, "Yarımmüdafiə"],
 
     ["Lotu pişiklər", "Kamran", 1, "Hücum"],
-    ["Lotu pişiklər", "Ayxan", 2, "Müdafiə"],
+    ["Lotu pişiklər", "Əli", 2, "Müdafiə"],
     ["Lotu pişiklər", "Ramil", 3, "Qapıçı"]
+    ["Lotu pişiklər", "İlqar", 4, "Hücum"]
   ];
 
   for (const item of seedPlayers) {
