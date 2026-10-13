@@ -424,7 +424,6 @@ function eventStatColumn(type) {
     goal: "goals",
     assist: "assists",
     save: "saves",
-    conceded: "goals_conceded",
     yellow: "yellow_cards",
     red: "red_cards",
     own_goal: "own_goals"
@@ -434,16 +433,13 @@ function eventStatColumn(type) {
 }
 
 function eventRatingDelta(type) {
-  // AliScore rating rules agreed with the admin:
-  // goal +3, assist +2, save +1, own goal -3, yellow -2, red -4.
   const map = {
-    goal: 3,
-    assist: 2,
-    save: 1,
-    conceded: -1,
-    yellow: -2,
-    red: -4,
-    own_goal: -3
+    goal: 1,
+    assist: 0.5,
+    save: 0.5,
+    yellow: -1,
+    red: -3,
+    own_goal: -2
   };
   return Number(map[type] || 0);
 }
@@ -611,7 +607,6 @@ async function initDatabase() {
       goals INTEGER NOT NULL DEFAULT 0,
       assists INTEGER NOT NULL DEFAULT 0,
       saves INTEGER NOT NULL DEFAULT 0,
-      goals_conceded INTEGER NOT NULL DEFAULT 0,
       yellow_cards INTEGER NOT NULL DEFAULT 0,
       red_cards INTEGER NOT NULL DEFAULT 0,
       rating NUMERIC DEFAULT 0,
@@ -814,11 +809,6 @@ async function initDatabase() {
   await query(`
     ALTER TABLE players
     ADD COLUMN IF NOT EXISTS team_id INTEGER
-  `);
-
-  await query(`
-    ALTER TABLE players
-    ADD COLUMN IF NOT EXISTS goals_conceded INTEGER NOT NULL DEFAULT 0
   `);
 
   try {
@@ -1054,6 +1044,20 @@ async function initDatabase() {
       role TEXT NOT NULL DEFAULT 'user',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  /* GLOBAL MAINTENANCE MODE: shared persistent state for all visitors. */
+  await query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      setting_key TEXT PRIMARY KEY,
+      setting_value JSONB NOT NULL DEFAULT '{}'::jsonb,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query(`
+    INSERT INTO app_settings (setting_key, setting_value)
+    VALUES ('maintenance_mode', '{"enabled": false}'::jsonb)
+    ON CONFLICT (setting_key) DO NOTHING
   `);
 
   /* =======================================================
@@ -1529,6 +1533,50 @@ function requireAdmin(req, res, next) {
 
   next();
 }
+
+/* GLOBAL MAINTENANCE MODE API */
+app.get("/api/maintenance/status", async (req, res) => {
+  try {
+    const result = await query(
+      `SELECT setting_value FROM app_settings WHERE setting_key = 'maintenance_mode' LIMIT 1`
+    );
+    const setting = result.rows[0]?.setting_value || {};
+    const admin = !!verifyAdminToken(getAdminToken(req));
+    res.set("Cache-Control", "no-store");
+    res.json({
+      ok: true,
+      enabled: setting.enabled === true,
+      message: String(setting.message || "AliScore hazırda texniki işlər görür."),
+      admin
+    });
+  } catch (err) {
+    console.error("MAINTENANCE STATUS ERROR:", err.message);
+    res.status(500).json({ ok: false, error: "Texniki rejimin vəziyyəti oxunmadı" });
+  }
+});
+
+app.post("/api/admin/maintenance", requireAdmin, async (req, res) => {
+  try {
+    const enabled = req.body?.enabled === true;
+    const message = String(
+      req.body?.message || "AliScore hazırda texniki işlər görür."
+    ).trim().slice(0, 300);
+
+    const result = await query(
+      `INSERT INTO app_settings (setting_key, setting_value, updated_at)
+       VALUES ('maintenance_mode', $1::jsonb, CURRENT_TIMESTAMP)
+       ON CONFLICT (setting_key)
+       DO UPDATE SET setting_value = EXCLUDED.setting_value,
+                     updated_at = CURRENT_TIMESTAMP
+       RETURNING setting_value`,
+      [JSON.stringify({ enabled, message })]
+    );
+    res.json({ ok: true, enabled: result.rows[0]?.setting_value?.enabled === true, message });
+  } catch (err) {
+    console.error("MAINTENANCE UPDATE ERROR:", err.message);
+    res.status(500).json({ ok: false, error: "Texniki rejimi dəyişmək mümkün olmadı" });
+  }
+});
 
 /* =========================================================
    ADMIN LOGIN
@@ -2311,11 +2359,6 @@ async function updatePlayer(
         ? intValue(req.body.own_goals)
         : old.own_goals;
 
-    const goalsConceded =
-      req.body.goals_conceded !== undefined
-        ? intValue(req.body.goals_conceded)
-        : (old.goals_conceded || 0);
-
     const transferValue =
       req.body.transfer_value !== undefined
         ? Math.max(0, numberValue(req.body.transfer_value, 0))
@@ -2326,40 +2369,6 @@ async function updatePlayer(
       old.rating !== undefined
         ? Number(old.rating)
         : 0;
-
-    // When the admin changes a player's cumulative stats directly,
-    // apply only the difference to the existing rating (avoid recounting
-    // the player's entire career statistics every time the profile is saved).
-    const ratingWeights = {
-      goals: 3,
-      assists: 2,
-      saves: 1,
-      goals_conceded: -1,
-      own_goals: -3,
-      yellow_cards: -2,
-      red_cards: -4
-    };
-    const oldStats = {
-      goals: Number(old.goals || 0),
-      assists: Number(old.assists || 0),
-      saves: Number(old.saves || 0),
-      goals_conceded: Number(old.goals_conceded || 0),
-      own_goals: Number(old.own_goals || 0),
-      yellow_cards: Number(old.yellow_cards || 0),
-      red_cards: Number(old.red_cards || 0)
-    };
-    const newStats = {
-      goals: Number(goals || 0),
-      assists: Number(assists || 0),
-      saves: Number(saves || 0),
-      goals_conceded: Number(goalsConceded || 0),
-      own_goals: Number(ownGoals || 0),
-      yellow_cards: Number(yellowCards || 0),
-      red_cards: Number(redCards || 0)
-    };
-    const statsRatingDelta = Object.keys(ratingWeights).reduce((sum, key) => {
-      return sum + (newStats[key] - oldStats[key]) * ratingWeights[key];
-    }, 0);
 
     if (
       req.body.rating !==
@@ -2380,10 +2389,7 @@ async function updatePlayer(
         });
       }
 
-      // An explicitly supplied rating remains an intentional manual override.
       rating = parsedRating;
-    } else {
-      rating += statsRatingDelta;
     }
 
     if (!Number.isFinite(rating)) {
@@ -2427,9 +2433,8 @@ async function updatePlayer(
             red_cards = $10,
             own_goals = $11,
             transfer_value = $12,
-            rating = $13,
-            goals_conceded = $14
-          WHERE id = $15
+            rating = $13
+          WHERE id = $14
           RETURNING *
         `,
         [
@@ -2446,7 +2451,6 @@ async function updatePlayer(
           ownGoals,
           transferValue,
           rating,
-          goalsConceded,
           id
         ]
       );
@@ -3037,7 +3041,6 @@ app.post(
         "goal",
         "assist",
         "save",
-        "conceded",
         "yellow",
         "red",
         "own_goal"
@@ -3457,7 +3460,6 @@ app.patch(
         "goal",
         "assist",
         "save",
-        "conceded",
         "yellow",
         "red",
         "own_goal"
@@ -4157,20 +4159,8 @@ app.post(
         "goals",
         "assists",
         "saves",
-        "goals_conceded",
-        "own_goals",
-        "yellow_cards",
-        "red_cards"
+        "own_goals"
       ];
-      const ratingPerUnit = {
-        goals: 3,
-        assists: 2,
-        saves: 1,
-        goals_conceded: -1,
-        own_goals: -3,
-        yellow_cards: -2,
-        red_cards: -4
-      };
 
       if (
         !playerId ||
@@ -4188,15 +4178,18 @@ app.post(
           `
             UPDATE players
             SET ${stat} =
-                  GREATEST(COALESCE(${stat}, 0) + $1, 0),
-                rating = COALESCE(rating, 0) +
-                  (GREATEST(COALESCE(${stat}, 0) + $1, 0) - COALESCE(${stat}, 0)) * $2
-            WHERE id = $3
+              GREATEST(
+                COALESCE(
+                  ${stat},
+                  0
+                ) + $1,
+                0
+              )
+            WHERE id = $2
             RETURNING *
           `,
           [
             delta,
-            ratingPerUnit[stat],
             playerId
           ]
         );
@@ -4226,157 +4219,6 @@ app.post(
 /* =========================================================
    ALI AI — ADMIN STATISTICS ASSISTANT
 ========================================================= */
-
-
-
-/* Ali AI single-stat confirmation. This replaces direct UI mutation
-   with a separate, explicitly confirmed operation. */
-app.post("/api/admin/ai/stat-commit", requireAdmin, async (req, res) => {
-  try {
-    const playerId = nullableInt(req.body?.player_id);
-    const stat = cleanString(req.body?.stat);
-    const delta = Number(req.body?.delta);
-    const allowed = ["goals","assists","saves","goals_conceded","own_goals","yellow_cards","red_cards"];
-    if (!playerId || !allowed.includes(stat)) {
-      return res.status(400).json({ok:false,error:"Oyunçu və statistika seçilməlidir."});
-    }
-    if (!Number.isInteger(delta) || delta === 0 || Math.abs(delta) > 1000) {
-      return res.status(400).json({ok:false,error:"Dəyişiklik 1–1000 aralığında olmalıdır."});
-    }
-    const ratingPerUnit = {
-      goals: 3,
-      assists: 2,
-      saves: 1,
-      goals_conceded: -1,
-      own_goals: -3,
-      yellow_cards: -2,
-      red_cards: -4
-    };
-    const ratingDelta = Number(ratingPerUnit[stat] || 0) * delta;
-    const result = await query(
-      `UPDATE players
-       SET ${stat}=GREATEST(COALESCE(${stat},0)+$1,0),
-           rating=COALESCE(rating,0)+$2
-       WHERE id=$3
-       RETURNING id,name,team_id,${stat} AS value,rating`,
-      [delta, ratingDelta, playerId]
-    );
-    if (!result.rows.length) return res.status(404).json({ok:false,error:"Oyunçu tapılmadı."});
-    const labels = {goals:"qol",assists:"assist",saves:"seyv",goals_conceded:"buraxılan qol",own_goals:"avtoqol",yellow_cards:"sarı kart",red_cards:"qırmızı kart"};
-    await createNotification("ai","🤖 Ali AI",`${result.rows[0].name}: ${labels[stat]} ${delta > 0 ? "+" : ""}${delta}`,{player_id:playerId,stat,delta});
-    return res.json({ok:true,player:result.rows[0],reply:"Təsdiqlənmiş statistika yadda saxlanıldı."});
-  } catch (err) {
-    console.error("ALI AI STAT COMMIT ERROR:", err);
-    return res.status(500).json({ok:false,error:err.message || "Statistika yadda saxlanılmadı."});
-  }
-});
-
-/* =========================================================
-   ALI AI MATCH PROTOCOL — atomic preview confirmation commit
-   The browser sends a reviewed protocol. This endpoint creates
-   the match, events and player statistics in one DB transaction.
-========================================================= */
-app.post("/api/admin/ai/match-commit", requireAdmin, async (req, res) => {
-  const client = await pool.connect();
-  try {
-    const body = req.body || {};
-    const homeTeamId = nullableInt(body.home_team_id);
-    const awayTeamId = nullableInt(body.away_team_id);
-    const homeScore = intValue(body.home_score);
-    const awayScore = intValue(body.away_score);
-    const status = cleanString(body.status || "finished");
-    const matchDate = body.match_date || new Date().toISOString();
-    const playerOfMatchId = nullableInt(body.player_of_match_id);
-    const events = Array.isArray(body.events) ? body.events : [];
-    const allowedTypes = ["goal", "assist", "save", "conceded", "yellow", "red", "own_goal"];
-
-    if (!homeTeamId || !awayTeamId || homeTeamId === awayTeamId) {
-      return res.status(400).json({ok:false,error:"İki fərqli komanda seçilməlidir."});
-    }
-    if (![homeScore, awayScore].every(n => Number.isInteger(n) && n >= 0 && n <= 99)) {
-      return res.status(400).json({ok:false,error:"Hesab 0–99 aralığında olmalıdır."});
-    }
-    if (!["scheduled","live","finished"].includes(status)) {
-      return res.status(400).json({ok:false,error:"Matç statusu düzgün deyil."});
-    }
-    if (events.length > 250) {
-      return res.status(400).json({ok:false,error:"Hadisələrin sayı çoxdur."});
-    }
-
-    await client.query("BEGIN");
-
-    const teamResult = await client.query(
-      "SELECT id, name FROM teams WHERE id = ANY($1::int[])",
-      [[homeTeamId, awayTeamId]]
-    );
-    if (teamResult.rows.length !== 2) throw new Error("Seçilmiş komandalar tapılmadı.");
-
-    if (playerOfMatchId) {
-      const pom = await client.query("SELECT id, team_id FROM players WHERE id = $1", [playerOfMatchId]);
-      if (!pom.rows.length) throw new Error("MVP seçimi üzrə oyunçu tapılmadı.");
-      if (![homeTeamId, awayTeamId].includes(Number(pom.rows[0].team_id))) {
-        throw new Error("MVP bu matçın komandalarından birində olmalıdır.");
-      }
-    }
-
-    const matchResult = await client.query(
-      `INSERT INTO matches
-        (home_team_id, away_team_id, home_score, away_score, status, match_date, player_of_match_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [homeTeamId, awayTeamId, homeScore, awayScore, status, matchDate, playerOfMatchId]
-    );
-    const match = matchResult.rows[0];
-
-    const playerCache = new Map();
-    for (const raw of events) {
-      const type = cleanString(raw?.type).toLowerCase();
-      const playerId = nullableInt(raw?.player_id);
-      const teamId = nullableInt(raw?.team_id);
-      const minute = Math.max(0, Math.min(999, intValue(raw?.minute)));
-      const note = cleanString(raw?.note);
-      if (!allowedTypes.includes(type)) throw new Error("Naməlum hadisə tipi: " + type);
-      if (!playerId) throw new Error("Hər hadisə üçün oyunçu seçilməlidir.");
-      if (![homeTeamId, awayTeamId].includes(Number(teamId))) throw new Error("Hadisənin komandası bu matçda iştirak etmir.");
-
-      let player = playerCache.get(Number(playerId));
-      if (!player) {
-        const p = await client.query("SELECT id, name, team_id FROM players WHERE id = $1", [playerId]);
-        if (!p.rows.length) throw new Error("Oyunçu tapılmadı (ID " + playerId + ").");
-        player = p.rows[0];
-        playerCache.set(Number(playerId), player);
-      }
-      if (Number(player.team_id) !== Number(teamId)) {
-        throw new Error(`${player.name} seçilən komandaya aid deyil. Oyunçunun komandasını yoxlayın.`);
-      }
-
-      await client.query(
-        `INSERT INTO match_events (match_id, team_id, player_id, type, minute, note)
-         VALUES ($1,$2,$3,$4,$5,$6)`,
-        [match.id, teamId, playerId, type, minute, note]
-      );
-
-      const statColumn = eventStatColumn(type);
-      if (statColumn) {
-        await client.query(
-          `UPDATE players SET ${statColumn}=COALESCE(${statColumn},0)+1 WHERE id=$1`,
-          [playerId]
-        );
-      }
-      const delta = eventRatingDelta(type);
-      if (delta) await changePlayerRating(client, playerId, delta);
-    }
-
-    await client.query("COMMIT");
-    await createNotification("match", "⚽ Yeni matç", `${teamResult.rows.find(t=>Number(t.id)===homeTeamId)?.name || "Ev sahibi"} ${homeScore}:${awayScore} ${teamResult.rows.find(t=>Number(t.id)===awayTeamId)?.name || "Qonaq"}`, {match_id:match.id});
-    return res.json({ok:true,match_id:match.id,reply:"Matç və protokoldakı statistika yadda saxlanıldı."});
-  } catch (err) {
-    try { await client.query("ROLLBACK"); } catch (_) {}
-    console.error("ALI AI MATCH COMMIT ERROR:", err);
-    return res.status(400).json({ok:false,error:err.message || "Matç yadda saxlanılmadı."});
-  } finally {
-    client.release();
-  }
-});
 
 app.post("/api/admin/ai", requireAdmin, async (req, res) => {
   try {
