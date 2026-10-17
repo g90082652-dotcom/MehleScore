@@ -1271,9 +1271,10 @@ async function seedData() {
   const seedPlayers = [
     ["Xirdalan Wolves", "Ali", 1, "Qapıçı"],
     ["Xirdalan Wolves", "Emin", 2, "Müdafiə"],
-    ["Xirdalan Wolves", "Huseyin", 3, "Müdafiə"],
+    ["Xirdalan Wolves", "Vəli", 3, "Müdafiə"],
     ["Xirdalan Wolves", "Raul", 4, "Hücum"],
-
+    ["Xirdalan Wolves", "Ilqar",5, "Hücüm"],
+    
     ["Xirdalan United", "Amil", 1, "Qapıçı"],
     ["Xirdalan United", "Elmir", 2, "Müdafiə"],
     ["Xirdalan United", "İsa", 3, "Yarımmüdafiə"],
@@ -1282,11 +1283,11 @@ async function seedData() {
 
     ["MSN FK", "Fuad", 1, "Qapıçı"],
     ["MSN FK", "Murad", 2, "Müdafiə"],
-
+    ["MSN FK", "Şamxal", 3, "Müdafiə"],
+    ["MSN FK", "Emil", 4, "Müdafiə"],
+    
     ["Neweli FK", "Tofik", 1, "Qapıçı"],
     ["Neweli FK", "Arda", 2, "Müdafiə"],
-    ["Neweli FK", "Veli", 3, "Yarımmüdafiə"],
-    ["Neweli FK", "Emil", 4, "Hücum"],
 
     ["Lotu pişiklər", "Kamran", 1, "Qapıçı"],
     ["Lotu pişiklər", "Ayxan", 2, "Müdafiə"],
